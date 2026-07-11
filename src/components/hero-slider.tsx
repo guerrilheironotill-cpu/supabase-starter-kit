@@ -81,27 +81,27 @@ export function HeroSlider() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-primary/60 via-primary/10 to-transparent" />
 
-          <div className="relative z-10 mx-auto flex h-full max-w-7xl items-end px-4 pb-10 sm:px-8 sm:pb-12 lg:pb-16">
+          <div className="relative z-10 flex h-full items-center justify-center px-4 pb-16 sm:px-8">
             <div
               className={cn(
-                "w-full max-w-md rounded-2xl bg-white/95 p-6 shadow-2xl backdrop-blur-sm transition-all duration-700 sm:p-8",
+                "w-[90%] sm:w-[75%] lg:w-[60%] text-center text-white transition-all duration-700",
                 i === index
                   ? "translate-y-0 opacity-100"
                   : "translate-y-6 opacity-0",
               )}
             >
-              <span className="inline-block rounded-full bg-secondary px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-primary">
+              <span className="inline-block text-[10px] font-semibold uppercase tracking-[0.35em] text-white/80">
                 {s.eyebrow}
               </span>
-              <h2 className="mt-4 font-display text-3xl leading-[1.05] text-primary sm:text-4xl">
+              <h2 className="mt-4 font-display text-4xl leading-[1.05] text-white sm:text-5xl lg:text-6xl">
                 {s.title}
               </h2>
-              <p className="mt-3 text-sm text-primary/70 sm:text-base">
+              <p className="mx-auto mt-4 max-w-2xl text-sm text-white/85 sm:text-base">
                 {s.description}
               </p>
               <a
                 href={s.ctaHref}
-                className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-secondary hover:text-primary"
+                className="mt-7 inline-flex items-center gap-2 rounded-full border border-white/70 bg-transparent px-6 py-2.5 text-sm font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:text-primary"
               >
                 {s.ctaLabel}
                 <ChevronRight className="h-4 w-4" />
