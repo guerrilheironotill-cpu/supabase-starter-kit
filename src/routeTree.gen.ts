@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SupabaseCheckRouteImport } from './routes/supabase-check'
 import { Route as OrcamentoRouteImport } from './routes/orcamento'
 import { Route as HealthRouteImport } from './routes/health'
+import { Route as BuscaRouteImport } from './routes/busca'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
@@ -29,6 +30,11 @@ const OrcamentoRoute = OrcamentoRouteImport.update({
 const HealthRoute = HealthRouteImport.update({
   id: '/health',
   path: '/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BuscaRoute = BuscaRouteImport.update({
+  id: '/busca',
+  path: '/busca',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -50,6 +56,7 @@ const CategoriaSlugRoute = CategoriaSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/busca': typeof BuscaRoute
   '/health': typeof HealthRoute
   '/orcamento': typeof OrcamentoRoute
   '/supabase-check': typeof SupabaseCheckRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/busca': typeof BuscaRoute
   '/health': typeof HealthRoute
   '/orcamento': typeof OrcamentoRoute
   '/supabase-check': typeof SupabaseCheckRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/busca': typeof BuscaRoute
   '/health': typeof HealthRoute
   '/orcamento': typeof OrcamentoRoute
   '/supabase-check': typeof SupabaseCheckRoute
@@ -77,6 +86,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/busca'
     | '/health'
     | '/orcamento'
     | '/supabase-check'
@@ -85,6 +95,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/busca'
     | '/health'
     | '/orcamento'
     | '/supabase-check'
@@ -93,6 +104,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/auth'
+    | '/busca'
     | '/health'
     | '/orcamento'
     | '/supabase-check'
@@ -102,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  BuscaRoute: typeof BuscaRoute
   HealthRoute: typeof HealthRoute
   OrcamentoRoute: typeof OrcamentoRoute
   SupabaseCheckRoute: typeof SupabaseCheckRoute
@@ -131,6 +144,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/busca': {
+      id: '/busca'
+      path: '/busca'
+      fullPath: '/busca'
+      preLoaderRoute: typeof BuscaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -158,6 +178,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  BuscaRoute: BuscaRoute,
   HealthRoute: HealthRoute,
   OrcamentoRoute: OrcamentoRoute,
   SupabaseCheckRoute: SupabaseCheckRoute,
