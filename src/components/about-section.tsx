@@ -1,14 +1,9 @@
 import { ArrowRight } from "lucide-react";
 import concretePots from "@/assets/concrete-pots.jpg";
-import { Marquee } from "./marquee";
 
 export function AboutSection() {
   return (
     <section className="relative overflow-hidden bg-[#eaf3dd]">
-      <div className="border-y border-primary/10 py-6">
-        <Marquee tone="dark" />
-      </div>
-
       {/* Decorative palm shadow */}
       <div
         aria-hidden="true"
