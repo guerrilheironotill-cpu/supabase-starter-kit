@@ -84,7 +84,7 @@ export function SiteHeader() {
           />
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-1 lg:flex">
           {CATEGORIES.map((cat) => {
             const hasChildren = !!cat.children?.length;
             const isOpen = openMenu === cat.slug;
@@ -185,7 +185,7 @@ export function SiteHeader() {
             href={whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="group relative inline-flex h-10 items-center gap-2 rounded-full bg-secondary px-4 text-sm font-medium text-primary transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary hover:text-secondary"
+            className="group relative hidden h-10 items-center gap-2 rounded-full bg-secondary px-4 text-sm font-medium text-primary transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary hover:text-secondary lg:inline-flex"
             aria-label="Solicitar orçamento pelo WhatsApp"
           >
             <svg
@@ -196,7 +196,7 @@ export function SiteHeader() {
             >
               <path d="M20.52 3.48A11.86 11.86 0 0 0 12.06 0C5.5 0 .18 5.32.18 11.88c0 2.09.55 4.13 1.6 5.93L0 24l6.34-1.66a11.86 11.86 0 0 0 5.72 1.46h.01c6.55 0 11.88-5.32 11.88-11.88 0-3.17-1.24-6.15-3.43-8.44ZM12.07 21.8h-.01a9.9 9.9 0 0 1-5.05-1.38l-.36-.22-3.76.99 1-3.66-.23-.38a9.9 9.9 0 0 1-1.51-5.27c0-5.46 4.44-9.9 9.92-9.9 2.65 0 5.14 1.03 7.01 2.9a9.84 9.84 0 0 1 2.9 7.01c0 5.46-4.44 9.91-9.91 9.91Zm5.43-7.42c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.38-1.47-.88-.79-1.47-1.76-1.64-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.49 0 1.47 1.07 2.89 1.22 3.09.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35Z" />
             </svg>
-            <span className="hidden sm:inline">Solicitar orçamento</span>
+            <span>Solicitar orçamento</span>
           </a>
 
           {/* Search (lupa) — no bg, primary icon; white on scroll */}
@@ -204,7 +204,7 @@ export function SiteHeader() {
             type="button"
             onClick={() => setSearchOpen((v) => !v)}
             className={cn(
-              "inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 hover:-translate-y-0.5",
+              "hidden h-10 w-10 items-center justify-center rounded-full transition-all duration-300 hover:-translate-y-0.5 lg:inline-flex",
               scrolled ? "text-white hover:text-secondary" : "text-primary hover:text-secondary",
             )}
             aria-label="Buscar"
@@ -216,16 +216,15 @@ export function SiteHeader() {
           <button
             type="button"
             className={cn(
-              "inline-flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-primary transition-all duration-300 hover:bg-primary hover:text-secondary md:hidden",
+              "inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 lg:hidden",
+              scrolled
+                ? "text-white hover:text-secondary"
+                : "text-primary hover:text-secondary",
             )}
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="Abrir menu"
           >
-            {mobileOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
-            )}
+            <Menu className="h-6 w-6" />
           </button>
         </div>
       </div>
@@ -283,38 +282,115 @@ export function SiteHeader() {
         </div>
       )}
 
-      {mobileOpen && (
-        <div className="border-t border-border bg-background md:hidden animate-fade-in">
-          <ul className="mx-auto max-w-7xl divide-y divide-border px-4 py-2 sm:px-6">
-            {CATEGORIES.map((cat) => (
-              <li key={cat.slug} className="py-1">
-                <Link
-                  to="/"
-                  className="block rounded-md px-2 py-2 text-sm font-medium text-foreground hover:bg-accent"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  {cat.name}
-                </Link>
-                {cat.children && (
-                  <ul className="ml-3 border-l border-border">
-                    {cat.children.map((sub) => (
-                      <li key={sub.slug}>
-                        <Link
-                          to="/"
-                          className="block rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
-                          onClick={() => setMobileOpen(false)}
-                        >
-                          {sub.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {/* Offcanvas mobile menu (< lg) */}
+      <div
+        className={cn(
+          "fixed inset-0 z-50 lg:hidden",
+          mobileOpen ? "pointer-events-auto" : "pointer-events-none",
+        )}
+        aria-hidden={!mobileOpen}
+      >
+        <div
+          className={cn(
+            "absolute inset-0 bg-black/50 transition-opacity duration-300",
+            mobileOpen ? "opacity-100" : "opacity-0",
+          )}
+          onClick={() => setMobileOpen(false)}
+        />
+        <aside
+          className={cn(
+            "absolute right-0 top-0 flex h-full w-[86%] max-w-sm flex-col bg-background shadow-2xl transition-transform duration-300 ease-out",
+            mobileOpen ? "translate-x-0" : "translate-x-full",
+          )}
+        >
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <img
+              src="https://arteno.com.br/wp-content/uploads/2025/03/Ativo-8-e1782929111841.png"
+              alt="Casa & Jardim"
+              className="h-8 w-auto object-contain"
+            />
+            <button
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-primary transition-colors hover:bg-secondary/20"
+              aria-label="Fechar menu"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="border-b border-border p-5">
+            <form onSubmit={onSearchSubmit} className="flex items-center gap-2 rounded-full border border-border px-4 py-2">
+              <Search className="h-4 w-4 text-primary" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar produtos..."
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+            </form>
+          </div>
+
+          <nav className="flex-1 overflow-y-auto px-3 py-4">
+            <ul className="space-y-1">
+              {CATEGORIES.map((cat) => (
+                <li key={cat.slug}>
+                  <Link
+                    to="/"
+                    className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/20 hover:text-primary"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    {cat.name}
+                  </Link>
+                  {cat.children && (
+                    <ul className="ml-3 border-l border-border">
+                      {cat.children.map((sub) => (
+                        <li key={sub.slug}>
+                          <Link
+                            to="/"
+                            className="block rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
+                            onClick={() => setMobileOpen(false)}
+                          >
+                            {sub.name}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <div className="space-y-3 border-t border-border p-5">
+            <Link
+              to="/orcamento"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center justify-between rounded-full border border-border px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-secondary/20"
+            >
+              <span className="inline-flex items-center gap-2">
+                <FileText className="h-4 w-4" /> Meu orçamento
+              </span>
+              <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-secondary px-1.5 text-xs font-semibold text-primary">
+                {hydrated ? count : 0}
+              </span>
+            </Link>
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMobileOpen(false)}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-secondary px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary hover:text-secondary"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+                <path d="M20.52 3.48A11.86 11.86 0 0 0 12.06 0C5.5 0 .18 5.32.18 11.88c0 2.09.55 4.13 1.6 5.93L0 24l6.34-1.66a11.86 11.86 0 0 0 5.72 1.46h.01c6.55 0 11.88-5.32 11.88-11.88 0-3.17-1.24-6.15-3.43-8.44ZM12.07 21.8h-.01a9.9 9.9 0 0 1-5.05-1.38l-.36-.22-3.76.99 1-3.66-.23-.38a9.9 9.9 0 0 1-1.51-5.27c0-5.46 4.44-9.9 9.92-9.9 2.65 0 5.14 1.03 7.01 2.9a9.84 9.84 0 0 1 2.9 7.01c0 5.46-4.44 9.91-9.91 9.91Zm5.43-7.42c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.38-1.47-.88-.79-1.47-1.76-1.64-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.49 0 1.47 1.07 2.89 1.22 3.09.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35Z" />
+              </svg>
+              Solicitar orçamento
+            </a>
+          </div>
+        </aside>
+      </div>
     </header>
   );
 }
