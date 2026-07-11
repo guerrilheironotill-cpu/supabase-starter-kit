@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Marquee } from "./marquee";
 
 type Slide = {
   image: string;
@@ -59,7 +60,8 @@ export function HeroSlider() {
     setIndex((i) => (i + dir + SLIDES.length) % SLIDES.length);
 
   return (
-    <section className="relative h-[70vh] min-h-[480px] w-full overflow-hidden bg-primary">
+    <section className="relative -mt-20 w-full px-4 sm:px-8 lg:px-[50px]">
+      <div className="relative h-[calc(80px+56vh)] min-h-[500px] w-full overflow-hidden rounded-b-3xl bg-primary">
       {SLIDES.map((s, i) => (
         <div
           key={i}
@@ -77,7 +79,7 @@ export function HeroSlider() {
               i === index ? "scale-105" : "scale-100",
             )}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/80 via-primary/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/75 via-primary/35 to-transparent" />
 
           <div className="relative z-10 mx-auto flex h-full max-w-7xl items-center px-4 sm:px-6 lg:px-8">
             <div
@@ -91,7 +93,7 @@ export function HeroSlider() {
               <span className="inline-block rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
                 {s.eyebrow}
               </span>
-              <h1 className="mt-4 text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl">
+              <h1 className="mt-4 font-display text-4xl leading-[1.05] sm:text-5xl lg:text-6xl">
                 {s.title}
               </h1>
               <p className="mt-4 max-w-md text-base text-white/85 sm:text-lg">
@@ -126,7 +128,14 @@ export function HeroSlider() {
         <ChevronRight className="h-5 w-5" />
       </button>
 
-      <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
+      {/* Marquee overlay at bottom of slider */}
+      <div className="absolute inset-x-0 bottom-0 z-20 bg-primary/40 backdrop-blur-sm">
+        <Marquee />
+      </div>
+      </div>
+
+      {/* Dots outside the slider */}
+      <div className="mt-5 flex items-center justify-center gap-2">
         {SLIDES.map((_, i) => (
           <button
             key={i}
@@ -135,7 +144,9 @@ export function HeroSlider() {
             aria-label={`Ir para o slide ${i + 1}`}
             className={cn(
               "h-1.5 rounded-full transition-all duration-500",
-              i === index ? "w-8 bg-secondary" : "w-4 bg-white/40 hover:bg-white/70",
+              i === index
+                ? "w-8 bg-secondary"
+                : "w-4 bg-white/30 hover:bg-white/60",
             )}
           />
         ))}
