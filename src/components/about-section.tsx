@@ -17,7 +17,7 @@ export function AboutSection() {
         <div className="relative">
           <div className="aspect-square overflow-hidden rounded-2xl bg-primary/5 shadow-xl ring-1 ring-primary/10">
             <img
-              src="https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=1200&q=80"
+              src="https://arteno.com.br/wp-content/uploads/2024/09/arteno-vasodecor-p-vaso-cimento-florianopolis-vaso-concreto.jpg"
               alt="Coleção de vasos artesanais em concreto"
               loading="lazy"
               className="h-full w-full object-cover"
