@@ -60,8 +60,8 @@ export function HeroSlider() {
     setIndex((i) => (i + dir + SLIDES.length) % SLIDES.length);
 
   return (
-    <section className="relative w-full px-4 pt-4 sm:px-8 lg:px-[50px]">
-      <div className="relative h-[56vh] min-h-[420px] w-full overflow-hidden rounded-3xl bg-primary">
+    <section className="relative -mt-20 w-full px-4 sm:px-8 lg:px-[50px]">
+      <div className="relative h-[calc(80px+56vh)] min-h-[500px] w-full overflow-hidden rounded-b-3xl bg-primary">
       {SLIDES.map((s, i) => (
         <div
           key={i}
