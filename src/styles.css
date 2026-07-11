@@ -73,7 +73,7 @@
   --primary-foreground: oklch(0.984 0.003 247.858);
   --secondary: #9cc97c;
   --secondary-foreground: #093a3e;
-  --header-scrolled: color-mix(in oklab, #093a3e 78%, #4a5a4a 22%);
+  --header-scrolled: color-mix(in oklab, #2a2f2c 85%, #093a3e 15%);
   --muted: oklch(0.968 0.007 247.896);
   --muted-foreground: oklch(0.554 0.046 257.417);
   --accent: oklch(0.968 0.007 247.896);
@@ -142,4 +142,19 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
+}
+
+@keyframes dropdown-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility dropdown-enter {
+  animation: dropdown-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
