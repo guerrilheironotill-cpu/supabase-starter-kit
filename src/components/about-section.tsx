@@ -26,7 +26,7 @@ export function AboutSection() {
         </div>
 
         <div>
-          <h2 className="font-display text-4xl leading-[1.1] text-primary sm:text-5xl lg:text-[3.25rem]">
+          <h2 className="font-display text-3xl leading-[1.15] text-primary sm:text-4xl">
             Utilizamos o concreto como matéria-prima para criar peças artesanais únicas.
           </h2>
           <p className="mt-6 max-w-xl text-base text-primary/75 sm:text-lg">

@@ -94,9 +94,9 @@ export function HeroSlider() {
               <span className="inline-block text-[10px] font-semibold uppercase tracking-[0.35em] text-white/80">
                 {s.eyebrow}
               </span>
-              <h2 className="mt-4 font-display text-4xl leading-[1.05] text-white sm:text-5xl lg:text-6xl">
+              <h1 className="mt-4 font-display text-4xl leading-[1.05] text-white sm:text-5xl lg:text-6xl">
                 {s.title}
-              </h2>
+              </h1>
               <p className="mx-auto mt-4 max-w-2xl text-sm text-white/85 sm:text-base">
                 {s.description}
               </p>
