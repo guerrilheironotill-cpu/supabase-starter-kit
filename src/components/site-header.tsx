@@ -56,7 +56,7 @@ export function SiteHeader() {
     e.preventDefault();
     const q = searchQuery.trim();
     if (!q) return;
-    window.location.href = `/?q=${encodeURIComponent(q)}`;
+    window.location.href = `/busca?q=${encodeURIComponent(q)}`;
   };
 
   return (
@@ -95,7 +95,8 @@ export function SiteHeader() {
                 onMouseLeave={() => hasChildren && setOpenMenu(null)}
               >
                 <Link
-                  to="/"
+                  to={hasChildren ? "/" : "/categoria/$slug"}
+                  params={hasChildren ? undefined : { slug: cat.slug }}
                   className={cn(
                     "group/nav relative inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm font-medium transition-all duration-300 hover:-translate-y-0.5",
                     scrolled
@@ -138,7 +139,8 @@ export function SiteHeader() {
                         {cat.children!.map((sub) => (
                           <li key={sub.slug}>
                             <Link
-                              to="/"
+                              to="/categoria/$slug"
+                              params={{ slug: sub.slug }}
                               className="group/sub relative block px-4 py-2 text-sm text-popover-foreground transition-colors hover:text-primary"
                               onClick={() => setOpenMenu(null)}
                             >
@@ -333,7 +335,8 @@ export function SiteHeader() {
               {CATEGORIES.map((cat) => (
                 <li key={cat.slug}>
                   <Link
-                    to="/"
+                    to={cat.children ? "/" : "/categoria/$slug"}
+                    params={cat.children ? undefined : { slug: cat.slug }}
                     className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/20 hover:text-primary"
                     onClick={() => setMobileOpen(false)}
                   >
@@ -344,7 +347,8 @@ export function SiteHeader() {
                       {cat.children.map((sub) => (
                         <li key={sub.slug}>
                           <Link
-                            to="/"
+                            to="/categoria/$slug"
+                            params={{ slug: sub.slug }}
                             className="block rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
                             onClick={() => setMobileOpen(false)}
                           >
