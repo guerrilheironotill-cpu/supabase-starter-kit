@@ -1,15 +1,12 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { Check } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { PageHero } from "@/components/page-hero";
 import {
   fetchProductBySlug,
   slugify,
   type ProductDetail,
   type ProductSize,
-  type ProductOption,
 } from "@/lib/products";
 import { useQuoteStore } from "@/lib/quote-store";
 
@@ -78,6 +75,27 @@ function formatBRL(n: number) {
   });
 }
 
+function parseDims(
+  name: string,
+): { altura: string; largura: string; comprimento: string } | null {
+  const m = name.match(
+    /(\d+(?:[.,]\d+)?)\s*cm\s*[×x]\s*(\d+(?:[.,]\d+)?)\s*cm\s*[×x]\s*(\d+(?:[.,]\d+)?)\s*cm/i,
+  );
+  if (!m) return null;
+  return {
+    altura: `${m[1]} cm`,
+    largura: `${m[2]} cm`,
+    comprimento: `${m[3]} cm`,
+  };
+}
+
+const SIZE_LABELS = ["P", "M", "G", "GG", "XG", "XXG"];
+function sizeCode(idx: number, total: number): string {
+  if (total === 1) return "Único";
+  if (total <= SIZE_LABELS.length) return SIZE_LABELS[idx];
+  return String(idx + 1);
+}
+
 function ProductPage() {
   const { product: initial } = Route.useLoaderData();
   const { data: product = initial } = useQuery({
@@ -91,31 +109,26 @@ function ProductPage() {
   const sizes: ProductSize[] = [...(p.product_sizes ?? [])].sort(
     (a, b) => a.sort_order - b.sort_order,
   );
-  const finishes: ProductOption[] = [...(p.product_finishes ?? [])].sort(
-    (a, b) => a.sort_order - b.sort_order,
-  );
-  const colors: ProductOption[] = [...(p.product_colors ?? [])].sort(
-    (a, b) => a.sort_order - b.sort_order,
-  );
-
-  const [imgIdx, setImgIdx] = useState(0);
-  const [sizeId, setSizeId] = useState<string | null>(sizes[0]?.id ?? null);
-  const [finishId, setFinishId] = useState<string | null>(
-    finishes[0]?.id ?? null,
-  );
-  const [colorId, setColorId] = useState<string | null>(colors[0]?.id ?? null);
-
-  const selectedSize: ProductSize | null =
-    sizes.find((s) => s.id === sizeId) ?? null;
   const addItem = useQuoteStore((s) => s.addItem);
+
+  const effectivePrices = sizes.map((s) => s.sale_price ?? s.base_price);
+  const priceMin = effectivePrices.length ? Math.min(...effectivePrices) : null;
+  const priceMax = effectivePrices.length ? Math.max(...effectivePrices) : null;
+  const hasDiscount = sizes.some(
+    (s) => s.sale_price !== null && s.sale_price < s.base_price,
+  );
+  const basePrices = sizes.map((s) => s.base_price);
+  const baseMin = basePrices.length ? Math.min(...basePrices) : null;
+  const baseMax = basePrices.length ? Math.max(...basePrices) : null;
+
+  const images = p.images ?? [];
 
   function handleAdd() {
     addItem({
-      id: `${p.id}:${sizeId ?? "default"}:${finishId ?? "-"}:${colorId ?? "-"}`,
-      name:
-        p.name + (selectedSize ? ` — ${selectedSize.name}` : ""),
+      id: `${p.id}`,
+      name: p.name,
       slug: p.slug,
-      image: p.images?.[0],
+      image: images[0],
     });
   }
 
@@ -132,104 +145,122 @@ function ProductPage() {
           },
           { label: p.name },
         ]}
-        image={p.images?.[0]}
+        image={images[0]}
       />
 
       <section className="bg-[#eaf3dd] py-12 sm:py-16">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-8 lg:grid-cols-2">
-          {/* Gallery */}
-          <div>
-            <div className="aspect-square overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-primary/10">
-              {p.images?.[imgIdx] ? (
-                <img
-                  src={p.images[imgIdx]}
-                  alt={p.name}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="h-full w-full bg-primary/5" />
-              )}
-            </div>
-            {p.images && p.images.length > 1 && (
-              <div className="mt-4 grid grid-cols-5 gap-2">
-                {p.images.map((src: string, i: number) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setImgIdx(i)}
-                    className={cn(
-                      "aspect-square overflow-hidden rounded-lg ring-1 transition-all",
-                      i === imgIdx
-                        ? "ring-2 ring-primary"
-                        : "ring-primary/10 hover:ring-primary/40",
-                    )}
-                  >
-                    <img
-                      src={src}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-8 lg:grid-cols-2 lg:items-start">
+          {/* Gallery — stacked, scrolls with page */}
+          <div className="flex flex-col gap-4">
+            {images.length > 0 ? (
+              images.map((src: string, i: number) => (
+                <div
+                  key={i}
+                  className="aspect-square overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-primary/10"
+                >
+                  <img
+                    src={src}
+                    alt={`${p.name} — imagem ${i + 1}`}
+                    loading={i === 0 ? "eager" : "lazy"}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              ))
+            ) : (
+              <div className="aspect-square rounded-3xl bg-primary/5" />
             )}
           </div>
 
-          {/* Info */}
-          <div>
+          {/* Info — sticky until last image passes */}
+          <div className="lg:sticky lg:top-24">
             <h1 className="font-display text-3xl text-primary sm:text-4xl">
               {p.name}
             </h1>
 
-            {selectedSize && (
+            {priceMin !== null && priceMax !== null && (
               <div className="mt-4">
-                {selectedSize.sale_price !== null &&
-                selectedSize.sale_price < selectedSize.base_price ? (
-                  <div className="flex items-baseline gap-3">
-                    <span className="font-display text-3xl text-primary">
-                      {formatBRL(selectedSize.sale_price)}
-                    </span>
-                    <span className="text-lg text-primary/50 line-through">
-                      {formatBRL(selectedSize.base_price)}
-                    </span>
+                {hasDiscount && baseMin !== null && baseMax !== null && (
+                  <div className="text-sm text-primary/50 line-through">
+                    {baseMin === baseMax
+                      ? formatBRL(baseMin)
+                      : `${formatBRL(baseMin)} até ${formatBRL(baseMax)}`}
                   </div>
-                ) : (
-                  <span className="font-display text-3xl text-primary">
-                    {formatBRL(selectedSize.base_price)}
-                  </span>
                 )}
+                <div className="font-display text-3xl text-primary">
+                  {priceMin === priceMax
+                    ? formatBRL(priceMin)
+                    : `${formatBRL(priceMin)} até ${formatBRL(priceMax)}`}
+                </div>
+              </div>
+            )}
+
+            {sizes.length > 0 && (
+              <div className="mt-8">
+                <h2 className="mb-3 font-display text-lg font-semibold text-primary">
+                  Tabela de tamanhos
+                </h2>
+                <div className="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-primary/10">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-primary/5 text-xs uppercase tracking-widest text-primary/70">
+                      <tr>
+                        <th className="px-3 py-2 font-semibold">Tam.</th>
+                        <th className="px-3 py-2 font-semibold">Alt.</th>
+                        <th className="px-3 py-2 font-semibold">Larg.</th>
+                        <th className="px-3 py-2 font-semibold">Comp.</th>
+                        <th className="px-3 py-2 font-semibold">Preço</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-primary">
+                      {sizes.map((s, i) => {
+                        const dims = parseDims(s.name);
+                        const hasSale =
+                          s.sale_price !== null && s.sale_price < s.base_price;
+                        return (
+                          <tr
+                            key={s.id}
+                            className="border-t border-primary/10"
+                          >
+                            <td className="px-3 py-2.5 font-semibold">
+                              {sizeCode(i, sizes.length)}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {dims?.altura ?? "—"}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {dims?.largura ?? "—"}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {dims?.comprimento ?? (dims ? "—" : s.name)}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {hasSale ? (
+                                <span className="flex flex-wrap items-baseline gap-1.5">
+                                  <span className="text-xs text-primary/50 line-through">
+                                    {formatBRL(s.base_price)}
+                                  </span>
+                                  <span className="font-semibold">
+                                    {formatBRL(s.sale_price!)}
+                                  </span>
+                                </span>
+                              ) : (
+                                <span className="font-semibold">
+                                  {formatBRL(s.base_price)}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
             {p.description && (
-              <p className="mt-5 whitespace-pre-line text-sm leading-relaxed text-primary/80">
+              <p className="mt-6 whitespace-pre-line text-sm leading-relaxed text-primary/80">
                 {p.description}
               </p>
-            )}
-
-            {sizes.length > 0 && (
-              <OptionGroup
-                label="Tamanho"
-                options={sizes.map((s) => ({ id: s.id, name: s.name }))}
-                value={sizeId}
-                onChange={setSizeId}
-              />
-            )}
-            {finishes.length > 0 && (
-              <OptionGroup
-                label="Acabamento"
-                options={finishes.map((f) => ({ id: f.id, name: f.name }))}
-                value={finishId}
-                onChange={setFinishId}
-              />
-            )}
-            {colors.length > 0 && (
-              <OptionGroup
-                label="Cor"
-                options={colors.map((c) => ({ id: c.id, name: c.name }))}
-                value={colorId}
-                onChange={setColorId}
-              />
             )}
 
             <button
@@ -244,46 +275,5 @@ function ProductPage() {
         </div>
       </section>
     </>
-  );
-}
-
-type Opt = { id: string; name: string };
-function OptionGroup({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: Opt[];
-  value: string | null;
-  onChange: (id: string) => void;
-}) {
-  return (
-    <div className="mt-6">
-      <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary/70">
-        {label}
-      </h3>
-      <div className="flex flex-wrap gap-2">
-        {options.map((o) => {
-          const active = value === o.id;
-          return (
-            <button
-              key={o.id}
-              type="button"
-              onClick={() => onChange(o.id)}
-              className={cn(
-                "rounded-full border px-4 py-2 text-xs font-medium transition-all",
-                active
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-primary/20 bg-white text-primary hover:border-primary/50",
-              )}
-            >
-              {o.name}
-            </button>
-          );
-        })}
-      </div>
-    </div>
   );
 }
