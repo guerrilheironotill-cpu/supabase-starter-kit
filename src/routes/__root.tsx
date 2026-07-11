@@ -140,7 +140,7 @@ function RootComponent() {
         className="flex min-h-screen flex-col"
         style={{
           background:
-            "linear-gradient(to bottom, #ffffff 0%, #ffffff 50%, #eaf3dd 50%, #eaf3dd 100%)",
+            "linear-gradient(to bottom, #ffffff 0, #ffffff calc(100px + 28vh), #eaf3dd calc(100px + 28vh), #eaf3dd 100%)",
         }}
       >
         <SiteHeader />
