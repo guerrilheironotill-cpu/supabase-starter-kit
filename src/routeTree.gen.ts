@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SupabaseCheckRouteImport } from './routes/supabase-check'
 import { Route as OrcamentoRouteImport } from './routes/orcamento'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 
+const SupabaseCheckRoute = SupabaseCheckRouteImport.update({
+  id: '/supabase-check',
+  path: '/supabase-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrcamentoRoute = OrcamentoRouteImport.update({
   id: '/orcamento',
   path: '/orcamento',
@@ -40,12 +46,14 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/health': typeof HealthRoute
   '/orcamento': typeof OrcamentoRoute
+  '/supabase-check': typeof SupabaseCheckRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/health': typeof HealthRoute
   '/orcamento': typeof OrcamentoRoute
+  '/supabase-check': typeof SupabaseCheckRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/health': typeof HealthRoute
   '/orcamento': typeof OrcamentoRoute
+  '/supabase-check': typeof SupabaseCheckRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/health' | '/orcamento'
+  fullPaths: '/' | '/auth' | '/health' | '/orcamento' | '/supabase-check'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/health' | '/orcamento'
-  id: '__root__' | '/' | '/auth' | '/health' | '/orcamento'
+  to: '/' | '/auth' | '/health' | '/orcamento' | '/supabase-check'
+  id: '__root__' | '/' | '/auth' | '/health' | '/orcamento' | '/supabase-check'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,10 +76,18 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   HealthRoute: typeof HealthRoute
   OrcamentoRoute: typeof OrcamentoRoute
+  SupabaseCheckRoute: typeof SupabaseCheckRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/supabase-check': {
+      id: '/supabase-check'
+      path: '/supabase-check'
+      fullPath: '/supabase-check'
+      preLoaderRoute: typeof SupabaseCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/orcamento': {
       id: '/orcamento'
       path: '/orcamento'
@@ -107,17 +124,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   HealthRoute: HealthRoute,
   OrcamentoRoute: OrcamentoRoute,
+  SupabaseCheckRoute: SupabaseCheckRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
