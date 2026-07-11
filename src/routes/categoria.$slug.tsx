@@ -8,6 +8,7 @@ import {
   applyFilters,
   priceFromOf,
   type FilterState,
+  DEFAULT_FILTERS,
 } from "@/components/product-filters";
 import {
   fetchCategories,
@@ -66,10 +67,7 @@ export const Route = createFileRoute("/categoria/$slug")({
 
 function CategoryPage() {
   const { category } = Route.useLoaderData();
-  const [filters, setFilters] = useState<FilterState>({
-    sizes: [],
-    maxPrice: null,
-  });
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products", "by-category-full", category],

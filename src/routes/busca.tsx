@@ -10,6 +10,7 @@ import {
   priceFromOf,
   type FilterState,
 } from "@/components/product-filters";
+import { DEFAULT_FILTERS } from "@/components/product-filters";
 import { fetchProductsWithSizes } from "@/lib/products";
 
 const searchSchema = z.object({
@@ -42,10 +43,7 @@ export const Route = createFileRoute("/busca")({
 
 function SearchPage() {
   const { q } = Route.useSearch();
-  const [filters, setFilters] = useState<FilterState>({
-    sizes: [],
-    maxPrice: null,
-  });
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products", "search", q],
