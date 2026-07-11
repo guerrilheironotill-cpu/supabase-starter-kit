@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown, FileText, Menu, Search, X } from "lucide-react";
 import { useQuoteStore } from "@/lib/quote-store";
 import { cn } from "@/lib/utils";
+import { WhatsAppQuoteDrawer } from "./whatsapp-quote-drawer";
 
 type Category = {
   slug: string;
@@ -38,6 +39,7 @@ export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [waOpen, setWaOpen] = useState(false);
   const hydrated = useHydrated();
   const count = useQuoteStore((s) =>
     s.items.reduce((n, i) => n + i.quantity, 0),
@@ -50,10 +52,6 @@ export function SiteHeader() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const whatsappHref =
-    "https://wa.me/5500000000000?text=" +
-    encodeURIComponent("Olá! Gostaria de solicitar um orçamento.");
-
   const onSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const q = searchQuery.trim();
@@ -62,12 +60,13 @@ export function SiteHeader() {
   };
 
   return (
+    <>
     <header
       className={cn(
         "sticky top-0 z-40 w-full transition-[background-color,backdrop-filter,border-color,box-shadow] duration-700 ease-out",
         scrolled
           ? "border-b border-white/10 backdrop-blur-md shadow-sm"
-          : "border-b border-transparent bg-background",
+          : "border-b border-transparent bg-transparent",
       )}
       style={
         scrolled
