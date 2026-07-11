@@ -136,7 +136,13 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex min-h-screen flex-col bg-primary">
+      <div
+        className="flex min-h-screen flex-col"
+        style={{
+          background:
+            "linear-gradient(to bottom, #ffffff 0%, #ffffff 50%, #eaf3dd 50%, #eaf3dd 100%)",
+        }}
+      >
         <SiteHeader />
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <main className="flex-1">

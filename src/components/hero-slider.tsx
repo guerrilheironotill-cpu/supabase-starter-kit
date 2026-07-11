@@ -60,8 +60,8 @@ export function HeroSlider() {
     setIndex((i) => (i + dir + SLIDES.length) % SLIDES.length);
 
   return (
-    <section className="relative -mt-20 w-full px-4 sm:px-8 lg:px-[50px]">
-      <div className="relative h-[calc(80px+56vh)] min-h-[500px] w-full overflow-hidden rounded-b-3xl bg-primary">
+    <section className="relative w-full px-4 sm:px-8 lg:px-[50px]">
+      <div className="relative h-[56vh] min-h-[420px] w-full overflow-hidden rounded-3xl bg-primary">
       {SLIDES.map((s, i) => (
         <div
           key={i}
@@ -79,29 +79,29 @@ export function HeroSlider() {
               i === index ? "scale-105" : "scale-100",
             )}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/75 via-primary/35 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-primary/60 via-primary/10 to-transparent" />
 
-          <div className="relative z-10 mx-auto flex h-full max-w-7xl items-center px-4 sm:px-6 lg:px-8">
+          <div className="relative z-10 mx-auto flex h-full max-w-7xl items-end px-4 pb-10 sm:px-8 sm:pb-12 lg:pb-16">
             <div
               className={cn(
-                "max-w-xl text-white transition-all duration-700",
+                "w-full max-w-md rounded-2xl bg-white/95 p-6 shadow-2xl backdrop-blur-sm transition-all duration-700 sm:p-8",
                 i === index
                   ? "translate-y-0 opacity-100"
                   : "translate-y-6 opacity-0",
               )}
             >
-              <span className="inline-block rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
+              <span className="inline-block rounded-full bg-secondary px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-primary">
                 {s.eyebrow}
               </span>
-              <h1 className="mt-4 font-display text-4xl leading-[1.05] sm:text-5xl lg:text-6xl">
+              <h2 className="mt-4 font-display text-3xl leading-[1.05] text-primary sm:text-4xl">
                 {s.title}
-              </h1>
-              <p className="mt-4 max-w-md text-base text-white/85 sm:text-lg">
+              </h2>
+              <p className="mt-3 text-sm text-primary/70 sm:text-base">
                 {s.description}
               </p>
               <a
                 href={s.ctaHref}
-                className="mt-8 inline-flex items-center gap-2 rounded-full bg-secondary px-6 py-3 text-sm font-medium text-primary transition-all duration-300 hover:-translate-y-0.5 hover:bg-white"
+                className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-secondary hover:text-primary"
               >
                 {s.ctaLabel}
                 <ChevronRight className="h-4 w-4" />
@@ -128,8 +128,8 @@ export function HeroSlider() {
         <ChevronRight className="h-5 w-5" />
       </button>
 
-      {/* Marquee overlay at bottom of slider */}
-      <div className="absolute inset-x-0 bottom-0 z-20 bg-primary/40 backdrop-blur-sm">
+      {/* Marquee (no bg, no blur) sits over the slider bottom, inside rounded clip */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-4 z-30">
         <Marquee />
       </div>
       </div>
@@ -145,8 +145,8 @@ export function HeroSlider() {
             className={cn(
               "h-1.5 rounded-full transition-all duration-500",
               i === index
-                ? "w-8 bg-secondary"
-                : "w-4 bg-white/30 hover:bg-white/60",
+                ? "w-8 bg-primary"
+                : "w-4 bg-primary/25 hover:bg-primary/50",
             )}
           />
         ))}

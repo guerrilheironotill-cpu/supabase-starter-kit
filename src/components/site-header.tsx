@@ -74,7 +74,7 @@ export function SiteHeader() {
           : undefined
       }
     >
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-[100px] max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2">
           <img
             src="https://arteno.com.br/wp-content/uploads/2025/03/Ativo-8-e1782929111841.png"
@@ -98,8 +98,10 @@ export function SiteHeader() {
                   to="/"
                   className={cn(
                     "group/nav relative inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm font-medium transition-all duration-300 hover:-translate-y-0.5",
-                    "text-white/85 hover:text-white",
-                    isOpen && "text-white",
+                    scrolled
+                      ? "text-white/85 hover:text-white"
+                      : "text-primary/80 hover:text-primary",
+                    isOpen && (scrolled ? "text-white" : "text-primary"),
                   )}
                   onClick={(e) => {
                     if (hasChildren) {
@@ -166,7 +168,7 @@ export function SiteHeader() {
             <FileText
               className={cn(
                 "h-5 w-5 transition-colors",
-              "text-white",
+              scrolled ? "text-white" : "text-primary",
               )}
             />
             <span
@@ -201,7 +203,7 @@ export function SiteHeader() {
             onClick={() => setSearchOpen((v) => !v)}
             className={cn(
               "hidden h-10 w-10 items-center justify-center rounded-full transition-all duration-300 hover:-translate-y-0.5 lg:inline-flex",
-              "text-white hover:text-secondary",
+              scrolled ? "text-white hover:text-secondary" : "text-primary hover:text-secondary",
             )}
             aria-label="Buscar"
             aria-expanded={searchOpen}
@@ -213,7 +215,7 @@ export function SiteHeader() {
             type="button"
             className={cn(
               "inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 lg:hidden",
-              "text-white hover:text-secondary",
+              scrolled ? "text-white hover:text-secondary" : "text-primary hover:text-secondary",
             )}
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="Abrir menu"
