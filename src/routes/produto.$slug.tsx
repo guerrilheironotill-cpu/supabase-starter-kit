@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Check } from "lucide-react";
-import { PageHero } from "@/components/page-hero";
+import { ChevronRight, Minus, Plus } from "lucide-react";
+import { useState } from "react";
 import {
   fetchProductBySlug,
   slugify,
@@ -123,32 +123,70 @@ function ProductPage() {
 
   const images = p.images ?? [];
 
-  function handleAdd() {
+  const finishes = [...(p.product_finishes ?? [])].sort(
+    (a, b) => a.sort_order - b.sort_order,
+  );
+  const colors = [...(p.product_colors ?? [])].sort(
+    (a, b) => a.sort_order - b.sort_order,
+  );
+
+  type RowState = { qty: number; finish: string; color: string };
+  const [rows, setRows] = useState<Record<string, RowState>>(() =>
+    Object.fromEntries(
+      sizes.map((s) => [
+        s.id,
+        {
+          qty: 1,
+          finish: finishes[0]?.name ?? "",
+          color: colors[0]?.name ?? "",
+        },
+      ]),
+    ),
+  );
+
+  function updateRow(id: string, patch: Partial<RowState>) {
+    setRows((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
+  }
+
+  function handleAdd(s: ProductSize, idx: number) {
+    const r = rows[s.id] ?? { qty: 1, finish: "", color: "" };
+    const extras = [sizeCode(idx, sizes.length), r.finish, r.color]
+      .filter(Boolean)
+      .join(" · ");
     addItem({
-      id: `${p.id}`,
-      name: p.name,
+      id: `${p.id}:${s.id}:${r.finish}:${r.color}`,
+      name: extras ? `${p.name} — ${extras}` : p.name,
       slug: p.slug,
       image: images[0],
+      quantity: r.qty,
     });
   }
 
   return (
     <>
-      <PageHero
-        title={p.name}
-        eyebrow={p.category}
-        crumbs={[
-          { label: "Home", to: "/" },
-          {
-            label: p.category,
-            to: `/categoria/${slugify(p.category)}`,
-          },
-          { label: p.name },
-        ]}
-        image={images[0]}
-      />
-
-      <section className="bg-[#eaf3dd] py-12 sm:py-16">
+      <section className="bg-background py-8 sm:py-12">
+        <div className="mx-auto max-w-7xl px-4 sm:px-8">
+          <nav aria-label="Breadcrumb" className="text-xs text-primary/60">
+            <ol className="flex flex-wrap items-center gap-1">
+              <li>
+                <Link to="/" className="hover:text-primary">
+                  Home
+                </Link>
+              </li>
+              <ChevronRight className="h-3 w-3 opacity-60" />
+              <li>
+                <Link
+                  to={`/categoria/${slugify(p.category)}`}
+                  className="hover:text-primary"
+                >
+                  {p.category}
+                </Link>
+              </li>
+              <ChevronRight className="h-3 w-3 opacity-60" />
+              <li className="text-primary">{p.name}</li>
+            </ol>
+          </nav>
+        </div>
         <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-8 lg:grid-cols-2 lg:items-start">
           {/* Gallery — stacked, scrolls with page */}
           <div className="flex flex-col gap-4">
@@ -208,6 +246,14 @@ function ProductPage() {
                         <th className="px-3 py-2 font-semibold">Larg.</th>
                         <th className="px-3 py-2 font-semibold">Comp.</th>
                         <th className="px-3 py-2 font-semibold">Preço</th>
+                        {finishes.length > 0 && (
+                          <th className="px-3 py-2 font-semibold">Acab.</th>
+                        )}
+                        {colors.length > 0 && (
+                          <th className="px-3 py-2 font-semibold">Cor</th>
+                        )}
+                        <th className="px-3 py-2 font-semibold">Qtd.</th>
+                        <th className="px-3 py-2"></th>
                       </tr>
                     </thead>
                     <tbody className="text-primary">
@@ -215,6 +261,11 @@ function ProductPage() {
                         const dims = parseDims(s.name);
                         const hasSale =
                           s.sale_price !== null && s.sale_price < s.base_price;
+                        const r = rows[s.id] ?? {
+                          qty: 1,
+                          finish: finishes[0]?.name ?? "",
+                          color: colors[0]?.name ?? "",
+                        };
                         return (
                           <tr
                             key={s.id}
@@ -248,6 +299,83 @@ function ProductPage() {
                                 </span>
                               )}
                             </td>
+                            {finishes.length > 0 && (
+                              <td className="px-3 py-2.5">
+                                <select
+                                  value={r.finish}
+                                  onChange={(e) =>
+                                    updateRow(s.id, { finish: e.target.value })
+                                  }
+                                  className="rounded-md border border-primary/20 bg-white px-2 py-1 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                >
+                                  {finishes.map((f) => (
+                                    <option key={f.id} value={f.name}>
+                                      {f.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                            )}
+                            {colors.length > 0 && (
+                              <td className="px-3 py-2.5">
+                                <select
+                                  value={r.color}
+                                  onChange={(e) =>
+                                    updateRow(s.id, { color: e.target.value })
+                                  }
+                                  className="rounded-md border border-primary/20 bg-white px-2 py-1 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                >
+                                  {colors.map((c) => (
+                                    <option key={c.id} value={c.name}>
+                                      {c.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                            )}
+                            <td className="px-3 py-2.5">
+                              <div className="inline-flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    updateRow(s.id, {
+                                      qty: Math.max(1, r.qty - 1),
+                                    })
+                                  }
+                                  className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-primary/20 text-primary transition-colors hover:bg-primary/5"
+                                  aria-label="Diminuir"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </button>
+                                <span className="w-6 text-center text-xs font-medium">
+                                  {r.qty}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    updateRow(s.id, { qty: r.qty + 1 })
+                                  }
+                                  className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-primary/20 text-primary transition-colors hover:bg-primary/5"
+                                  aria-label="Aumentar"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <button
+                                type="button"
+                                onClick={() => handleAdd(s, i)}
+                                title="Adicionar ao orçamento"
+                                aria-label="Adicionar ao orçamento"
+                                className="group relative inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all hover:scale-110 hover:bg-primary/90"
+                              >
+                                <Plus className="h-4 w-4" />
+                                <span className="pointer-events-none absolute right-full top-1/2 mr-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-primary px-2 py-1 text-[10px] font-medium text-primary-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+                                  Adicionar ao orçamento
+                                </span>
+                              </button>
+                            </td>
                           </tr>
                         );
                       })}
@@ -262,15 +390,6 @@ function ProductPage() {
                 {p.description}
               </p>
             )}
-
-            <button
-              type="button"
-              onClick={handleAdd}
-              className="mt-8 inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-all hover:-translate-y-0.5 hover:bg-primary/90"
-            >
-              <Check className="h-4 w-4" />
-              Adicionar ao orçamento
-            </button>
           </div>
         </div>
       </section>
