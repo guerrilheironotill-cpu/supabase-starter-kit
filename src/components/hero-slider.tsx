@@ -128,11 +128,10 @@ export function HeroSlider() {
         <ChevronRight className="h-5 w-5" />
       </button>
 
-      </div>
-
-      {/* Marquee (no bg, no blur) sits over the slider bottom area */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-16 z-20">
+      {/* Marquee (no bg, no blur) sits over the slider bottom, inside rounded clip */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-4 z-30">
         <Marquee />
+      </div>
       </div>
 
       {/* Dots outside the slider */}
@@ -146,8 +145,8 @@ export function HeroSlider() {
             className={cn(
               "h-1.5 rounded-full transition-all duration-500",
               i === index
-                ? "w-8 bg-secondary"
-                : "w-4 bg-white/30 hover:bg-white/60",
+                ? "w-8 bg-primary"
+                : "w-4 bg-primary/25 hover:bg-primary/50",
             )}
           />
         ))}
