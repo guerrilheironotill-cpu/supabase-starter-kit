@@ -1,5 +1,4 @@
 import { ArrowRight } from "lucide-react";
-import concretePots from "@/assets/concrete-pots.jpg";
 
 export function AboutSection() {
   return (
@@ -16,12 +15,10 @@ export function AboutSection() {
 
       <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 py-20 sm:px-8 lg:grid-cols-2 lg:gap-20 lg:py-28">
         <div className="relative">
-          <div className="overflow-hidden rounded-2xl shadow-xl ring-1 ring-primary/10">
+          <div className="aspect-square overflow-hidden rounded-2xl bg-primary/5 shadow-xl ring-1 ring-primary/10">
             <img
-              src={concretePots}
+              src="https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=1200&q=80"
               alt="Coleção de vasos artesanais em concreto"
-              width={1024}
-              height={1024}
               loading="lazy"
               className="h-full w-full object-cover"
             />
