@@ -75,7 +75,7 @@ export function HeroSlider() {
             src={s.image}
             alt={s.title}
             className={cn(
-              "h-full w-full object-cover transition-transform duration-[8000ms] ease-out",
+              "absolute inset-0 h-full w-full object-cover transition-transform duration-[8000ms] ease-out",
               i === index ? "scale-105" : "scale-100",
             )}
           />
