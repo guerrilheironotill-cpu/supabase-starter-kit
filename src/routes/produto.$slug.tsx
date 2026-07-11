@@ -4,7 +4,13 @@ import { useState } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHero } from "@/components/page-hero";
-import { fetchProductBySlug, slugify } from "@/lib/products";
+import {
+  fetchProductBySlug,
+  slugify,
+  type ProductDetail,
+  type ProductSize,
+  type ProductOption,
+} from "@/lib/products";
 import { useQuoteStore } from "@/lib/quote-store";
 
 export const Route = createFileRoute("/produto/$slug")({
@@ -81,14 +87,14 @@ function ProductPage() {
     staleTime: 60_000,
   });
 
-  const p = product!;
-  const sizes = (p.product_sizes ?? []).sort(
+  const p = product as ProductDetail;
+  const sizes: ProductSize[] = [...(p.product_sizes ?? [])].sort(
     (a, b) => a.sort_order - b.sort_order,
   );
-  const finishes = (p.product_finishes ?? []).sort(
+  const finishes: ProductOption[] = [...(p.product_finishes ?? [])].sort(
     (a, b) => a.sort_order - b.sort_order,
   );
-  const colors = (p.product_colors ?? []).sort(
+  const colors: ProductOption[] = [...(p.product_colors ?? [])].sort(
     (a, b) => a.sort_order - b.sort_order,
   );
 
@@ -99,7 +105,8 @@ function ProductPage() {
   );
   const [colorId, setColorId] = useState<string | null>(colors[0]?.id ?? null);
 
-  const selectedSize = sizes.find((s) => s.id === sizeId) ?? null;
+  const selectedSize: ProductSize | null =
+    sizes.find((s) => s.id === sizeId) ?? null;
   const addItem = useQuoteStore((s) => s.addItem);
 
   function handleAdd() {
@@ -145,7 +152,7 @@ function ProductPage() {
             </div>
             {p.images && p.images.length > 1 && (
               <div className="mt-4 grid grid-cols-5 gap-2">
-                {p.images.map((src, i) => (
+                {p.images.map((src: string, i: number) => (
                   <button
                     key={i}
                     type="button"
