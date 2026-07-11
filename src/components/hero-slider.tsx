@@ -145,8 +145,8 @@ export function HeroSlider() {
             className={cn(
               "h-1.5 rounded-full transition-all duration-500",
               i === index
-                ? "w-8 bg-primary"
-                : "w-4 bg-primary/25 hover:bg-primary/50",
+                ? "w-8 bg-secondary"
+                : "w-4 bg-white/30 hover:bg-white/60",
             )}
           />
         ))}
