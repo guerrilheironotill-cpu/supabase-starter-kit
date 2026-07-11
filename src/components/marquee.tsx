@@ -11,17 +11,25 @@ const ITEMS = [
 export function Marquee() {
   const loop = [...ITEMS, ...ITEMS];
   return (
-    <div className="group relative flex overflow-hidden border-y border-primary/10 bg-secondary py-4">
+    <div
+      className="group relative flex overflow-hidden py-4"
+      style={{
+        maskImage:
+          "linear-gradient(to right, transparent 0, #000 8%, #000 92%, transparent 100%)",
+        WebkitMaskImage:
+          "linear-gradient(to right, transparent 0, #000 8%, #000 92%, transparent 100%)",
+      }}
+    >
       <div className="flex shrink-0 animate-marquee items-center gap-12 pr-12 group-hover:[animation-play-state:paused]">
         {loop.map((item, i) => (
           <span
             key={i}
-            className="flex shrink-0 items-center gap-12 text-sm font-medium uppercase tracking-widest text-primary"
+            className="flex shrink-0 items-center gap-12 text-xs font-medium uppercase tracking-[0.25em] text-white"
           >
             {item}
             <span
               aria-hidden="true"
-              className="inline-block h-1.5 w-1.5 rounded-full bg-primary/70"
+              className="inline-block h-1 w-1 rounded-full bg-white/70"
             />
           </span>
         ))}
@@ -33,10 +41,10 @@ export function Marquee() {
         {loop.map((item, i) => (
           <span
             key={i}
-            className="flex shrink-0 items-center gap-12 text-sm font-medium uppercase tracking-widest text-primary"
+            className="flex shrink-0 items-center gap-12 text-xs font-medium uppercase tracking-[0.25em] text-white"
           >
             {item}
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/70" />
+            <span className="inline-block h-1 w-1 rounded-full bg-white/70" />
           </span>
         ))}
       </div>
