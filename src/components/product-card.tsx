@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { ArrowUpRight } from "lucide-react";
 import type { Product } from "@/lib/products";
 
 type Props = {
@@ -34,11 +35,12 @@ export function ProductCard({ product, priceFrom }: Props) {
         ) : (
           <div className="h-full w-full bg-primary/5" />
         )}
-        <div className="pointer-events-none absolute inset-0 flex items-end justify-center bg-gradient-to-t from-primary/70 via-primary/20 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100 sm:p-6">
-          <span className="pointer-events-auto translate-y-2 rounded-full bg-white px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary shadow-lg transition-transform duration-300 group-hover:translate-y-0 sm:text-sm">
-            Ver produto
-          </span>
-        </div>
+        <span
+          aria-label="Ver produto"
+          className="pointer-events-none absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-secondary-foreground opacity-0 shadow-sm transition-all duration-300 group-hover:opacity-100 group-hover:bg-primary group-hover:text-primary-foreground"
+        >
+          <ArrowUpRight className="h-4 w-4" />
+        </span>
       </div>
       <h3 className="mt-4 font-display text-lg font-semibold text-primary sm:text-xl">
         {product.name}
