@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Marquee } from "./marquee";
 
 type Slide = {
   image: string;
@@ -128,6 +129,10 @@ export function HeroSlider() {
         <ChevronRight className="h-5 w-5" />
       </button>
 
+      {/* Marquee sits over the slider bottom, inside rounded clip */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-4 z-30">
+        <Marquee />
+      </div>
       </div>
 
       {/* Dots outside the slider */}
