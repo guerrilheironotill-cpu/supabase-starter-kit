@@ -79,7 +79,8 @@ export function HeroSlider() {
               i === index ? "scale-105" : "scale-100",
             )}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/60 via-primary/10 to-transparent" />
+          <div className="absolute inset-0 bg-black/45" />
+          <div className="absolute inset-0 bg-gradient-to-t from-primary/70 via-primary/30 to-primary/20" />
 
           <div className="relative z-10 flex h-full items-center justify-center px-4 pb-16 sm:px-8">
             <div
