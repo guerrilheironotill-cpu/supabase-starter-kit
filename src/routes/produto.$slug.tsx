@@ -241,10 +241,9 @@ function ProductPage() {
                   <table className="w-full text-left text-sm">
                     <thead className="bg-primary/5 text-xs uppercase tracking-widest text-primary/70">
                       <tr>
-                        <th className="px-3 py-2 font-semibold">Tam.</th>
-                        <th className="px-3 py-2 font-semibold">Alt.</th>
-                        <th className="px-3 py-2 font-semibold">Larg.</th>
-                        <th className="px-3 py-2 font-semibold">Comp.</th>
+                        <th className="px-3 py-2 font-semibold">
+                          Tamanho (A x L x C)
+                        </th>
                         <th className="px-3 py-2 font-semibold">Preço</th>
                         {finishes.length > 0 && (
                           <th className="px-3 py-2 font-semibold">Acab.</th>
@@ -266,22 +265,21 @@ function ProductPage() {
                           finish: finishes[0]?.name ?? "",
                           color: colors[0]?.name ?? "",
                         };
+                        const dimText = dims
+                          ? `${dims.altura.replace(" ", "")} x ${dims.largura.replace(" ", "")} x ${dims.comprimento.replace(" ", "")}`
+                          : s.name;
                         return (
                           <tr
                             key={s.id}
                             className="border-t border-primary/10"
                           >
-                            <td className="px-3 py-2.5 font-semibold">
-                              {sizeCode(i, sizes.length)}
-                            </td>
-                            <td className="px-3 py-2.5">
-                              {dims?.altura ?? "—"}
-                            </td>
-                            <td className="px-3 py-2.5">
-                              {dims?.largura ?? "—"}
-                            </td>
-                            <td className="px-3 py-2.5">
-                              {dims?.comprimento ?? (dims ? "—" : s.name)}
+                            <td className="px-3 py-2.5 whitespace-nowrap">
+                              <span className="font-semibold">
+                                {sizeCode(i, sizes.length)}
+                              </span>
+                              <span className="ml-2 text-primary/70">
+                                {dimText}
+                              </span>
                             </td>
                             <td className="px-3 py-2.5">
                               {hasSale ? (
