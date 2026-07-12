@@ -1,16 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { Flower2, Sprout, Armchair, Palette, LayoutGrid } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
 import { ProductCard } from "@/components/product-card";
-import {
-  ProductFilters,
-  applyFilters,
-  priceFromOf,
-  DEFAULT_FILTERS,
-  type FilterState,
-} from "@/components/product-filters";
-import { fetchProductsWithSizes } from "@/lib/products";
+import { priceFromOf } from "@/components/product-filters";
+import { fetchProductsWithSizes, slugify } from "@/lib/products";
+import { cn } from "@/lib/utils";
+
+const CATEGORY_ICONS: Record<string, typeof Flower2> = {
+  vasos: Flower2,
+  jardineiras: Sprout,
+  "outros-produtos": Armchair,
+  mesas: Armchair,
+  bancos: Armchair,
+  fontes: Sprout,
+  cubas: Sprout,
+  acabamentos: Palette,
+};
 
 export const Route = createFileRoute("/catalogo")({
   head: () => ({
@@ -46,7 +53,7 @@ export const Route = createFileRoute("/catalogo")({
 });
 
 function CatalogoPage() {
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const [selected, setSelected] = useState<string | null>(null);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products", "catalogo"],
@@ -54,9 +61,15 @@ function CatalogoPage() {
     staleTime: 60_000,
   });
 
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of products) set.add(p.category);
+    return Array.from(set).sort();
+  }, [products]);
+
   const filtered = useMemo(
-    () => applyFilters(products, filters),
-    [products, filters],
+    () => (selected ? products.filter((p) => p.category === selected) : products),
+    [products, selected],
   );
 
   return (
@@ -72,11 +85,28 @@ function CatalogoPage() {
       />
       <section className="bg-background py-12 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-8">
-          <ProductFilters
-            products={products}
-            value={filters}
-            onChange={setFilters}
-          />
+          {categories.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <CategoryChip
+                icon={LayoutGrid}
+                label="Todas"
+                active={selected === null}
+                onClick={() => setSelected(null)}
+              />
+              {categories.map((cat) => {
+                const Icon = CATEGORY_ICONS[slugify(cat)] ?? Flower2;
+                return (
+                  <CategoryChip
+                    key={cat}
+                    icon={Icon}
+                    label={cat}
+                    active={selected === cat}
+                    onClick={() => setSelected(cat)}
+                  />
+                );
+              })}
+            </div>
+          )}
           {isLoading ? (
             <div className="mt-10 grid grid-cols-2 gap-5 sm:gap-6 lg:grid-cols-3">
               {Array.from({ length: 8 }).map((_, i) => (
@@ -104,5 +134,33 @@ function CatalogoPage() {
         </div>
       </section>
     </>
+  );
+}
+
+function CategoryChip({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: typeof Flower2;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all",
+        active
+          ? "border-primary bg-primary text-primary-foreground shadow-sm"
+          : "border-primary/20 bg-white text-primary hover:border-primary/50 hover:-translate-y-0.5",
+      )}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </button>
   );
 }
