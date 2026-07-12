@@ -38,7 +38,7 @@ export function AboutSection() {
 
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <a
-              href="/"
+              href="/catalogo"
               className="inline-flex items-center gap-2 rounded-full bg-secondary px-7 py-3.5 text-sm font-semibold text-primary transition-all duration-300 hover:-translate-y-0.5 hover:bg-secondary/85"
             >
               Explorar Modelos
