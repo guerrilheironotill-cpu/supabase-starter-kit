@@ -126,6 +126,8 @@ function DashboardOverview() {
     staleTime: 60_000,
   });
 
+  const maxViews = Math.max(...TOP_PRODUCTS.map((p) => p.views));
+
   return (
     <>
       <div className="mb-8">
