@@ -7,6 +7,9 @@ import {
   type ProductSize,
 } from "@/lib/products";
 import { ChevronRight } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
+import { useState } from "react";
+import { useQuoteStore } from "@/lib/quote-store";
 
 export const Route = createFileRoute("/produto/$slug")({
   loader: async ({ params }) => {
@@ -125,6 +128,35 @@ function ProductPage() {
   const colors = [...(p.product_colors ?? [])].sort(
     (a, b) => a.sort_order - b.sort_order,
   );
+
+  const addItem = useQuoteStore((s) => s.addItem);
+  const [selectedSizeId, setSelectedSizeId] = useState<string>(
+    sizes[0]?.id ?? "",
+  );
+  const [selectedFinish, setSelectedFinish] = useState<string>(
+    finishes[0]?.name ?? "",
+  );
+  const [selectedColor, setSelectedColor] = useState<string>(
+    colors[0]?.name ?? "",
+  );
+  const [qty, setQty] = useState<number>(1);
+
+  function handleAddSelected() {
+    const idx = sizes.findIndex((s) => s.id === selectedSizeId);
+    const s = sizes[idx];
+    if (!s) return;
+    addItem({
+      id: `${p.id}:${s.id}:${selectedFinish}:${selectedColor}`,
+      name: p.name,
+      slug: p.slug,
+      image: images[0],
+      quantity: qty,
+      sizeLabel: sizeCode(idx, sizes.length),
+      dimensions: s.name,
+      finish: selectedFinish || undefined,
+      color: selectedColor || undefined,
+    });
+  }
 
 
   return (
