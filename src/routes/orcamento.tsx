@@ -123,6 +123,7 @@ function OrcamentoPage() {
   });
   const [customerAddress, setCustomerAddress] = useState<Address>(EMPTY_ADDRESS);
   const [sameAsDelivery, setSameAsDelivery] = useState(true);
+  const whatsappNumber = useWhatsAppNumber();
 
   useCepAutocomplete(deliveryAddress.cep, (patch) =>
     setDeliveryAddress((a) => ({ ...a, ...patch })),
@@ -281,7 +282,11 @@ function OrcamentoPage() {
   };
 
   const sendWhatsApp = () => {
-    window.open(whatsappLink(buildSummary()), "_blank", "noopener,noreferrer");
+    window.open(
+      whatsappLinkFrom(whatsappNumber, buildSummary()),
+      "_blank",
+      "noopener,noreferrer",
+    );
   };
 
   const sendEmail = () => {
