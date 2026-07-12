@@ -6,10 +6,16 @@ import {
   type ProductDetail,
   type ProductSize,
 } from "@/lib/products";
-import { ChevronRight } from "lucide-react";
-import { Minus, Plus } from "lucide-react";
+import { ChevronRight, Minus, Plus } from "lucide-react";
 import { useState } from "react";
 import { useQuoteStore } from "@/lib/quote-store";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/produto/$slug")({
   loader: async ({ params }) => {
@@ -140,6 +146,7 @@ function ProductPage() {
     colors[0]?.name ?? "",
   );
   const [qty, setQty] = useState<number>(1);
+  const [open, setOpen] = useState(false);
 
   function handleAddSelected() {
     const idx = sizes.findIndex((s) => s.id === selectedSizeId);
@@ -156,6 +163,7 @@ function ProductPage() {
       finish: selectedFinish || undefined,
       color: selectedColor || undefined,
     });
+    setOpen(false);
   }
 
 
