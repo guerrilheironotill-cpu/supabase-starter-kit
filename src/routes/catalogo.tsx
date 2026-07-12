@@ -86,7 +86,7 @@ function CatalogoPage() {
       <section className="bg-background py-12 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-8">
           {categories.length > 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="-mt-[30px] flex flex-wrap items-center justify-center gap-3">
               <CategoryChip
                 icon={LayoutGrid}
                 label="Todas"

@@ -5,6 +5,7 @@ import type { Product } from "@/lib/products";
 type Props = {
   product: Product;
   priceFrom?: number | null;
+  index?: number;
 };
 
 function formatBRL(n: number) {
@@ -16,13 +17,14 @@ function formatBRL(n: number) {
   });
 }
 
-export function ProductCard({ product, priceFrom }: Props) {
+export function ProductCard({ product, priceFrom, index = 0 }: Props) {
   const img = product.images?.[0];
   return (
     <Link
       to="/produto/$slug"
       params={{ slug: product.slug }}
-      className="group block"
+      className="group block animate-fade-in opacity-0 [animation-fill-mode:forwards]"
+      style={{ animationDelay: `${Math.min(index, 20) * 70}ms` }}
     >
       <div className="relative aspect-square overflow-hidden bg-white ring-1 ring-primary/10 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-sm">
         {img ? (
