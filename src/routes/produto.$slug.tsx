@@ -130,35 +130,34 @@ function ProductPage() {
     (a, b) => a.sort_order - b.sort_order,
   );
 
-  type RowState = { qty: number; finish: string; color: string };
-  const [rows, setRows] = useState<Record<string, RowState>>(() =>
-    Object.fromEntries(
-      sizes.map((s) => [
-        s.id,
-        {
-          qty: 1,
-          finish: finishes[0]?.name ?? "",
-          color: colors[0]?.name ?? "",
-        },
-      ]),
-    ),
+  const [selectedSizeId, setSelectedSizeId] = useState<string>(
+    sizes[0]?.id ?? "",
   );
+  const [selectedFinish, setSelectedFinish] = useState<string>(
+    finishes[0]?.name ?? "",
+  );
+  const [selectedColor, setSelectedColor] = useState<string>(
+    colors[0]?.name ?? "",
+  );
+  const [qty, setQty] = useState<number>(1);
 
-  function updateRow(id: string, patch: Partial<RowState>) {
-    setRows((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
-  }
-
-  function handleAdd(s: ProductSize, idx: number) {
-    const r = rows[s.id] ?? { qty: 1, finish: "", color: "" };
-    const extras = [sizeCode(idx, sizes.length), r.finish, r.color]
+  function handleAddSelected() {
+    const idx = sizes.findIndex((s) => s.id === selectedSizeId);
+    const s = sizes[idx];
+    if (!s) return;
+    const extras = [
+      sizeCode(idx, sizes.length),
+      selectedFinish,
+      selectedColor,
+    ]
       .filter(Boolean)
       .join(" · ");
     addItem({
-      id: `${p.id}:${s.id}:${r.finish}:${r.color}`,
+      id: `${p.id}:${s.id}:${selectedFinish}:${selectedColor}`,
       name: extras ? `${p.name} — ${extras}` : p.name,
       slug: p.slug,
       image: images[0],
-      quantity: r.qty,
+      quantity: qty,
     });
   }
 
@@ -237,22 +236,16 @@ function ProductPage() {
                 <h2 className="mb-3 font-display text-lg font-semibold text-primary">
                   Tabela de tamanhos
                 </h2>
-                <div className="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-primary/10">
+                <div className="rounded-2xl bg-white shadow-sm ring-1 ring-primary/10">
                   <table className="w-full text-left text-sm">
-                    <thead className="bg-primary/5 text-xs uppercase tracking-widest text-primary/70">
+                    <thead className="border-b border-primary/10 text-xs font-semibold text-primary">
                       <tr>
-                        <th className="px-3 py-2 font-semibold">
-                          Tamanho (A x L x C)
-                        </th>
-                        <th className="px-3 py-2 font-semibold">Preço</th>
-                        {finishes.length > 0 && (
-                          <th className="px-3 py-2 font-semibold">Acab.</th>
-                        )}
-                        {colors.length > 0 && (
-                          <th className="px-3 py-2 font-semibold">Cor</th>
-                        )}
-                        <th className="px-3 py-2 font-semibold">Qtd.</th>
-                        <th className="px-3 py-2"></th>
+                        <th className="px-4 py-3">Tam.</th>
+                        <th className="px-4 py-3">Alt.</th>
+                        <th className="px-4 py-3">Larg.</th>
+                        <th className="px-4 py-3">Comp.</th>
+                        <th className="px-4 py-3">Estoque</th>
+                        <th className="px-4 py-3">Preço</th>
                       </tr>
                     </thead>
                     <tbody className="text-primary">
@@ -260,34 +253,33 @@ function ProductPage() {
                         const dims = parseDims(s.name);
                         const hasSale =
                           s.sale_price !== null && s.sale_price < s.base_price;
-                        const r = rows[s.id] ?? {
-                          qty: 1,
-                          finish: finishes[0]?.name ?? "",
-                          color: colors[0]?.name ?? "",
-                        };
-                        const dimText = dims
-                          ? `${dims.altura.replace(" ", "")} x ${dims.largura.replace(" ", "")} x ${dims.comprimento.replace(" ", "")}`
-                          : s.name;
                         return (
                           <tr
                             key={s.id}
                             className="border-t border-primary/10"
                           >
-                            <td className="px-3 py-2.5 whitespace-nowrap">
-                              <span className="font-semibold">
-                                {sizeCode(i, sizes.length)}
-                              </span>
-                              <span className="ml-2 text-primary/70">
-                                {dimText}
-                              </span>
+                            <td className="px-4 py-3 font-medium">
+                              {sizeCode(i, sizes.length)}
                             </td>
-                            <td className="px-3 py-2.5">
+                            <td className="px-4 py-3 text-primary/80">
+                              {dims ? dims.altura : "—"}
+                            </td>
+                            <td className="px-4 py-3 text-primary/80">
+                              {dims ? dims.largura : "—"}
+                            </td>
+                            <td className="px-4 py-3 text-primary/80">
+                              {dims ? dims.comprimento : "—"}
+                            </td>
+                            <td className="px-4 py-3 text-primary/80">
+                              Sob Encomenda
+                            </td>
+                            <td className="px-4 py-3">
                               {hasSale ? (
                                 <span className="flex flex-wrap items-baseline gap-1.5">
                                   <span className="text-xs text-primary/50 line-through">
                                     {formatBRL(s.base_price)}
                                   </span>
-                                  <span className="font-semibold">
+                                  <span className="font-semibold underline">
                                     {formatBRL(s.sale_price!)}
                                   </span>
                                 </span>
@@ -297,88 +289,95 @@ function ProductPage() {
                                 </span>
                               )}
                             </td>
-                            {finishes.length > 0 && (
-                              <td className="px-3 py-2.5">
-                                <select
-                                  value={r.finish}
-                                  onChange={(e) =>
-                                    updateRow(s.id, { finish: e.target.value })
-                                  }
-                                  className="rounded-md border border-primary/20 bg-white px-2 py-1 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                                >
-                                  {finishes.map((f) => (
-                                    <option key={f.id} value={f.name}>
-                                      {f.name}
-                                    </option>
-                                  ))}
-                                </select>
-                              </td>
-                            )}
-                            {colors.length > 0 && (
-                              <td className="px-3 py-2.5">
-                                <select
-                                  value={r.color}
-                                  onChange={(e) =>
-                                    updateRow(s.id, { color: e.target.value })
-                                  }
-                                  className="rounded-md border border-primary/20 bg-white px-2 py-1 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                                >
-                                  {colors.map((c) => (
-                                    <option key={c.id} value={c.name}>
-                                      {c.name}
-                                    </option>
-                                  ))}
-                                </select>
-                              </td>
-                            )}
-                            <td className="px-3 py-2.5">
-                              <div className="inline-flex items-center gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    updateRow(s.id, {
-                                      qty: Math.max(1, r.qty - 1),
-                                    })
-                                  }
-                                  className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-primary/20 text-primary transition-colors hover:bg-primary/5"
-                                  aria-label="Diminuir"
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </button>
-                                <span className="w-6 text-center text-xs font-medium">
-                                  {r.qty}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    updateRow(s.id, { qty: r.qty + 1 })
-                                  }
-                                  className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-primary/20 text-primary transition-colors hover:bg-primary/5"
-                                  aria-label="Aumentar"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </button>
-                              </div>
-                            </td>
-                            <td className="px-3 py-2.5">
-                              <button
-                                type="button"
-                                onClick={() => handleAdd(s, i)}
-                                title="Adicionar ao orçamento"
-                                aria-label="Adicionar ao orçamento"
-                                className="group relative inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all hover:scale-110 hover:bg-primary/90"
-                              >
-                                <Plus className="h-4 w-4" />
-                                <span className="pointer-events-none absolute right-full top-1/2 mr-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-primary px-2 py-1 text-[10px] font-medium text-primary-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
-                                  Adicionar ao orçamento
-                                </span>
-                              </button>
-                            </td>
                           </tr>
                         );
                       })}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Selection controls */}
+                <div className="mt-6 grid gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-primary/10 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
+                    Tamanho
+                    <select
+                      value={selectedSizeId}
+                      onChange={(e) => setSelectedSizeId(e.target.value)}
+                      className="rounded-md border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      {sizes.map((s, i) => (
+                        <option key={s.id} value={s.id}>
+                          {sizeCode(i, sizes.length)} — {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {finishes.length > 0 && (
+                    <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
+                      Acabamento
+                      <select
+                        value={selectedFinish}
+                        onChange={(e) => setSelectedFinish(e.target.value)}
+                        className="rounded-md border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      >
+                        {finishes.map((f) => (
+                          <option key={f.id} value={f.name}>
+                            {f.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  {colors.length > 0 && (
+                    <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
+                      Cor
+                      <select
+                        value={selectedColor}
+                        onChange={(e) => setSelectedColor(e.target.value)}
+                        className="rounded-md border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      >
+                        {colors.map((c) => (
+                          <option key={c.id} value={c.name}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
+                    Quantidade
+                    <div className="inline-flex h-[38px] items-center gap-2 rounded-md border border-primary/20 bg-white px-2">
+                      <button
+                        type="button"
+                        onClick={() => setQty((q) => Math.max(1, q - 1))}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/5"
+                        aria-label="Diminuir"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                      <span className="w-8 text-center text-sm font-medium">
+                        {qty}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setQty((q) => q + 1)}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/5"
+                        aria-label="Aumentar"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </label>
+                  <div className="sm:col-span-2">
+                    <button
+                      type="button"
+                      onClick={handleAddSelected}
+                      className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Adicionar ao orçamento
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
