@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowUpRight, Eye, FileText, Package, Users } from "lucide-react";
+import { ArrowUpRight, Eye, FileText, Package, TrendingUp, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSection } from "@/components/dashboard-layout";
 
@@ -76,6 +76,15 @@ const conversionData = [
 ];
 
 const PIE_COLORS = ["#2a4a2f", "#5a8c3a", "#a8c97a", "#c9e0a5", "#e6f2c7"];
+
+const TOP_PRODUCTS = [
+  { name: "Vaso Toscana G", category: "Vasos", views: 1284, quotes: 42 },
+  { name: "Jardineira Ravena", category: "Jardineiras", views: 982, quotes: 31 },
+  { name: "Vaso Milano P", category: "Vasos", views: 861, quotes: 27 },
+  { name: "Mesa Provence", category: "Mesas", views: 704, quotes: 19 },
+  { name: "Fonte Aurora", category: "Fontes", views: 612, quotes: 14 },
+  { name: "Banco Siena", category: "Bancos", views: 498, quotes: 11 },
+];
 
 function Kpi({
   label,
