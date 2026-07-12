@@ -7,7 +7,7 @@ import {
   type ProductSize,
 } from "@/lib/products";
 import { ChevronRight, Minus, Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuoteStore } from "@/lib/quote-store";
 import {
   Dialog,
@@ -101,6 +101,61 @@ function sizeCode(idx: number, total: number): string {
   if (total === 1) return "Único";
   if (total <= SIZE_LABELS.length) return SIZE_LABELS[idx];
   return String(idx + 1);
+}
+
+function GalleryImage({
+  src,
+  alt,
+  eager,
+}: {
+  src: string;
+  alt: string;
+  eager: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.85);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const elCenter = rect.top + rect.height / 2;
+      const viewCenter = vh / 2;
+      const distance = Math.abs(elCenter - viewCenter);
+      // Full size at center; shrinks with distance, min 0.85
+      const t = Math.min(1, distance / (vh / 2));
+      const s = 1 - t * 0.15;
+      setScale(s);
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className="aspect-square overflow-hidden bg-white ring-1 ring-primary/10"
+      style={{
+        transform: `scale(${scale})`,
+        transition: "transform 120ms ease-out",
+        willChange: "transform",
+      }}
+    >
+      <img
+        src={src}
+        alt={alt}
+        loading={eager ? "eager" : "lazy"}
+        className="h-full w-full object-cover"
+      />
+    </div>
+  );
 }
 
 function ProductPage() {
@@ -197,17 +252,12 @@ function ProductPage() {
           <div className="flex flex-col gap-4">
             {images.length > 0 ? (
               images.map((src: string, i: number) => (
-                <div
+                <GalleryImage
                   key={i}
-                  className="aspect-square overflow-hidden bg-white ring-1 ring-primary/10"
-                >
-                  <img
-                    src={src}
-                    alt={`${p.name} — imagem ${i + 1}`}
-                    loading={i === 0 ? "eager" : "lazy"}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
+                  src={src}
+                  alt={`${p.name} — imagem ${i + 1}`}
+                  eager={i === 0}
+                />
               ))
             ) : (
               <div className="aspect-square bg-primary/5" />
