@@ -2,6 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Mail, Phone, MessageSquare } from "lucide-react";
 import { DashboardSection } from "@/components/dashboard-layout";
 import { useLeadsStore } from "@/lib/leads-store";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import type { QuoteItem } from "@/lib/quote-store";
 
 export const Route = createFileRoute("/dashboard/crm")({
   head: () => ({
@@ -57,12 +60,58 @@ function timeAgo(iso: string): string {
 }
 
 function DashboardCrmPage() {
-  const realLeads = useLeadsStore((s) => s.leads);
+  const localLeads = useLeadsStore((s) => s.leads);
 
-  const mapped: Lead[] = realLeads.map((l) => ({
+  const { data: dbLeads = [] } = useQuery({
+    queryKey: ["crm-leads"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leads" as never)
+        .select("id, name, phone, items, source, created_at")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) {
+        console.warn("[leads] fetch failed:", error.message);
+        return [] as Array<{
+          id: string;
+          name: string;
+          phone: string | null;
+          items: QuoteItem[] | null;
+          source: string | null;
+          created_at: string;
+        }>;
+      }
+      return (data ?? []) as Array<{
+        id: string;
+        name: string;
+        phone: string | null;
+        items: QuoteItem[] | null;
+        source: string | null;
+        created_at: string;
+      }>;
+    },
+    staleTime: 30_000,
+  });
+
+  // Prioriza Supabase; se offline, cai em localStorage
+  const source = dbLeads.length > 0 ? dbLeads.map((l) => ({
     id: l.id,
     name: l.name,
-    contact: l.phone,
+    phone: l.phone ?? "",
+    items: (l.items ?? []) as QuoteItem[],
+    createdAt: l.created_at,
+  })) : localLeads.map((l) => ({
+    id: l.id,
+    name: l.name,
+    phone: l.phone,
+    items: l.items,
+    createdAt: l.createdAt,
+  }));
+
+  const mapped: Lead[] = source.map((l) => ({
+    id: l.id,
+    name: l.name,
+    contact: l.phone || "—",
     channel: "WhatsApp",
     interest:
       l.items.length === 0
