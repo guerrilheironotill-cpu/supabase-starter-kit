@@ -348,7 +348,7 @@ function ShareMenu({ order }: { order: OrderRow }) {
   @media print { .noprint { display: none; } body { padding: 24px; } }
 </style></head><body>
 <header class="brand">
-  <div class="logo">Casa &amp; Jardim</div>
+  <div class="logo"><img src="https://arteno.com.br/wp-content/uploads/2025/03/Ativo-8-e1782929111841.png" alt="" style="height:44px;width:auto;object-fit:contain;"/></div>
   <div class="doc">Orçamento<b>#${order.id.slice(0, 6).toUpperCase()}</b></div>
 </header>
 ${module("Cliente", clientBody)}
@@ -356,7 +356,7 @@ ${module("Itens", `<table><thead><tr><th>Descrição</th><th>Qtd</th><th>Unit.</
 ${module("Valores", totalsBody)}
 ${condBody ? module("Condições", condBody) : ""}
 ${meta.note ? module("Observações", `<div style="font-size:13px;line-height:1.5;white-space:pre-wrap;">${meta.note.replace(/</g, "&lt;")}</div>`) : ""}
-<div class="foot">Casa &amp; Jardim · Vasos, jardineiras e mobiliário externo</div>
+<div class="foot">Vasos, jardineiras e mobiliário externo</div>
 <div class="noprint" style="margin-top:24px;text-align:center;"><button onclick="window.print()" style="padding:10px 20px;font-size:14px;cursor:pointer;border:1px solid #111;background:#111;color:#fff;border-radius:6px;">Salvar como PDF</button></div>
 <script>setTimeout(function(){window.print();},400);</script>
 </body></html>`;
