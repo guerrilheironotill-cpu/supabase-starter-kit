@@ -22,7 +22,7 @@ export function ProductGrid({ title, category, limit = 8 }: ProductGridProps) {
           {title}
         </h2>
         {isLoading ? (
-          <div className="mt-10 grid grid-cols-2 gap-5 sm:mt-12 sm:gap-6 lg:grid-cols-4">
+          <div className="mt-10 grid grid-cols-2 gap-5 sm:mt-12 sm:gap-6 lg:grid-cols-3">
             {Array.from({ length: limit }).map((_, i) => (
               <div
                 key={i}
@@ -35,7 +35,7 @@ export function ProductGrid({ title, category, limit = 8 }: ProductGridProps) {
             Nenhum produto encontrado.
           </p>
         ) : (
-          <div className="mt-10 grid grid-cols-2 gap-5 sm:mt-12 sm:gap-6 lg:grid-cols-4">
+          <div className="mt-10 grid grid-cols-2 gap-5 sm:mt-12 sm:gap-6 lg:grid-cols-3">
             {products.map((p: Product) => (
             <Link
               key={p.id}

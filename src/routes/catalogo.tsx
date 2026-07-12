@@ -78,7 +78,7 @@ function CatalogoPage() {
             onChange={setFilters}
           />
           {isLoading ? (
-            <div className="mt-10 grid grid-cols-2 gap-5 sm:gap-6 lg:grid-cols-4">
+            <div className="mt-10 grid grid-cols-2 gap-5 sm:gap-6 lg:grid-cols-3">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div
                   key={i}
@@ -91,7 +91,7 @@ function CatalogoPage() {
               Nenhum produto encontrado.
             </p>
           ) : (
-            <div className="mt-10 grid grid-cols-2 gap-5 sm:gap-6 lg:grid-cols-4">
+            <div className="mt-10 grid grid-cols-2 gap-5 sm:gap-6 lg:grid-cols-3">
               {filtered.map((p) => (
                 <ProductCard
                   key={p.id}
