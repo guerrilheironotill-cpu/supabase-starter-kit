@@ -4,6 +4,7 @@ import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { useQuoteStore } from "@/lib/quote-store";
 import { useLeadsStore } from "@/lib/leads-store";
+import { supabase } from "@/integrations/supabase/client";
 
 import { useWhatsAppNumber } from "@/lib/site-settings";
 
@@ -96,13 +97,21 @@ export function WhatsAppQuoteDrawer({
       `Telefone: ${parsed.data.phone}\n\n` +
       `Produtos:\n${list}`;
 
-    // Persiste o lead no CRM (localStorage) antes de abrir o WhatsApp
-    addLead({
+    // Persiste no CRM: primeiro no Supabase (best-effort), depois localStorage como fallback
+    const payload = {
       name: parsed.data.name,
       phone: parsed.data.phone,
       items,
-      source: "whatsapp",
-    });
+      source: "whatsapp" as const,
+    };
+    // Fire-and-forget (não bloqueia a abertura do WhatsApp)
+    supabase
+      .from("leads" as never)
+      .insert(payload as never)
+      .then(({ error }) => {
+        if (error) console.warn("[leads] supabase insert failed:", error.message);
+      });
+    addLead(payload);
 
     const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank", "noopener,noreferrer");
