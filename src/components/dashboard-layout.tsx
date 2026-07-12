@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   FileText,
   Package,
+  Search,
   Settings,
   ShieldAlert,
   Loader2,
@@ -12,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
-  to: "/dashboard" | "/dashboard/orcamentos" | "/dashboard/produtos" | "/dashboard/configuracoes";
+  to: "/dashboard" | "/dashboard/orcamentos" | "/dashboard/produtos" | "/dashboard/seo" | "/dashboard/configuracoes";
   label: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
@@ -22,6 +23,7 @@ const NAV: NavItem[] = [
   { to: "/dashboard", label: "Visão geral", icon: LayoutDashboard, exact: true },
   { to: "/dashboard/orcamentos", label: "Orçamentos", icon: FileText },
   { to: "/dashboard/produtos", label: "Produtos", icon: Package },
+  { to: "/dashboard/seo", label: "SEO", icon: Search },
   { to: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
 ];
 

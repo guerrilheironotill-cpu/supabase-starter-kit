@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SupabaseCheckRouteImport } from './routes/supabase-check'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as OrcamentoRouteImport } from './routes/orcamento'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -19,6 +20,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
+import { Route as DashboardSeoRouteImport } from './routes/dashboard.seo'
 import { Route as DashboardProdutosRouteImport } from './routes/dashboard.produtos'
 import { Route as DashboardOrcamentosRouteImport } from './routes/dashboard.orcamentos'
 import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.configuracoes'
@@ -27,6 +29,11 @@ import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 const SupabaseCheckRoute = SupabaseCheckRouteImport.update({
   id: '/supabase-check',
   path: '/supabase-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrcamentoRoute = OrcamentoRouteImport.update({
@@ -74,6 +81,11 @@ const ProdutoSlugRoute = ProdutoSlugRouteImport.update({
   path: '/produto/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardSeoRoute = DashboardSeoRouteImport.update({
+  id: '/seo',
+  path: '/seo',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardProdutosRoute = DashboardProdutosRouteImport.update({
   id: '/produtos',
   path: '/produtos',
@@ -103,11 +115,13 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteWithChildren
   '/health': typeof HealthRoute
   '/orcamento': typeof OrcamentoRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
+  '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
@@ -118,11 +132,13 @@ export interface FileRoutesByTo {
   '/catalogo': typeof CatalogoRoute
   '/health': typeof HealthRoute
   '/orcamento': typeof OrcamentoRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
+  '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard': typeof DashboardIndexRoute
 }
@@ -135,11 +151,13 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRouteWithChildren
   '/health': typeof HealthRoute
   '/orcamento': typeof OrcamentoRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
+  '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
@@ -153,11 +171,13 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/health'
     | '/orcamento'
+    | '/sitemap.xml'
     | '/supabase-check'
     | '/categoria/$slug'
     | '/dashboard/configuracoes'
     | '/dashboard/orcamentos'
     | '/dashboard/produtos'
+    | '/dashboard/seo'
     | '/produto/$slug'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
@@ -168,11 +188,13 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/health'
     | '/orcamento'
+    | '/sitemap.xml'
     | '/supabase-check'
     | '/categoria/$slug'
     | '/dashboard/configuracoes'
     | '/dashboard/orcamentos'
     | '/dashboard/produtos'
+    | '/dashboard/seo'
     | '/produto/$slug'
     | '/dashboard'
   id:
@@ -184,11 +206,13 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/health'
     | '/orcamento'
+    | '/sitemap.xml'
     | '/supabase-check'
     | '/categoria/$slug'
     | '/dashboard/configuracoes'
     | '/dashboard/orcamentos'
     | '/dashboard/produtos'
+    | '/dashboard/seo'
     | '/produto/$slug'
     | '/dashboard/'
   fileRoutesById: FileRoutesById
@@ -201,6 +225,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRouteWithChildren
   HealthRoute: typeof HealthRoute
   OrcamentoRoute: typeof OrcamentoRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SupabaseCheckRoute: typeof SupabaseCheckRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
@@ -213,6 +238,13 @@ declare module '@tanstack/react-router' {
       path: '/supabase-check'
       fullPath: '/supabase-check'
       preLoaderRoute: typeof SupabaseCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orcamento': {
@@ -278,6 +310,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProdutoSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/seo': {
+      id: '/dashboard/seo'
+      path: '/seo'
+      fullPath: '/dashboard/seo'
+      preLoaderRoute: typeof DashboardSeoRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/produtos': {
       id: '/dashboard/produtos'
       path: '/produtos'
@@ -313,6 +352,7 @@ interface DashboardRouteChildren {
   DashboardConfiguracoesRoute: typeof DashboardConfiguracoesRoute
   DashboardOrcamentosRoute: typeof DashboardOrcamentosRoute
   DashboardProdutosRoute: typeof DashboardProdutosRoute
+  DashboardSeoRoute: typeof DashboardSeoRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
@@ -320,6 +360,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardConfiguracoesRoute: DashboardConfiguracoesRoute,
   DashboardOrcamentosRoute: DashboardOrcamentosRoute,
   DashboardProdutosRoute: DashboardProdutosRoute,
+  DashboardSeoRoute: DashboardSeoRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
 
@@ -335,6 +376,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRouteWithChildren,
   HealthRoute: HealthRoute,
   OrcamentoRoute: OrcamentoRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   SupabaseCheckRoute: SupabaseCheckRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
