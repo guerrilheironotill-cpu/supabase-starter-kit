@@ -12,7 +12,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import { useQuoteStore, type QuoteItem } from "@/lib/quote-store";
-import { whatsappLink } from "@/lib/site-config";
+import { useWhatsAppNumber, whatsappLinkFrom } from "@/lib/site-settings";
 
 export const Route = createFileRoute("/orcamento")({
   head: () => ({
