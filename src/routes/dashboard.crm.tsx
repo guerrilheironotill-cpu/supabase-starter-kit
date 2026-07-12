@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Mail, Phone, MessageSquare, TrendingUp } from "lucide-react";
+import { Mail, Phone, MessageSquare } from "lucide-react";
 import { DashboardSection } from "@/components/dashboard-layout";
 
 export const Route = createFileRoute("/dashboard/crm")({
@@ -28,15 +28,6 @@ const LEADS: Lead[] = [
   { id: "3", name: "Fernanda Souza", contact: "(11) 99720-1188", channel: "WhatsApp", interest: "Mesa Provence", status: "Proposta", createdAt: "ontem" },
   { id: "4", name: "Carlos Menezes", contact: "(21) 98844-2210", channel: "Telefone", interest: "Fonte Aurora", status: "Fechado", createdAt: "2 dias" },
   { id: "5", name: "Juliana Prado", contact: "juliana@arq.com.br", channel: "E-mail", interest: "Vaso Milano P", status: "Novo", createdAt: "3 dias" },
-];
-
-const TOP_PRODUCTS = [
-  { name: "Vaso Toscana G", category: "Vasos", views: 1284, quotes: 42 },
-  { name: "Jardineira Ravena", category: "Jardineiras", views: 982, quotes: 31 },
-  { name: "Vaso Milano P", category: "Vasos", views: 861, quotes: 27 },
-  { name: "Mesa Provence", category: "Mesas", views: 704, quotes: 19 },
-  { name: "Fonte Aurora", category: "Fontes", views: 612, quotes: 14 },
-  { name: "Banco Siena", category: "Bancos", views: 498, quotes: 11 },
 ];
 
 const CHANNEL_ICON = {
