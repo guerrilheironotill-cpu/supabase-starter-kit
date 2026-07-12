@@ -4,7 +4,7 @@ import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { useQuoteStore } from "@/lib/quote-store";
 
-import { WHATSAPP_NUMBER } from "@/lib/site-config";
+import { useWhatsAppNumber } from "@/lib/site-settings";
 
 const schema = z.object({
   name: z
