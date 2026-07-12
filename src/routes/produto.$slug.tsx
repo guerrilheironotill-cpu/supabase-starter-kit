@@ -217,6 +217,7 @@ function ProductPage() {
       dimensions: s.name,
       finish: selectedFinish || undefined,
       color: selectedColor || undefined,
+      unitPrice: s.sale_price ?? s.base_price,
     });
     setOpen(false);
   }
