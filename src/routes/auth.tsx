@@ -24,7 +24,7 @@ function AuthPage() {
           ? await supabase.auth.signInWithPassword({ email, password })
           : await supabase.auth.signUp({ email, password });
       if (error) throw error;
-      navigate({ to: "/health" });
+      navigate({ to: "/dashboard" });
     } catch (err: any) {
       setMsg(err.message ?? "Error");
     } finally {
