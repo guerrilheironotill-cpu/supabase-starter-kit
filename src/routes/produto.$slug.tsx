@@ -1,14 +1,12 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Minus, Plus } from "lucide-react";
-import { useState } from "react";
 import {
   fetchProductBySlug,
   slugify,
   type ProductDetail,
   type ProductSize,
 } from "@/lib/products";
-import { useQuoteStore } from "@/lib/quote-store";
+import { ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/produto/$slug")({
   loader: async ({ params }) => {
@@ -109,8 +107,6 @@ function ProductPage() {
   const sizes: ProductSize[] = [...(p.product_sizes ?? [])].sort(
     (a, b) => a.sort_order - b.sort_order,
   );
-  const addItem = useQuoteStore((s) => s.addItem);
-
   const effectivePrices = sizes.map((s) => s.sale_price ?? s.base_price);
   const priceMin = effectivePrices.length ? Math.min(...effectivePrices) : null;
   const priceMax = effectivePrices.length ? Math.max(...effectivePrices) : null;
@@ -130,36 +126,6 @@ function ProductPage() {
     (a, b) => a.sort_order - b.sort_order,
   );
 
-  const [selectedSizeId, setSelectedSizeId] = useState<string>(
-    sizes[0]?.id ?? "",
-  );
-  const [selectedFinish, setSelectedFinish] = useState<string>(
-    finishes[0]?.name ?? "",
-  );
-  const [selectedColor, setSelectedColor] = useState<string>(
-    colors[0]?.name ?? "",
-  );
-  const [qty, setQty] = useState<number>(1);
-
-  function handleAddSelected() {
-    const idx = sizes.findIndex((s) => s.id === selectedSizeId);
-    const s = sizes[idx];
-    if (!s) return;
-    const extras = [
-      sizeCode(idx, sizes.length),
-      selectedFinish,
-      selectedColor,
-    ]
-      .filter(Boolean)
-      .join(" · ");
-    addItem({
-      id: `${p.id}:${s.id}:${selectedFinish}:${selectedColor}`,
-      name: extras ? `${p.name} — ${extras}` : p.name,
-      slug: p.slug,
-      image: images[0],
-      quantity: qty,
-    });
-  }
 
   return (
     <>
@@ -296,89 +262,6 @@ function ProductPage() {
                   </table>
                 </div>
 
-                {/* Selection controls */}
-                <div className="mt-6 grid gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-primary/10 sm:grid-cols-2">
-                  <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
-                    Tamanho
-                    <select
-                      value={selectedSizeId}
-                      onChange={(e) => setSelectedSizeId(e.target.value)}
-                      className="rounded-md border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    >
-                      {sizes.map((s, i) => (
-                        <option key={s.id} value={s.id}>
-                          {sizeCode(i, sizes.length)} — {s.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  {finishes.length > 0 && (
-                    <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
-                      Acabamento
-                      <select
-                        value={selectedFinish}
-                        onChange={(e) => setSelectedFinish(e.target.value)}
-                        className="rounded-md border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                      >
-                        {finishes.map((f) => (
-                          <option key={f.id} value={f.name}>
-                            {f.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                  {colors.length > 0 && (
-                    <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
-                      Cor
-                      <select
-                        value={selectedColor}
-                        onChange={(e) => setSelectedColor(e.target.value)}
-                        className="rounded-md border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                      >
-                        {colors.map((c) => (
-                          <option key={c.id} value={c.name}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                  <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
-                    Quantidade
-                    <div className="inline-flex h-[38px] items-center gap-2 rounded-md border border-primary/20 bg-white px-2">
-                      <button
-                        type="button"
-                        onClick={() => setQty((q) => Math.max(1, q - 1))}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/5"
-                        aria-label="Diminuir"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </button>
-                      <span className="w-8 text-center text-sm font-medium">
-                        {qty}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setQty((q) => q + 1)}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/5"
-                        aria-label="Aumentar"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </label>
-                  <div className="sm:col-span-2">
-                    <button
-                      type="button"
-                      onClick={handleAddSelected}
-                      className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Adicionar ao orçamento
-                    </button>
-                  </div>
-                </div>
               </div>
             )}
 
