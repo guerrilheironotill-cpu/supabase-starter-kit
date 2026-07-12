@@ -23,6 +23,7 @@ import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
 import { Route as DashboardSeoRouteImport } from './routes/dashboard.seo'
 import { Route as DashboardProdutosRouteImport } from './routes/dashboard.produtos'
 import { Route as DashboardOrcamentosRouteImport } from './routes/dashboard.orcamentos'
+import { Route as DashboardCrmRouteImport } from './routes/dashboard.crm'
 import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.configuracoes'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 
@@ -96,6 +97,11 @@ const DashboardOrcamentosRoute = DashboardOrcamentosRouteImport.update({
   path: '/orcamentos',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardCrmRoute = DashboardCrmRouteImport.update({
+  id: '/crm',
+  path: '/crm',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardConfiguracoesRoute = DashboardConfiguracoesRouteImport.update({
   id: '/configuracoes',
   path: '/configuracoes',
@@ -119,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/supabase-check': typeof SupabaseCheckRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
+  '/dashboard/crm': typeof DashboardCrmRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
@@ -136,6 +143,7 @@ export interface FileRoutesByTo {
   '/supabase-check': typeof SupabaseCheckRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
+  '/dashboard/crm': typeof DashboardCrmRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   '/supabase-check': typeof SupabaseCheckRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
+  '/dashboard/crm': typeof DashboardCrmRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
@@ -175,6 +184,7 @@ export interface FileRouteTypes {
     | '/supabase-check'
     | '/categoria/$slug'
     | '/dashboard/configuracoes'
+    | '/dashboard/crm'
     | '/dashboard/orcamentos'
     | '/dashboard/produtos'
     | '/dashboard/seo'
@@ -192,6 +202,7 @@ export interface FileRouteTypes {
     | '/supabase-check'
     | '/categoria/$slug'
     | '/dashboard/configuracoes'
+    | '/dashboard/crm'
     | '/dashboard/orcamentos'
     | '/dashboard/produtos'
     | '/dashboard/seo'
@@ -210,6 +221,7 @@ export interface FileRouteTypes {
     | '/supabase-check'
     | '/categoria/$slug'
     | '/dashboard/configuracoes'
+    | '/dashboard/crm'
     | '/dashboard/orcamentos'
     | '/dashboard/produtos'
     | '/dashboard/seo'
@@ -331,6 +343,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrcamentosRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/crm': {
+      id: '/dashboard/crm'
+      path: '/crm'
+      fullPath: '/dashboard/crm'
+      preLoaderRoute: typeof DashboardCrmRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/configuracoes': {
       id: '/dashboard/configuracoes'
       path: '/configuracoes'
@@ -350,6 +369,7 @@ declare module '@tanstack/react-router' {
 
 interface DashboardRouteChildren {
   DashboardConfiguracoesRoute: typeof DashboardConfiguracoesRoute
+  DashboardCrmRoute: typeof DashboardCrmRoute
   DashboardOrcamentosRoute: typeof DashboardOrcamentosRoute
   DashboardProdutosRoute: typeof DashboardProdutosRoute
   DashboardSeoRoute: typeof DashboardSeoRoute
@@ -358,6 +378,7 @@ interface DashboardRouteChildren {
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardConfiguracoesRoute: DashboardConfiguracoesRoute,
+  DashboardCrmRoute: DashboardCrmRoute,
   DashboardOrcamentosRoute: DashboardOrcamentosRoute,
   DashboardProdutosRoute: DashboardProdutosRoute,
   DashboardSeoRoute: DashboardSeoRoute,
