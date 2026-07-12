@@ -24,7 +24,7 @@ export function ProductCard({ product, priceFrom }: Props) {
       params={{ slug: product.slug }}
       className="group block"
     >
-      <div className="relative aspect-square overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-primary/10 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg">
+      <div className="relative aspect-square overflow-hidden bg-white ring-1 ring-primary/10 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-sm">
         {img ? (
           <img
             src={img}
