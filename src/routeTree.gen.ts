@@ -12,11 +12,15 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SupabaseCheckRouteImport } from './routes/supabase-check'
 import { Route as OrcamentoRouteImport } from './routes/orcamento'
 import { Route as HealthRouteImport } from './routes/health'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CatalogoRouteImport } from './routes/catalogo'
 import { Route as BuscaRouteImport } from './routes/busca'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
+import { Route as DashboardProdutosRouteImport } from './routes/dashboard.produtos'
+import { Route as DashboardOrcamentosRouteImport } from './routes/dashboard.orcamentos'
 import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.configuracoes'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 
@@ -33,6 +37,11 @@ const OrcamentoRoute = OrcamentoRouteImport.update({
 const HealthRoute = HealthRouteImport.update({
   id: '/health',
   path: '/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CatalogoRoute = CatalogoRouteImport.update({
@@ -55,15 +64,30 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const ProdutoSlugRoute = ProdutoSlugRouteImport.update({
   id: '/produto/$slug',
   path: '/produto/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardProdutosRoute = DashboardProdutosRouteImport.update({
+  id: '/produtos',
+  path: '/produtos',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardOrcamentosRoute = DashboardOrcamentosRouteImport.update({
+  id: '/orcamentos',
+  path: '/orcamentos',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardConfiguracoesRoute = DashboardConfiguracoesRouteImport.update({
-  id: '/dashboard/configuracoes',
-  path: '/dashboard/configuracoes',
-  getParentRoute: () => rootRouteImport,
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => DashboardRoute,
 } as any)
 const CategoriaSlugRoute = CategoriaSlugRouteImport.update({
   id: '/categoria/$slug',
@@ -76,12 +100,16 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/busca': typeof BuscaRoute
   '/catalogo': typeof CatalogoRoute
+  '/dashboard': typeof DashboardRouteWithChildren
   '/health': typeof HealthRoute
   '/orcamento': typeof OrcamentoRoute
   '/supabase-check': typeof SupabaseCheckRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
+  '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
+  '/dashboard/produtos': typeof DashboardProdutosRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -93,7 +121,10 @@ export interface FileRoutesByTo {
   '/supabase-check': typeof SupabaseCheckRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
+  '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
+  '/dashboard/produtos': typeof DashboardProdutosRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/dashboard': typeof DashboardIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -101,12 +132,16 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/busca': typeof BuscaRoute
   '/catalogo': typeof CatalogoRoute
+  '/dashboard': typeof DashboardRouteWithChildren
   '/health': typeof HealthRoute
   '/orcamento': typeof OrcamentoRoute
   '/supabase-check': typeof SupabaseCheckRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
+  '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
+  '/dashboard/produtos': typeof DashboardProdutosRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -115,12 +150,16 @@ export interface FileRouteTypes {
     | '/auth'
     | '/busca'
     | '/catalogo'
+    | '/dashboard'
     | '/health'
     | '/orcamento'
     | '/supabase-check'
     | '/categoria/$slug'
     | '/dashboard/configuracoes'
+    | '/dashboard/orcamentos'
+    | '/dashboard/produtos'
     | '/produto/$slug'
+    | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -132,19 +171,26 @@ export interface FileRouteTypes {
     | '/supabase-check'
     | '/categoria/$slug'
     | '/dashboard/configuracoes'
+    | '/dashboard/orcamentos'
+    | '/dashboard/produtos'
     | '/produto/$slug'
+    | '/dashboard'
   id:
     | '__root__'
     | '/'
     | '/auth'
     | '/busca'
     | '/catalogo'
+    | '/dashboard'
     | '/health'
     | '/orcamento'
     | '/supabase-check'
     | '/categoria/$slug'
     | '/dashboard/configuracoes'
+    | '/dashboard/orcamentos'
+    | '/dashboard/produtos'
     | '/produto/$slug'
+    | '/dashboard/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -152,11 +198,11 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BuscaRoute: typeof BuscaRoute
   CatalogoRoute: typeof CatalogoRoute
+  DashboardRoute: typeof DashboardRouteWithChildren
   HealthRoute: typeof HealthRoute
   OrcamentoRoute: typeof OrcamentoRoute
   SupabaseCheckRoute: typeof SupabaseCheckRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
-  DashboardConfiguracoesRoute: typeof DashboardConfiguracoesRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
 }
 
@@ -181,6 +227,13 @@ declare module '@tanstack/react-router' {
       path: '/health'
       fullPath: '/health'
       preLoaderRoute: typeof HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/catalogo': {
@@ -211,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/produto/$slug': {
       id: '/produto/$slug'
       path: '/produto/$slug'
@@ -218,12 +278,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProdutoSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/produtos': {
+      id: '/dashboard/produtos'
+      path: '/produtos'
+      fullPath: '/dashboard/produtos'
+      preLoaderRoute: typeof DashboardProdutosRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/orcamentos': {
+      id: '/dashboard/orcamentos'
+      path: '/orcamentos'
+      fullPath: '/dashboard/orcamentos'
+      preLoaderRoute: typeof DashboardOrcamentosRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/configuracoes': {
       id: '/dashboard/configuracoes'
-      path: '/dashboard/configuracoes'
+      path: '/configuracoes'
       fullPath: '/dashboard/configuracoes'
       preLoaderRoute: typeof DashboardConfiguracoesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof DashboardRoute
     }
     '/categoria/$slug': {
       id: '/categoria/$slug'
@@ -235,16 +309,34 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface DashboardRouteChildren {
+  DashboardConfiguracoesRoute: typeof DashboardConfiguracoesRoute
+  DashboardOrcamentosRoute: typeof DashboardOrcamentosRoute
+  DashboardProdutosRoute: typeof DashboardProdutosRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
+}
+
+const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardConfiguracoesRoute: DashboardConfiguracoesRoute,
+  DashboardOrcamentosRoute: DashboardOrcamentosRoute,
+  DashboardProdutosRoute: DashboardProdutosRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
+}
+
+const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
+  DashboardRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   BuscaRoute: BuscaRoute,
   CatalogoRoute: CatalogoRoute,
+  DashboardRoute: DashboardRouteWithChildren,
   HealthRoute: HealthRoute,
   OrcamentoRoute: OrcamentoRoute,
   SupabaseCheckRoute: SupabaseCheckRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
-  DashboardConfiguracoesRoute: DashboardConfiguracoesRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
 }
 export const routeTree = rootRouteImport

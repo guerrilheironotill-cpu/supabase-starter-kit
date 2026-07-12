@@ -11,12 +11,19 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
-const NAV = [
+type NavItem = {
+  to: "/dashboard" | "/dashboard/orcamentos" | "/dashboard/produtos" | "/dashboard/configuracoes";
+  label: string;
+  icon: typeof LayoutDashboard;
+  exact?: boolean;
+};
+
+const NAV: NavItem[] = [
   { to: "/dashboard", label: "Visão geral", icon: LayoutDashboard, exact: true },
   { to: "/dashboard/orcamentos", label: "Orçamentos", icon: FileText },
   { to: "/dashboard/produtos", label: "Produtos", icon: Package },
   { to: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
-] as const;
+];
 
 export function DashboardLayout() {
   const navigate = useNavigate();
