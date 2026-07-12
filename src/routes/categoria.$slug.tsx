@@ -94,7 +94,7 @@ function CategoryPage() {
         ]}
         image={heroImage}
       />
-      <section className="bg-[#eaf3dd] py-12 sm:py-16">
+      <section className="bg-white py-12 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-8">
           <ProductFilters
             products={products}
