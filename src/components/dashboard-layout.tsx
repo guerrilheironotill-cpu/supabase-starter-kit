@@ -80,7 +80,7 @@ export function DashboardLayout() {
       <div className="min-h-screen bg-background text-foreground">
         <div className="mx-auto flex w-full max-w-[1400px] gap-6 px-4 py-8 sm:px-8 lg:px-[50px]">
       <aside className="hidden w-60 shrink-0 md:block">
-        <div className="sticky top-[116px] rounded-2xl border border-border bg-card p-3">
+        <div className="sticky top-[88px] rounded-2xl border border-border bg-card p-3">
           <p className="px-3 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             Painel
           </p>
