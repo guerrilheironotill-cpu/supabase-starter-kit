@@ -12,6 +12,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteHeader } from "../components/site-header";
+import { DashboardHeader } from "../components/dashboard-header";
+import { useRouterState } from "@tanstack/react-router";
 
 function NotFoundComponent() {
   return (
@@ -133,17 +135,23 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isDashboard = pathname.startsWith("/dashboard");
 
   return (
     <QueryClientProvider client={queryClient}>
       <div
         className="flex min-h-screen flex-col"
-        style={{
-          background:
-            "linear-gradient(to bottom, #ffffff 0, #ffffff calc(100px + 28vh), #eaf3dd calc(100px + 28vh), #eaf3dd 100%)",
-        }}
+        style={
+          isDashboard
+            ? undefined
+            : {
+                background:
+                  "linear-gradient(to bottom, #ffffff 0, #ffffff calc(100px + 28vh), #eaf3dd calc(100px + 28vh), #eaf3dd 100%)",
+              }
+        }
       >
-        <SiteHeader />
+        {isDashboard ? <DashboardHeader /> : <SiteHeader />}
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <main className="flex-1">
           <Outlet />
