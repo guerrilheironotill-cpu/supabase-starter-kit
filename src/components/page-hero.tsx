@@ -7,7 +7,7 @@ const DEFAULT_BG =
 export type Crumb = { label: string; to?: string };
 
 type Props = {
-  title: string;
+  title?: string;
   eyebrow?: string;
   count?: number;
   crumbs?: Crumb[];
@@ -54,9 +54,11 @@ export function PageHero({ title, eyebrow, count, crumbs = [], image }: Props) {
               {eyebrow}
             </span>
           )}
-          <h1 className="mt-3 font-display text-4xl leading-[1.05] sm:text-5xl lg:text-6xl">
-            {title}
-          </h1>
+          {title && (
+            <h1 className="mt-3 font-display text-4xl leading-[1.05] sm:text-5xl lg:text-6xl">
+              {title}
+            </h1>
+          )}
           {typeof count === "number" && (
             <p className="mt-3 text-sm text-white/85">
               {count} {count === 1 ? "produto" : "produtos"}

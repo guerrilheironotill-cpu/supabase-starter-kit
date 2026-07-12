@@ -1,16 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
 import { z } from "zod";
 import { PageHero } from "@/components/page-hero";
 import { ProductCard } from "@/components/product-card";
-import {
-  ProductFilters,
-  applyFilters,
-  priceFromOf,
-  type FilterState,
-} from "@/components/product-filters";
-import { DEFAULT_FILTERS } from "@/components/product-filters";
+import { priceFromOf } from "@/components/product-filters";
 import { fetchProductsWithSizes } from "@/lib/products";
 
 const searchSchema = z.object({
@@ -43,7 +36,6 @@ export const Route = createFileRoute("/busca")({
 
 function SearchPage() {
   const { q } = Route.useSearch();
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products", "search", q],
@@ -52,23 +44,17 @@ function SearchPage() {
     staleTime: 30_000,
   });
 
-  const filtered = useMemo(
-    () => applyFilters(products, filters),
-    [products, filters],
-  );
-
   return (
     <>
       <PageHero
-        title={q ? `Resultados para "${q}"` : "Busca"}
         eyebrow="Busca"
-        count={q ? filtered.length : undefined}
+        count={q ? products.length : undefined}
         crumbs={[
           { label: "Home", to: "/" },
-          { label: "Busca" },
+          { label: q ? `Resultados para "${q}"` : "Busca" },
         ]}
       />
-      <section className="bg-[#eaf3dd] py-12 sm:py-16">
+      <section className="bg-white py-12 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-8">
           {!q ? (
             <p className="text-center text-primary/70">
@@ -76,11 +62,6 @@ function SearchPage() {
             </p>
           ) : (
             <>
-              <ProductFilters
-                products={products}
-                value={filters}
-                onChange={setFilters}
-              />
               {isLoading ? (
                 <div className="mt-10 grid grid-cols-2 gap-5 sm:gap-6 lg:grid-cols-4">
                   {Array.from({ length: 8 }).map((_, i) => (
@@ -90,13 +71,13 @@ function SearchPage() {
                     />
                   ))}
                 </div>
-              ) : filtered.length === 0 ? (
+              ) : products.length === 0 ? (
                 <p className="mt-16 text-center text-primary/70">
                   Nenhum produto encontrado para “{q}”.
                 </p>
               ) : (
                 <div className="mt-10 grid grid-cols-2 gap-5 sm:gap-6 lg:grid-cols-4">
-                  {filtered.map((p) => (
+                  {products.map((p) => (
                     <ProductCard
                       key={p.id}
                       product={p}
