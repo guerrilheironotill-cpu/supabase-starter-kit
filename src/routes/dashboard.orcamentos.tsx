@@ -245,7 +245,15 @@ function DashboardQuotesPage() {
 
 function ShareMenu({ order }: { order: OrderRow }) {
   const items = Array.isArray(order.items)
-    ? (order.items as Array<{ name: string; quantity: number; price: number; description?: string | null }>)
+    ? (order.items as Array<{
+        name: string;
+        quantity: number;
+        price: number;
+        description?: string | null;
+        size_name?: string | null;
+        finish?: string | null;
+        color?: string | null;
+      }>)
     : [];
   const meta = parseMeta(order.notes);
   const itemsSubtotal = items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0);
@@ -282,10 +290,18 @@ function ShareMenu({ order }: { order: OrderRow }) {
   };
 
   const generatePdf = () => {
+    const attrLine = (i: { size_name?: string | null; finish?: string | null; color?: string | null }) => {
+      const parts = [
+        i.size_name ? `Tamanho: ${i.size_name}` : "",
+        i.finish ? `Acabamento: ${i.finish}` : "",
+        i.color ? `Cor: ${i.color}` : "",
+      ].filter(Boolean);
+      return parts.length ? `<div class="muted">${parts.join(" · ")}</div>` : "";
+    };
     const rows = items
       .map(
         (i) =>
-          `<tr><td>${i.name}${i.description ? `<div class="muted">${i.description}</div>` : ""}</td><td>${i.quantity}</td><td>${currency(i.price)}</td><td>${currency((i.price ?? 0) * (i.quantity ?? 1))}</td></tr>`,
+          `<tr><td>${i.name}${attrLine(i)}${i.description ? `<div class="muted">${i.description}</div>` : ""}</td><td>${i.quantity}</td><td>${currency(i.price)}</td><td>${currency((i.price ?? 0) * (i.quantity ?? 1))}</td></tr>`,
       )
       .join("");
     const module = (title: string, body: string) =>
