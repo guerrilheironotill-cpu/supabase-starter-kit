@@ -107,8 +107,6 @@ function ProductPage() {
   const sizes: ProductSize[] = [...(p.product_sizes ?? [])].sort(
     (a, b) => a.sort_order - b.sort_order,
   );
-  const addItem = useQuoteStore((s) => s.addItem);
-
   const effectivePrices = sizes.map((s) => s.sale_price ?? s.base_price);
   const priceMin = effectivePrices.length ? Math.min(...effectivePrices) : null;
   const priceMax = effectivePrices.length ? Math.max(...effectivePrices) : null;
