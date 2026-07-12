@@ -147,19 +147,20 @@ function DashboardQuotesPage() {
                 <th className="px-4 py-3">Total</th>
                 <th className="px-4 py-3">Data</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                     Carregando…
                   </td>
                 </tr>
               )}
               {!isLoading && orders.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                     Nenhum orçamento ainda. Clique em "Novo orçamento" para criar.
                   </td>
                 </tr>
@@ -191,6 +192,9 @@ function DashboardQuotesPage() {
                       <FileText className="h-3 w-3" />
                       {STATUS_LABEL[o.status] ?? o.status}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <ShareMenu order={o} />
                   </td>
                 </tr>
               ))}
