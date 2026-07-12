@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { fetchProductsByCategory, type Product } from "@/lib/products";
 
 type ProductGridProps = {
@@ -36,9 +37,10 @@ export function ProductGrid({ title, category, limit = 8 }: ProductGridProps) {
         ) : (
           <div className="mt-10 grid grid-cols-2 gap-5 sm:mt-12 sm:gap-6 lg:grid-cols-4">
             {products.map((p: Product) => (
-            <a
+            <Link
               key={p.id}
-              href="/"
+              to="/produto/$slug"
+              params={{ slug: p.slug }}
               className="group block"
             >
               <div className="relative aspect-square overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-primary/10 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg">
@@ -61,7 +63,7 @@ export function ProductGrid({ title, category, limit = 8 }: ProductGridProps) {
               <h3 className="mt-4 font-display text-lg font-semibold text-primary sm:text-xl">
                 {p.name}
               </h3>
-            </a>
+            </Link>
             ))}
           </div>
         )}
