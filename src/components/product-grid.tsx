@@ -16,7 +16,7 @@ export function ProductGrid({ title, category, limit = 8 }: ProductGridProps) {
   });
 
   return (
-    <section className="bg-[#eaf3dd] py-16 sm:py-20">
+    <section className="bg-white py-10 sm:py-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         <h2 className="text-center font-display text-3xl text-primary sm:text-4xl">
           {title}
