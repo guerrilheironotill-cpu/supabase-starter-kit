@@ -126,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/crm': typeof DashboardCrmRoute
+  '/dashboard/crm': typeof DashboardCrmRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
@@ -143,6 +144,7 @@ export interface FileRoutesByTo {
   '/supabase-check': typeof SupabaseCheckRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
+  '/dashboard/crm': typeof DashboardCrmRoute
   '/dashboard/crm': typeof DashboardCrmRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
@@ -163,6 +165,7 @@ export interface FileRoutesById {
   '/supabase-check': typeof SupabaseCheckRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
+  '/dashboard/crm': typeof DashboardCrmRoute
   '/dashboard/crm': typeof DashboardCrmRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
@@ -185,6 +188,7 @@ export interface FileRouteTypes {
     | '/categoria/$slug'
     | '/dashboard/configuracoes'
     | '/dashboard/crm'
+    | '/dashboard/crm'
     | '/dashboard/orcamentos'
     | '/dashboard/produtos'
     | '/dashboard/seo'
@@ -202,6 +206,7 @@ export interface FileRouteTypes {
     | '/supabase-check'
     | '/categoria/$slug'
     | '/dashboard/configuracoes'
+    | '/dashboard/crm'
     | '/dashboard/crm'
     | '/dashboard/orcamentos'
     | '/dashboard/produtos'
@@ -221,6 +226,7 @@ export interface FileRouteTypes {
     | '/supabase-check'
     | '/categoria/$slug'
     | '/dashboard/configuracoes'
+    | '/dashboard/crm'
     | '/dashboard/crm'
     | '/dashboard/orcamentos'
     | '/dashboard/produtos'
@@ -357,6 +363,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardConfiguracoesRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/crm': {
+      id: '/dashboard/crm'
+      path: '/crm'
+      fullPath: '/dashboard/crm'
+      preLoaderRoute: typeof DashboardCrmRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/categoria/$slug': {
       id: '/categoria/$slug'
       path: '/categoria/$slug'
@@ -370,6 +383,7 @@ declare module '@tanstack/react-router' {
 interface DashboardRouteChildren {
   DashboardConfiguracoesRoute: typeof DashboardConfiguracoesRoute
   DashboardCrmRoute: typeof DashboardCrmRoute
+  DashboardCrmRoute: typeof DashboardCrmRoute
   DashboardOrcamentosRoute: typeof DashboardOrcamentosRoute
   DashboardProdutosRoute: typeof DashboardProdutosRoute
   DashboardSeoRoute: typeof DashboardSeoRoute
@@ -378,6 +392,7 @@ interface DashboardRouteChildren {
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardConfiguracoesRoute: DashboardConfiguracoesRoute,
+  DashboardCrmRoute: DashboardCrmRoute,
   DashboardCrmRoute: DashboardCrmRoute,
   DashboardOrcamentosRoute: DashboardOrcamentosRoute,
   DashboardProdutosRoute: DashboardProdutosRoute,
