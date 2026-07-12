@@ -126,6 +126,91 @@ function DashboardSeoPage() {
           </div>
         </div>
       </DashboardSection>
+
+      <DashboardSection
+        title="Guia — o que você precisa fazer"
+        description="Passo a passo do que roda fora daqui (contas externas). Deixe para depois; o site continua funcionando sem isso."
+      >
+        <div className="space-y-4">
+          <GuideBlock
+            title="1. Google Search Console"
+            steps={[
+              "Acesse search.google.com/search-console e adicione a propriedade do domínio final (ex.: seudominio.com.br).",
+              "Escolha o método Prefixo de URL (mais simples) e valide via tag HTML ou DNS.",
+              "Se escolher tag HTML, me envie o conteúdo — coloco no <head> do site.",
+              "Após validar, vá em Sitemaps e envie: https://seudominio.com.br/sitemap.xml",
+            ]}
+          />
+          <GuideBlock
+            title="2. Google Analytics 4"
+            steps={[
+              "Acesse analytics.google.com e crie uma propriedade GA4 para o novo domínio (ou reutilize a atual).",
+              "Crie um Fluxo de dados Web apontando para a URL final.",
+              "Copie o Measurement ID (G-XXXX) e cole em Dashboard → Configurações → Integrações.",
+              "Depois de colar, avise que ativo o script no site — inclusive eventos de view_item e generate_lead.",
+            ]}
+          />
+          <GuideBlock
+            title="3. Meta Pixel (Facebook/Instagram Ads)"
+            steps={[
+              "Acesse business.facebook.com → Gerenciador de Eventos.",
+              "Reutilize o Pixel do site atual ou crie um novo (Conectar fontes de dados → Web).",
+              "Copie o Pixel ID (15–16 dígitos) e cole em Dashboard → Configurações → Integrações.",
+              "Depois de colar, ativo o script — dispara PageView, ViewContent e Lead automaticamente.",
+            ]}
+          />
+          <GuideBlock
+            title="4. Catálogo do Facebook (Commerce Manager)"
+            steps={[
+              "Em business.facebook.com → Gerenciador de Comércio, reutilize o catálogo do site atual ou crie um novo (tipo E-commerce).",
+              "Copie o Catalog ID em Configurações do catálogo e cole em Dashboard → Configurações → Integrações.",
+              "Avise para eu publicar o feed em /feeds/facebook-catalog.xml.",
+              "No Commerce Manager: Fontes de dados → Adicionar itens → Feed de dados → Feed programado, cole a URL do feed e defina frequência diária.",
+            ]}
+          />
+          <GuideBlock
+            title="5. Google Merchant Center (Shopping)"
+            steps={[
+              "Acesse merchants.google.com e reutilize a conta do site atual (ou crie uma nova).",
+              "Preencha informações da empresa, frete e impostos conforme já configurados hoje.",
+              "Copie o Merchant ID (canto superior direito) e cole em Dashboard → Configurações → Integrações.",
+              "Avise para eu publicar o feed em /feeds/google-merchant.xml.",
+              "No Merchant Center: Produtos → Feeds → + → Feed programado, cole a URL e defina frequência diária.",
+            ]}
+          />
+          <GuideBlock
+            title="6. Redirecionamentos do site antigo (WordPress → novo)"
+            steps={[
+              "Liste as URLs mais acessadas do site atual (Search Console → Desempenho, exportar top 100).",
+              "Me envie a lista com a URL equivalente aqui — configuro os redirects 301 antes do go-live.",
+              "Isso preserva o SEO acumulado; sem os 301s você perde ranking dos produtos antigos.",
+            ]}
+          />
+          <GuideBlock
+            title="7. Go-live (troca de DNS)"
+            steps={[
+              "Quando estivermos prontos, publique o projeto na Lovable e configure o domínio custom.",
+              "Atualize o DNS no seu registrador (Registro.br ou outro) apontando para os registros da Lovable.",
+              "Após propagar, reenvie o sitemap no Search Console e re-verifique o Pixel em Events Manager → Testar eventos.",
+            ]}
+          />
+        </div>
+      </DashboardSection>
     </>
+  );
+}
+
+function GuideBlock({ title, steps }: { title: string; steps: string[] }) {
+  return (
+    <details className="rounded-2xl border border-border bg-card p-5 group" open>
+      <summary className="cursor-pointer select-none text-sm font-semibold text-foreground">
+        {title}
+      </summary>
+      <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-xs leading-relaxed text-muted-foreground">
+        {steps.map((s, i) => (
+          <li key={i}>{s}</li>
+        ))}
+      </ol>
+    </details>
   );
 }
