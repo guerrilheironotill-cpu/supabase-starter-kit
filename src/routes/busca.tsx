@@ -77,8 +77,8 @@ function SearchPage() {
                 </p>
               ) : (
                 <div className="mt-10 grid grid-cols-2 gap-5 sm:gap-6 lg:grid-cols-3">
-                  {products.map((p) => (
-                    <ProductCard
+                  {products.map((p, i) => (
+                    <ProductCard index={i}
                       key={p.id}
                       product={p}
                       priceFrom={priceFromOf(p)}
