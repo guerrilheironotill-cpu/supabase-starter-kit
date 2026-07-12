@@ -11,6 +11,7 @@ import {
   Users2,
   Bug,
   Image as ImageIcon,
+  Gauge,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ type NavItem = {
     | "/dashboard/debug"
     | "/dashboard/midia"
     | "/dashboard/seo"
+    | "/dashboard/desempenho"
     | "/dashboard/configuracoes";
   label: string;
   icon: typeof LayoutDashboard;
@@ -38,6 +40,7 @@ const NAV: NavItem[] = [
   { to: "/dashboard/debug", label: "Debug", icon: Bug },
   { to: "/dashboard/midia", label: "Mídia", icon: ImageIcon },
   { to: "/dashboard/seo", label: "SEO", icon: Search },
+  { to: "/dashboard/desempenho", label: "Desempenho", icon: Gauge },
   { to: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
 ];
 
