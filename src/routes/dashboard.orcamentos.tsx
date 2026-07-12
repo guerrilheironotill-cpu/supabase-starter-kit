@@ -241,6 +241,8 @@ function ShareMenu({ order }: { order: OrderRow }) {
   const items = Array.isArray(order.items)
     ? (order.items as Array<{ name: string; quantity: number; price: number; description?: string | null }>)
     : [];
+  const meta = parseMeta(order.notes);
+  const itemsSubtotal = items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0);
 
   const summary = () => {
     const lines = [
@@ -251,6 +253,11 @@ function ShareMenu({ order }: { order: OrderRow }) {
       ...items.map(
         (i) => `• ${i.quantity}x ${i.name} — ${currency((i.price ?? 0) * (i.quantity ?? 1))}`,
       ),
+      "",
+      ...(meta.freight ? [`Frete: ${currency(meta.freight)}${meta.freightNote ? " (" + meta.freightNote + ")" : ""}`] : []),
+      ...(meta.deadline ? [`Prazo de produção: ${meta.deadline}`] : []),
+      ...(meta.payment ? [`Pagamento: ${meta.payment}`] : []),
+      ...(meta.pix ? [`Pix (entrada): ${meta.pix}`] : []),
       "",
       `Total: ${currency(order.total)}`,
     ];
@@ -275,23 +282,60 @@ function ShareMenu({ order }: { order: OrderRow }) {
           `<tr><td>${i.name}${i.description ? `<div class="muted">${i.description}</div>` : ""}</td><td>${i.quantity}</td><td>${currency(i.price)}</td><td>${currency((i.price ?? 0) * (i.quantity ?? 1))}</td></tr>`,
       )
       .join("");
+    const module = (title: string, body: string) =>
+      `<section class="mod"><h2>${title}</h2><div>${body}</div></section>`;
+    const clientBody = `
+      <div class="row"><span>Cliente</span><b>${order.customer_name}</b></div>
+      ${order.customer_phone ? `<div class="row"><span>Telefone</span><b>${order.customer_phone}</b></div>` : ""}
+      ${order.customer_email ? `<div class="row"><span>E-mail</span><b>${order.customer_email}</b></div>` : ""}
+      <div class="row"><span>Data</span><b>${new Date(order.created_at).toLocaleDateString("pt-BR")}</b></div>
+    `;
+    const totalsBody = `
+      <div class="row"><span>Subtotal</span><b>${currency(itemsSubtotal)}</b></div>
+      ${meta.freight ? `<div class="row"><span>Frete${meta.freightNote ? ` <em>(${meta.freightNote})</em>` : ""}</span><b>${currency(meta.freight)}</b></div>` : ""}
+      <div class="row total"><span>Total</span><b>${currency(order.total)}</b></div>
+    `;
+    const condBody = [
+      meta.deadline ? `<div class="row"><span>Prazo de produção</span><b>${meta.deadline}</b></div>` : "",
+      meta.payment ? `<div class="row"><span>Forma de pagamento</span><b>${meta.payment}</b></div>` : "",
+      meta.pix ? `<div class="row"><span>Pix (entrada)</span><b><a href="${meta.pix}">${meta.pix}</a></b></div>` : "",
+    ].join("");
     const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Orçamento ${order.id.slice(0, 6)}</title>
 <style>
-  body { font-family: system-ui, -apple-system, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 24px; color: #111; }
-  h1 { font-size: 22px; margin: 0 0 4px; }
-  .muted { color: #666; font-size: 13px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 24px; }
-  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 14px; }
-  th { background: #fafafa; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #666; }
-  .total { text-align: right; font-size: 18px; font-weight: 600; margin-top: 24px; }
-  @media print { .noprint { display: none; } }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; max-width: 760px; margin: 0 auto; padding: 48px 32px; color: #111; background: #fff; }
+  .brand { display:flex; align-items:center; justify-content:space-between; padding-bottom:20px; border-bottom:2px solid #111; margin-bottom:32px; }
+  .brand .logo { font-family: Georgia, serif; font-size: 22px; letter-spacing: .02em; }
+  .brand .doc { text-align:right; font-size:12px; color:#666; text-transform:uppercase; letter-spacing:.15em; }
+  .brand .doc b { display:block; font-size:16px; color:#111; letter-spacing:.05em; margin-top:4px; }
+  .mod { border: 1px solid #eee; border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; }
+  .mod h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .18em; color: #888; margin: 0 0 12px; font-weight: 600; }
+  .row { display:flex; justify-content:space-between; padding: 6px 0; font-size: 14px; }
+  .row span { color:#666; }
+  .row b { color:#111; font-weight:500; }
+  .row.total { border-top:1px solid #eee; margin-top:8px; padding-top:12px; font-size:18px; }
+  .row.total b { font-weight:700; }
+  em { font-style: normal; color:#999; font-size:12px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 4px; border-bottom: 1px solid #f0f0f0; font-size: 13px; vertical-align: top; }
+  th { font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: #888; font-weight: 600; border-bottom: 1px solid #ddd; }
+  td .muted { color: #888; font-size: 12px; margin-top: 2px; }
+  .foot { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; text-align:center; font-size: 11px; color:#888; letter-spacing:.05em; }
+  a { color: #111; text-decoration: underline; }
+  @media print { .noprint { display: none; } body { padding: 24px; } }
 </style></head><body>
-<h1>Orçamento #${order.id.slice(0, 6)}</h1>
-<div class="muted">${new Date(order.created_at).toLocaleDateString("pt-BR")} — ${order.customer_name}${order.customer_phone ? " · " + order.customer_phone : ""}</div>
-<table><thead><tr><th>Item</th><th>Qtd</th><th>Unit.</th><th>Subtotal</th></tr></thead><tbody>${rows}</tbody></table>
-<div class="total">Total: ${currency(order.total)}</div>
-<div class="noprint" style="margin-top:24px;text-align:center;"><button onclick="window.print()" style="padding:10px 20px;font-size:14px;cursor:pointer;">Salvar como PDF</button></div>
-<script>setTimeout(function(){window.print();},300);</script>
+<header class="brand">
+  <div class="logo">Casa &amp; Jardim</div>
+  <div class="doc">Orçamento<b>#${order.id.slice(0, 6).toUpperCase()}</b></div>
+</header>
+${module("Cliente", clientBody)}
+${module("Itens", `<table><thead><tr><th>Descrição</th><th>Qtd</th><th>Unit.</th><th>Subtotal</th></tr></thead><tbody>${rows}</tbody></table>`)}
+${module("Valores", totalsBody)}
+${condBody ? module("Condições", condBody) : ""}
+${meta.note ? module("Observações", `<div style="font-size:13px;line-height:1.5;white-space:pre-wrap;">${meta.note.replace(/</g, "&lt;")}</div>`) : ""}
+<div class="foot">Casa &amp; Jardim · Vasos, jardineiras e mobiliário externo</div>
+<div class="noprint" style="margin-top:24px;text-align:center;"><button onclick="window.print()" style="padding:10px 20px;font-size:14px;cursor:pointer;border:1px solid #111;background:#111;color:#fff;border-radius:6px;">Salvar como PDF</button></div>
+<script>setTimeout(function(){window.print();},400);</script>
 </body></html>`;
     const w = window.open("", "_blank");
     if (!w) {
