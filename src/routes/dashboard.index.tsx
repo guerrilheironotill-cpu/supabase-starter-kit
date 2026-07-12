@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowUpRight, Eye, FileText, Package, Users } from "lucide-react";
+import { ArrowUpRight, Eye, FileText, Package, TrendingUp, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSection } from "@/components/dashboard-layout";
 
@@ -77,6 +77,15 @@ const conversionData = [
 
 const PIE_COLORS = ["#2a4a2f", "#5a8c3a", "#a8c97a", "#c9e0a5", "#e6f2c7"];
 
+const TOP_PRODUCTS = [
+  { name: "Vaso Toscana G", category: "Vasos", views: 1284, quotes: 42 },
+  { name: "Jardineira Ravena", category: "Jardineiras", views: 982, quotes: 31 },
+  { name: "Vaso Milano P", category: "Vasos", views: 861, quotes: 27 },
+  { name: "Mesa Provence", category: "Mesas", views: 704, quotes: 19 },
+  { name: "Fonte Aurora", category: "Fontes", views: 612, quotes: 14 },
+  { name: "Banco Siena", category: "Bancos", views: 498, quotes: 11 },
+];
+
 function Kpi({
   label,
   value,
@@ -116,6 +125,8 @@ function DashboardOverview() {
     queryFn: fetchStats,
     staleTime: 60_000,
   });
+
+  const maxViews = Math.max(...TOP_PRODUCTS.map((p) => p.views));
 
   return (
     <>
@@ -243,6 +254,46 @@ function DashboardOverview() {
             </div>
           </DashboardSection>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <DashboardSection
+          title="Produtos mais acessados"
+          description="Top produtos por visualizações no mês"
+        >
+          <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+            <ul className="space-y-4">
+              {TOP_PRODUCTS.map((p, i) => (
+                <li key={p.name} className="flex items-center gap-4">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">{p.name}</p>
+                        <p className="text-xs text-muted-foreground">{p.category}</p>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                          {p.views.toLocaleString("pt-BR")} visitas
+                        </span>
+                        <span>{p.quotes} orçamentos</span>
+                      </div>
+                    </div>
+                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-primary"
+                        style={{ width: `${(p.views / maxViews) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </DashboardSection>
       </div>
     </>
   );
