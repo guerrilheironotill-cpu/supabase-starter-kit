@@ -399,6 +399,7 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [freight, setFreight] = useState<number>(0);
   const [freightNote, setFreightNote] = useState("");
@@ -489,6 +490,7 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
         payment,
         pix,
         note: notes,
+        address,
       });
       const { error: orderErr } = await supabase.from("orders" as never).insert({
         status: "orcamento",
