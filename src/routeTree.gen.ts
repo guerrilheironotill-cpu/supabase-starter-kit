@@ -25,7 +25,6 @@ import { Route as DashboardProdutosRouteImport } from './routes/dashboard.produt
 import { Route as DashboardOrcamentosRouteImport } from './routes/dashboard.orcamentos'
 import { Route as DashboardCrmRouteImport } from './routes/dashboard.crm'
 import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.configuracoes'
-import { Route as DashboardCrmRouteImport } from './routes/dashboard.crm'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 
 const SupabaseCheckRoute = SupabaseCheckRouteImport.update({
@@ -106,11 +105,6 @@ const DashboardCrmRoute = DashboardCrmRouteImport.update({
 const DashboardConfiguracoesRoute = DashboardConfiguracoesRouteImport.update({
   id: '/configuracoes',
   path: '/configuracoes',
-  getParentRoute: () => DashboardRoute,
-} as any)
-const DashboardCrmRoute = DashboardCrmRouteImport.update({
-  id: '/crm',
-  path: '/crm',
   getParentRoute: () => DashboardRoute,
 } as any)
 const CategoriaSlugRoute = CategoriaSlugRouteImport.update({
