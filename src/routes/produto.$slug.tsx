@@ -130,35 +130,34 @@ function ProductPage() {
     (a, b) => a.sort_order - b.sort_order,
   );
 
-  type RowState = { qty: number; finish: string; color: string };
-  const [rows, setRows] = useState<Record<string, RowState>>(() =>
-    Object.fromEntries(
-      sizes.map((s) => [
-        s.id,
-        {
-          qty: 1,
-          finish: finishes[0]?.name ?? "",
-          color: colors[0]?.name ?? "",
-        },
-      ]),
-    ),
+  const [selectedSizeId, setSelectedSizeId] = useState<string>(
+    sizes[0]?.id ?? "",
   );
+  const [selectedFinish, setSelectedFinish] = useState<string>(
+    finishes[0]?.name ?? "",
+  );
+  const [selectedColor, setSelectedColor] = useState<string>(
+    colors[0]?.name ?? "",
+  );
+  const [qty, setQty] = useState<number>(1);
 
-  function updateRow(id: string, patch: Partial<RowState>) {
-    setRows((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
-  }
-
-  function handleAdd(s: ProductSize, idx: number) {
-    const r = rows[s.id] ?? { qty: 1, finish: "", color: "" };
-    const extras = [sizeCode(idx, sizes.length), r.finish, r.color]
+  function handleAddSelected() {
+    const idx = sizes.findIndex((s) => s.id === selectedSizeId);
+    const s = sizes[idx];
+    if (!s) return;
+    const extras = [
+      sizeCode(idx, sizes.length),
+      selectedFinish,
+      selectedColor,
+    ]
       .filter(Boolean)
       .join(" · ");
     addItem({
-      id: `${p.id}:${s.id}:${r.finish}:${r.color}`,
+      id: `${p.id}:${s.id}:${selectedFinish}:${selectedColor}`,
       name: extras ? `${p.name} — ${extras}` : p.name,
       slug: p.slug,
       image: images[0],
-      quantity: r.qty,
+      quantity: qty,
     });
   }
 
