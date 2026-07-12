@@ -628,9 +628,72 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
 
-        <div className="flex items-center justify-between rounded-lg bg-muted/30 px-4 py-3">
-          <span className="text-sm text-muted-foreground">Total</span>
-          <span className="text-lg font-semibold">{currency(total)}</span>
+        <div className="rounded-lg border border-border p-3">
+          <Label className="mb-2 block text-xs uppercase tracking-widest text-muted-foreground">Frete</Label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <Label className="text-xs">Valor do frete (R$)</Label>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={freight}
+                onChange={(e) => setFreight(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Observação do frete</Label>
+              <Input
+                placeholder="Ex: carga e descarga inclusos"
+                value={freightNote}
+                onChange={(e) => setFreightNote(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <Label>Prazo de produção</Label>
+            <Input
+              placeholder="Ex: 15 dias úteis"
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Forma de pagamento</Label>
+            <Input
+              placeholder="Ex: 50% entrada + 50% na entrega"
+              value={payment}
+              onChange={(e) => setPayment(e.target.value)}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>Link Pix (entrada)</Label>
+            <Input
+              placeholder="https://... ou copia e cola Pix"
+              value={pix}
+              onChange={(e) => setPix(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1 rounded-lg bg-muted/30 px-4 py-3 text-sm">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span>Subtotal itens</span>
+            <span>{currency(itemsSubtotal)}</span>
+          </div>
+          {freight > 0 && (
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span>Frete</span>
+              <span>{currency(freight)}</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-sm text-muted-foreground">Total</span>
+            <span className="text-lg font-semibold text-foreground">{currency(total)}</span>
+          </div>
         </div>
       </div>
 
