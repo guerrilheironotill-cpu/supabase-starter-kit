@@ -6,7 +6,7 @@ import {
   type ProductDetail,
   type ProductSize,
 } from "@/lib/products";
-import { ChevronRight, Minus, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useQuoteStore } from "@/lib/quote-store";
 import {
@@ -250,8 +250,9 @@ function ProductPage() {
           </nav>
         </div>
         <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-8 lg:grid-cols-2 lg:items-start">
-          {/* Gallery — stacked, scrolls with page */}
-          <div className="flex flex-col gap-4">
+          {/* Gallery — carousel on mobile, stacked on desktop */}
+          <MobileGallery images={images} name={p.name} />
+          <div className="hidden flex-col gap-4 lg:flex">
             {images.length > 0 ? (
               images.map((src: string, i: number) => (
                 <GalleryImage
@@ -467,5 +468,87 @@ function ProductPage() {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function MobileGallery({ images, name }: { images: string[]; name: string }) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [index, setIndex] = useState(0);
+
+  const scrollTo = (i: number) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const clamped = Math.max(0, Math.min(images.length - 1, i));
+    el.scrollTo({ left: clamped * el.clientWidth, behavior: "smooth" });
+  };
+
+  const onScroll = () => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    setIndex(Math.round(el.scrollLeft / el.clientWidth));
+  };
+
+  if (images.length === 0) {
+    return <div className="aspect-square bg-primary/5 lg:hidden" />;
+  }
+
+  return (
+    <div className="relative lg:hidden">
+      <div
+        ref={scrollerRef}
+        onScroll={onScroll}
+        className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {images.map((src, i) => (
+          <div
+            key={i}
+            className="aspect-square w-full flex-shrink-0 snap-center bg-white ring-1 ring-primary/10"
+          >
+            <img
+              src={src}
+              alt={`${name} — imagem ${i + 1}`}
+              loading={i === 0 ? "eager" : "lazy"}
+              className="h-full w-full object-cover"
+            />
+          </div>
+        ))}
+      </div>
+
+      {images.length > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={() => scrollTo(index - 1)}
+            aria-label="Imagem anterior"
+            disabled={index === 0}
+            className="absolute left-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-primary shadow-md ring-1 ring-primary/10 transition-opacity disabled:opacity-40"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollTo(index + 1)}
+            aria-label="Próxima imagem"
+            disabled={index === images.length - 1}
+            className="absolute right-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-primary shadow-md ring-1 ring-primary/10 transition-opacity disabled:opacity-40"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+          <div className="mt-3 flex justify-center gap-1.5">
+            {images.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => scrollTo(i)}
+                aria-label={`Ir para imagem ${i + 1}`}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === index ? "w-6 bg-primary" : "w-1.5 bg-primary/30"
+                }`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
