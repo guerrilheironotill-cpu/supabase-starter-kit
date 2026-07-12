@@ -415,17 +415,26 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
   ]);
   const [saving, setSaving] = useState(false);
 
+  type ProductFull = {
+    id: string;
+    name: string;
+    product_sizes: Array<{ id: string; name: string; base_price: number; sale_price: number | null; sort_order: number }>;
+    product_finishes: Array<{ id: string; name: string; sort_order: number }>;
+    product_colors: Array<{ id: string; name: string; sort_order: number }>;
+  };
   const { data: products = [] } = useQuery({
-    queryKey: ["products-mini"],
+    queryKey: ["products-for-quote"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name")
+        .select(
+          "id, name, product_sizes(id, name, base_price, sale_price, sort_order), product_finishes(id, name, sort_order), product_colors(id, name, sort_order)",
+        )
         .eq("active", true)
         .order("name")
         .limit(500);
-      if (error) return [] as Array<{ id: string; name: string }>;
-      return (data ?? []) as Array<{ id: string; name: string }>;
+      if (error) return [] as ProductFull[];
+      return (data ?? []) as ProductFull[];
     },
   });
 
