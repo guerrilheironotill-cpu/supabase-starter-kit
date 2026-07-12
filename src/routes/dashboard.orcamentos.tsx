@@ -541,6 +541,15 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
         </div>
 
         <div>
+          <Label>Endereço de entrega</Label>
+          <Textarea
+            placeholder="Rua, número, complemento, bairro, cidade/UF, CEP"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+          />
+        </div>
+
+        <div>
           <div className="mb-2 flex items-center justify-between">
             <Label>Itens</Label>
             <div className="flex gap-2">
