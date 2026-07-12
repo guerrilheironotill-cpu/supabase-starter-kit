@@ -4,7 +4,7 @@ import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { useQuoteStore } from "@/lib/quote-store";
 
-const WHATSAPP_NUMBER = "5500000000000"; // TODO: substituir pelo número real
+import { WHATSAPP_NUMBER } from "@/lib/site-config";
 
 const schema = z.object({
   name: z
