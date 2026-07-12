@@ -474,6 +474,10 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
           description: i.description ?? null,
           quantity: Number(i.quantity) || 1,
           price: Number(i.price) || 0,
+          size_id: i.size_id ?? null,
+          size_name: i.size_name ?? null,
+          finish: i.finish ?? null,
+          color: i.color ?? null,
         }));
 
       // 1) create a lead so it also appears in CRM (items as jsonb array — same shape as WhatsApp)
