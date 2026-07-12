@@ -397,6 +397,11 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
+  const [freight, setFreight] = useState<number>(0);
+  const [freightNote, setFreightNote] = useState("");
+  const [deadline, setDeadline] = useState("");
+  const [payment, setPayment] = useState("");
+  const [pix, setPix] = useState("");
   const [items, setItems] = useState<ItemDraft[]>([
     { kind: "custom", name: "", quantity: 1, price: 0 },
   ]);
@@ -416,10 +421,11 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
     },
   });
 
-  const total = useMemo(
+  const itemsSubtotal = useMemo(
     () => items.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 0), 0),
     [items],
   );
+  const total = itemsSubtotal + (Number(freight) || 0);
 
   const updateItem = (idx: number, patch: Partial<ItemDraft>) => {
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
@@ -472,6 +478,15 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
       }
 
       // 2) create the order
+      const metaPayload = JSON.stringify({
+        __meta: 1,
+        freight: Number(freight) || 0,
+        freightNote,
+        deadline,
+        payment,
+        pix,
+        note: notes,
+      });
       const { error: orderErr } = await supabase.from("orders" as never).insert({
         status: "orcamento",
         origin: "manual",
@@ -480,7 +495,7 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
         customer_email: email || null,
         items: cleanItems,
         total,
-        notes: notes || null,
+        notes: metaPayload,
       } as never);
       if (orderErr) throw orderErr;
 
