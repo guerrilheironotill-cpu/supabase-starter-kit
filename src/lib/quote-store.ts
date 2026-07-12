@@ -7,6 +7,10 @@ export type QuoteItem = {
   slug?: string;
   image?: string;
   quantity: number;
+  sizeLabel?: string;
+  dimensions?: string;
+  finish?: string;
+  color?: string;
 };
 
 type QuoteState = {
