@@ -353,10 +353,10 @@ function ShareMenu({ order }: { order: OrderRow }) {
 </header>
 ${module("Cliente", clientBody)}
 ${module("Itens", `<table><thead><tr><th>Descrição</th><th>Qtd</th><th>Unit.</th><th>Subtotal</th></tr></thead><tbody>${rows}</tbody></table>`)}
-${module("Valores", totalsBody)}
-${condBody ? module("Condições", condBody) : ""}
+${condBody
+  ? `<div style="display:flex;gap:16px;align-items:stretch;"><div style="flex:1 1 50%;min-width:0;">${module("Valores", totalsBody)}</div><div style="flex:1 1 50%;min-width:0;">${module("Condições", condBody)}</div></div>`
+  : module("Valores", totalsBody)}
 ${meta.note ? module("Observações", `<div style="font-size:13px;line-height:1.5;white-space:pre-wrap;">${meta.note.replace(/</g, "&lt;")}</div>`) : ""}
-<div class="foot">Vasos, jardineiras e mobiliário externo</div>
 <div class="noprint" style="margin-top:24px;text-align:center;"><button onclick="window.print()" style="padding:10px 20px;font-size:14px;cursor:pointer;border:1px solid #111;background:#111;color:#fff;border-radius:6px;">Salvar como PDF</button></div>
 <script>setTimeout(function(){window.print();},400);</script>
 </body></html>`;
