@@ -93,6 +93,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "Vasos, jardineiras e mobiliário externo com design autoral.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Casa & Jardim" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
@@ -110,6 +111,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter:wght@300;400;500;600;700&display=swap",
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Casa & Jardim",
+          url: "/",
+        }),
       },
     ],
   }),
