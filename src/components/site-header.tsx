@@ -74,7 +74,7 @@ export function SiteHeader() {
           : undefined
       }
     >
-      <div className="mx-auto flex h-[100px] max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-[100px] w-full items-center justify-between gap-6 px-4 sm:px-8 lg:px-[50px]">
         <Link to="/" className="flex items-center gap-2">
           <img
             src="https://arteno.com.br/wp-content/uploads/2025/03/Ativo-8-e1782929111841.png"
@@ -241,7 +241,7 @@ export function SiteHeader() {
         >
           <form
             onSubmit={onSearchSubmit}
-            className="mx-auto flex max-w-7xl items-center gap-2 px-4 py-3 sm:px-6 lg:px-8"
+            className="mx-auto flex w-full items-center gap-2 px-4 py-3 sm:px-8 lg:px-[50px]"
           >
             <Search
               className={cn(
