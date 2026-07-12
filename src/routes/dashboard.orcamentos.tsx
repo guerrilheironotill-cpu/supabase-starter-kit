@@ -290,6 +290,7 @@ function ShareMenu({ order }: { order: OrderRow }) {
       <div class="row"><span>Cliente</span><b>${order.customer_name}</b></div>
       ${order.customer_phone ? `<div class="row"><span>Telefone</span><b>${order.customer_phone}</b></div>` : ""}
       ${order.customer_email ? `<div class="row"><span>E-mail</span><b>${order.customer_email}</b></div>` : ""}
+      ${meta.address ? `<div class="row"><span>Endereço de entrega</span><b style="text-align:right;max-width:60%;white-space:pre-wrap;">${meta.address.replace(/</g, "&lt;")}</b></div>` : ""}
       <div class="row"><span>Data</span><b>${new Date(order.created_at).toLocaleDateString("pt-BR")}</b></div>
     `;
     const totalsBody = `
