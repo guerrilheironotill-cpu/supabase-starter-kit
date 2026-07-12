@@ -347,14 +347,18 @@ function ShareMenu({ order }: { order: OrderRow }) {
   a { color: #111; text-decoration: underline; }
   @media print { .noprint { display: none; } body { padding: 24px; } }
 </style></head><body>
-<header class="brand">
-  <div class="logo"><img src="https://arteno.com.br/wp-content/uploads/2025/03/Ativo-8-e1782929111841.png" alt="" style="height:44px;width:auto;object-fit:contain;"/></div>
-  <div class="doc">Orçamento<b>#${order.id.slice(0, 6).toUpperCase()}</b></div>
-</header>
-${module("Cliente", clientBody)}
+<div style="display:flex;gap:16px;align-items:stretch;margin-bottom:0;">
+  <div style="flex:1 1 50%;min-width:0;">${module("Cliente", clientBody)}</div>
+  <div style="flex:1 1 50%;min-width:0;">
+    <section class="mod" style="height:100%;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;text-align:right;">
+      <img src="https://arteno.com.br/wp-content/uploads/2025/03/Ativo-8-e1782929111841.png" alt="" style="height:52px;width:auto;object-fit:contain;"/>
+      <div style="font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.15em;margin-top:16px;">Orçamento<b style="display:block;font-size:18px;color:#111;letter-spacing:.05em;margin-top:4px;">#${order.id.slice(0, 6).toUpperCase()}</b></div>
+    </section>
+  </div>
+</div>
 ${module("Itens", `<table><thead><tr><th>Descrição</th><th>Qtd</th><th>Unit.</th><th>Subtotal</th></tr></thead><tbody>${rows}</tbody></table>`)}
 ${condBody
-  ? `<div style="display:flex;gap:16px;align-items:stretch;"><div style="flex:1 1 50%;min-width:0;">${module("Valores", totalsBody)}</div><div style="flex:1 1 50%;min-width:0;">${module("Condições", condBody)}</div></div>`
+  ? `<div style="display:flex;gap:16px;align-items:stretch;"><div style="flex:1 1 50%;min-width:0;">${module("Condições", condBody)}</div><div style="flex:1 1 50%;min-width:0;">${module("Valores", totalsBody)}</div></div>`
   : module("Valores", totalsBody)}
 ${meta.note ? module("Observações", `<div style="font-size:13px;line-height:1.5;white-space:pre-wrap;">${meta.note.replace(/</g, "&lt;")}</div>`) : ""}
 <div class="noprint" style="margin-top:24px;text-align:center;"><button onclick="window.print()" style="padding:10px 20px;font-size:14px;cursor:pointer;border:1px solid #111;background:#111;color:#fff;border-radius:6px;">Salvar como PDF</button></div>
