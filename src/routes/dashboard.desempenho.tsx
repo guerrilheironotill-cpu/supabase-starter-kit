@@ -13,7 +13,6 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { DashboardSection } from "@/components/dashboard-layout";
-import { useSiteSettings } from "@/lib/site-settings";
 
 export const Route = createFileRoute("/dashboard/desempenho")({
   head: () => ({
@@ -173,15 +172,12 @@ function ScoreCard({ label, value }: { label: string; value: number }) {
 }
 
 function DashboardDesempenhoPage() {
-  const site = useSiteSettings();
   const [snapshot] = useState<Snapshot>(DEFAULT_SNAPSHOT);
 
   const url = useMemo(() => {
-    const base =
-      site?.site_url ??
-      (typeof window !== "undefined" ? window.location.origin : "");
-    return base || "https://www.example.com";
-  }, [site]);
+    if (typeof window !== "undefined") return window.location.origin;
+    return "https://www.example.com";
+  }, []);
 
   const pageSpeedHref = `https://pagespeed.web.dev/report?url=${encodeURIComponent(url)}`;
 
