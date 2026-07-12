@@ -71,6 +71,21 @@ function OrcamentoPage() {
                   <p className="truncate font-medium text-foreground">
                     {item.name}
                   </p>
+                  {(item.sizeLabel || item.dimensions) && (
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      Tamanho{" "}
+                      {[item.sizeLabel, item.dimensions]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  )}
+                  {(item.finish || item.color) && (
+                    <p className="truncate text-xs text-muted-foreground">
+                      {item.finish && <>Acabamento: {item.finish}</>}
+                      {item.finish && item.color && " · "}
+                      {item.color && <>Cor: {item.color}</>}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
