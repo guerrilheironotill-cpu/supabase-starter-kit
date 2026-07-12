@@ -49,7 +49,9 @@ const STATUS_STYLES: Record<Lead["status"], string> = {
 };
 
 function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
+  const timestamp = new Date(iso).getTime();
+  if (!Number.isFinite(timestamp)) return iso || "—";
+  const diff = Date.now() - timestamp;
   const min = Math.floor(diff / 60000);
   if (min < 1) return "agora";
   if (min < 60) return `há ${min}min`;
