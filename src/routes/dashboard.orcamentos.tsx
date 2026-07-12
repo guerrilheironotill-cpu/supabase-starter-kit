@@ -51,7 +51,38 @@ type OrderRow = {
   total: number | null;
   items: unknown;
   created_at: string;
+  notes?: string | null;
 };
+
+type QuoteMeta = {
+  freight: number;
+  freightNote: string;
+  deadline: string;
+  payment: string;
+  pix: string;
+  note: string;
+};
+
+function parseMeta(raw: string | null | undefined): QuoteMeta {
+  const empty: QuoteMeta = { freight: 0, freightNote: "", deadline: "", payment: "", pix: "", note: "" };
+  if (!raw) return empty;
+  try {
+    const p = JSON.parse(raw);
+    if (p && typeof p === "object" && "__meta" in p) {
+      return {
+        freight: Number(p.freight) || 0,
+        freightNote: String(p.freightNote ?? ""),
+        deadline: String(p.deadline ?? ""),
+        payment: String(p.payment ?? ""),
+        pix: String(p.pix ?? ""),
+        note: String(p.note ?? ""),
+      };
+    }
+  } catch {
+    /* legacy plain-text notes */
+  }
+  return { ...empty, note: raw };
+}
 
 type ItemDraft = {
   kind: "catalog" | "custom";
