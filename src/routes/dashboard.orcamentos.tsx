@@ -378,16 +378,23 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
           price: Number(i.price) || 0,
         }));
 
-      // 1) create a lead so it also appears in CRM
-      const interest = cleanItems.map((i) => `${i.quantity}x ${i.name}`).join(", ");
+      // 1) create a lead so it also appears in CRM (items as jsonb array — same shape as WhatsApp)
+      const leadItems = cleanItems.map((i) => ({
+        id: i.product_id ?? `custom_${Math.random().toString(36).slice(2, 8)}`,
+        name: i.name,
+        quantity: i.quantity,
+        unitPrice: i.price,
+      }));
       const { error: leadErr } = await supabase.from("leads" as never).insert({
         name,
         phone: phone || null,
-        email: email || null,
-        items: interest,
+        items: leadItems,
         source: "manual",
       } as never);
-      if (leadErr) console.warn("[lead insert]", leadErr.message);
+      if (leadErr) {
+        console.warn("[lead insert]", leadErr.message);
+        toast.warning("Orçamento criado, mas falhou ao gravar lead no CRM: " + leadErr.message);
+      }
 
       // 2) create the order
       const { error: orderErr } = await supabase.from("orders" as never).insert({

@@ -95,20 +95,28 @@ function DashboardCrmPage() {
     staleTime: 30_000,
   });
 
-  // Prioriza Supabase; se offline, cai em localStorage
-  const source = dbLeads.length > 0 ? dbLeads.map((l) => ({
+  // Mescla Supabase + localStorage (fallback), deduplica por nome+telefone+minuto
+  const fromDb = dbLeads.map((l) => ({
     id: l.id,
     name: l.name,
     phone: l.phone ?? "",
-    items: (l.items ?? []) as QuoteItem[],
+    items: Array.isArray(l.items) ? (l.items as QuoteItem[]) : [],
     createdAt: l.created_at,
-  })) : localLeads.map((l) => ({
+  }));
+  const fromLocal = localLeads.map((l) => ({
     id: l.id,
     name: l.name,
     phone: l.phone,
     items: l.items,
     createdAt: l.createdAt,
   }));
+  const seen = new Set<string>();
+  const source = [...fromDb, ...fromLocal].filter((l) => {
+    const key = `${l.name}|${l.phone}|${l.createdAt.slice(0, 16)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 
   const mapped: Lead[] = source.map((l) => ({
     id: l.id,
