@@ -199,7 +199,7 @@ function ProductPage() {
               images.map((src: string, i: number) => (
                 <div
                   key={i}
-                  className="aspect-square overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-primary/10"
+                  className="aspect-square overflow-hidden bg-white ring-1 ring-primary/10"
                 >
                   <img
                     src={src}
@@ -210,7 +210,7 @@ function ProductPage() {
                 </div>
               ))
             ) : (
-              <div className="aspect-square rounded-3xl bg-primary/5" />
+              <div className="aspect-square bg-primary/5" />
             )}
           </div>
 
@@ -242,7 +242,7 @@ function ProductPage() {
                 <h2 className="mb-3 font-display text-lg font-semibold text-primary">
                   Tabela de tamanhos
                 </h2>
-                <div className="rounded-2xl bg-white shadow-sm ring-1 ring-primary/10">
+                <div className="bg-white ring-1 ring-primary/10">
                   <table className="w-full text-left text-sm">
                     <thead className="border-b border-primary/10 text-xs font-semibold text-primary">
                       <tr>
@@ -302,87 +302,15 @@ function ProductPage() {
                   </table>
                 </div>
 
-                <div className="mt-6 grid gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-primary/10 sm:grid-cols-2">
-                  <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
-                    Tamanho
-                    <select
-                      value={selectedSizeId}
-                      onChange={(e) => setSelectedSizeId(e.target.value)}
-                      className="rounded-md border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    >
-                      {sizes.map((s, i) => (
-                        <option key={s.id} value={s.id}>
-                          {sizeCode(i, sizes.length)} — {s.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  {finishes.length > 0 && (
-                    <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
-                      Acabamento
-                      <select
-                        value={selectedFinish}
-                        onChange={(e) => setSelectedFinish(e.target.value)}
-                        className="rounded-md border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                      >
-                        {finishes.map((f) => (
-                          <option key={f.id} value={f.name}>
-                            {f.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                  {colors.length > 0 && (
-                    <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
-                      Cor
-                      <select
-                        value={selectedColor}
-                        onChange={(e) => setSelectedColor(e.target.value)}
-                        className="rounded-md border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                      >
-                        {colors.map((c) => (
-                          <option key={c.id} value={c.name}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                  <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
-                    Quantidade
-                    <div className="inline-flex h-[38px] items-center gap-2 rounded-md border border-primary/20 bg-white px-2">
-                      <button
-                        type="button"
-                        onClick={() => setQty((q) => Math.max(1, q - 1))}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/5"
-                        aria-label="Diminuir"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </button>
-                      <span className="w-8 text-center text-sm font-medium">
-                        {qty}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setQty((q) => q + 1)}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/5"
-                        aria-label="Aumentar"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </label>
-                  <div className="sm:col-span-2">
-                    <button
-                      type="button"
-                      onClick={handleAddSelected}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Adicionar ao orçamento
-                    </button>
-                  </div>
+                <div className="mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setOpen(true)}
+                    className="inline-flex w-full items-center justify-center gap-2 bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Adicionar ao orçamento
+                  </button>
                 </div>
 
               </div>
