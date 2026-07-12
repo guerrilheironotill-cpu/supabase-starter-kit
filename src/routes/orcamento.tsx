@@ -39,26 +39,26 @@ function OrcamentoPage() {
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-10 text-center">
+        <div className="border border-dashed border-border p-10 text-center">
           <p className="text-muted-foreground">
             Nenhum produto adicionado ao orçamento ainda.
           </p>
           <Link
             to="/"
-            className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="mt-4 inline-flex items-center justify-center bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Ver produtos
           </Link>
         </div>
       ) : (
         <div className="space-y-4">
-          <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+          <ul className="divide-y divide-border overflow-hidden border border-border bg-card">
             {items.map((item) => (
               <li
                 key={item.id}
                 className="flex items-center gap-4 p-4 animate-fade-in"
               >
-                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
+                <div className="h-16 w-16 shrink-0 overflow-hidden bg-muted">
                   {item.image && (
                     <img
                       src={item.image}
@@ -93,7 +93,7 @@ function OrcamentoPage() {
                     onClick={() =>
                       updateQuantity(item.id, item.quantity - 1)
                     }
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border transition-colors hover:bg-accent"
+                    className="inline-flex h-8 w-8 items-center justify-center border border-border transition-colors hover:bg-accent"
                     aria-label="Diminuir"
                   >
                     <Minus className="h-3.5 w-3.5" />
@@ -106,7 +106,7 @@ function OrcamentoPage() {
                     onClick={() =>
                       updateQuantity(item.id, item.quantity + 1)
                     }
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border transition-colors hover:bg-accent"
+                    className="inline-flex h-8 w-8 items-center justify-center border border-border transition-colors hover:bg-accent"
                     aria-label="Aumentar"
                   >
                     <Plus className="h-3.5 w-3.5" />
@@ -115,7 +115,7 @@ function OrcamentoPage() {
                 <button
                   type="button"
                   onClick={() => removeItem(item.id)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  className="inline-flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                   aria-label="Remover"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -134,7 +134,7 @@ function OrcamentoPage() {
             </button>
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              className="inline-flex items-center justify-center bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
               Solicitar orçamento
             </button>
