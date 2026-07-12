@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { useQuoteStore } from "@/lib/quote-store";
+import { useLeadsStore } from "@/lib/leads-store";
 
 import { useWhatsAppNumber } from "@/lib/site-settings";
 
@@ -32,6 +33,15 @@ export function WhatsAppQuoteDrawer({
   const [errors, setErrors] = useState<{ name?: string; phone?: string }>({});
   const items = useQuoteStore((s) => s.items);
   const whatsappNumber = useWhatsAppNumber();
+  const addLead = useLeadsStore((s) => s.addLead);
+
+  const formatBRL = (n: number) =>
+    n.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,11 +57,37 @@ export function WhatsAppQuoteDrawer({
     }
     setErrors({});
 
+    const origin =
+      typeof window !== "undefined" ? window.location.origin : "";
+
     const list =
       items.length > 0
         ? items
-            .map((i, idx) => `${idx + 1}. ${i.name} (x${i.quantity})`)
-            .join("\n")
+            .map((i, idx) => {
+              const details: string[] = [];
+              if (i.sizeLabel || i.dimensions) {
+                details.push(
+                  `Tamanho: ${[i.sizeLabel, i.dimensions]
+                    .filter(Boolean)
+                    .join(" — ")}`,
+                );
+              }
+              if (i.finish) details.push(`Acabamento: ${i.finish}`);
+              if (i.color) details.push(`Cor: ${i.color}`);
+              details.push(`Quantidade: ${i.quantity}`);
+              if (typeof i.unitPrice === "number") {
+                details.push(
+                  `Valor unit.: ${formatBRL(i.unitPrice)} (subtotal ${formatBRL(
+                    i.unitPrice * i.quantity,
+                  )})`,
+                );
+              }
+              if (i.slug && origin) {
+                details.push(`Link: ${origin}/produto/${i.slug}`);
+              }
+              return `${idx + 1}. ${i.name}\n   ${details.join("\n   ")}`;
+            })
+            .join("\n\n")
         : "— (nenhum produto selecionado ainda)";
 
     const message =
@@ -60,7 +96,14 @@ export function WhatsAppQuoteDrawer({
       `Telefone: ${parsed.data.phone}\n\n` +
       `Produtos:\n${list}`;
 
-    // TODO: enviar lead para o CRM (server function) antes de abrir o WhatsApp
+    // Persiste o lead no CRM (localStorage) antes de abrir o WhatsApp
+    addLead({
+      name: parsed.data.name,
+      phone: parsed.data.phone,
+      items,
+      source: "whatsapp",
+    });
+
     const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank", "noopener,noreferrer");
     onClose();
