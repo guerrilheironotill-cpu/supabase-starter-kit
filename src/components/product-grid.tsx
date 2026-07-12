@@ -36,7 +36,7 @@ export function ProductGrid({ title, category, limit = 8 }: ProductGridProps) {
           </p>
         ) : (
           <div className="mt-10 grid grid-cols-2 gap-5 sm:mt-12 sm:gap-6 lg:grid-cols-3">
-            {products.map((p: Product) => (
+            {products.map((p: Product, i: number) => (
             <Link
               key={p.id}
               to="/produto/$slug"

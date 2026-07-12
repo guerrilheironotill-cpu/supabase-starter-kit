@@ -26,7 +26,6 @@ export function PageHero({ title, eyebrow, count, crumbs = [], image }: Props) {
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-black/45" />
-        <div className="absolute inset-0 bg-gradient-to-t from-primary/70 via-primary/30 to-primary/20" />
 
         <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 text-center text-white sm:px-8">
           {crumbs.length > 0 && (

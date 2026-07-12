@@ -86,7 +86,7 @@ function CatalogoPage() {
       <section className="bg-background py-12 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-8">
           {categories.length > 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="-mt-[30px] flex flex-wrap items-center justify-center gap-3">
               <CategoryChip
                 icon={LayoutGrid}
                 label="Todas"
@@ -122,8 +122,8 @@ function CatalogoPage() {
             </p>
           ) : (
             <div className="mt-10 grid grid-cols-2 gap-5 sm:gap-6 lg:grid-cols-3">
-              {filtered.map((p) => (
-                <ProductCard
+              {filtered.map((p, i) => (
+                <ProductCard index={i}
                   key={p.id}
                   product={p}
                   priceFrom={priceFromOf(p)}
