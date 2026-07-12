@@ -128,7 +128,7 @@ function DashboardQuotesPage() {
       const { data, error } = await supabase
         .from("orders" as never)
         .select(
-          "id, status, origin, customer_name, customer_phone, customer_email, total, items, created_at",
+          "id, status, origin, customer_name, customer_phone, customer_email, total, items, created_at, notes",
         )
         .order("created_at", { ascending: false })
         .limit(200);
