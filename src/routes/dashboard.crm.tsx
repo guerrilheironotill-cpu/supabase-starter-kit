@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Mail, Phone, MessageSquare } from "lucide-react";
 import { DashboardSection } from "@/components/dashboard-layout";
+import { useLeadsStore } from "@/lib/leads-store";
 
 export const Route = createFileRoute("/dashboard/crm")({
   head: () => ({
@@ -20,6 +21,7 @@ type Lead = {
   interest: string;
   status: "Novo" | "Em contato" | "Proposta" | "Fechado";
   createdAt: string;
+  isReal?: boolean;
 };
 
 const LEADS: Lead[] = [
@@ -43,13 +45,48 @@ const STATUS_STYLES: Record<Lead["status"], string> = {
   Fechado: "bg-emerald-500/15 text-emerald-400",
 };
 
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "agora";
+  if (min < 60) return `há ${min}min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `há ${h}h`;
+  const d = Math.floor(h / 24);
+  return d === 1 ? "ontem" : `${d} dias`;
+}
+
 function DashboardCrmPage() {
+  const realLeads = useLeadsStore((s) => s.leads);
+
+  const mapped: Lead[] = realLeads.map((l) => ({
+    id: l.id,
+    name: l.name,
+    contact: l.phone,
+    channel: "WhatsApp",
+    interest:
+      l.items.length === 0
+        ? "—"
+        : l.items.length === 1
+          ? `${l.items[0].name}${l.items[0].sizeLabel ? ` (${l.items[0].sizeLabel})` : ""}`
+          : `${l.items[0].name} +${l.items.length - 1}`,
+    status: "Novo",
+    createdAt: timeAgo(l.createdAt),
+    isReal: true,
+  }));
+
+  const allLeads: Lead[] = [...mapped, ...LEADS];
+
   return (
     <>
       <div className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">CRM</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Leads e contatos recebidos pelo site.
+          Leads e contatos recebidos pelo site. Reais são marcados com{" "}
+          <span className="inline-flex rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+            Real
+          </span>
+          ; os demais são exemplos.
         </p>
       </div>
 
@@ -84,11 +121,24 @@ function DashboardCrmPage() {
               </tr>
             </thead>
             <tbody>
-              {LEADS.map((l) => {
+              {allLeads.map((l) => {
                 const Icon = CHANNEL_ICON[l.channel];
                 return (
                   <tr key={l.id} className="border-t border-border">
-                    <td className="px-4 py-3 font-medium text-foreground">{l.name}</td>
+                    <td className="px-4 py-3 font-medium text-foreground">
+                      <span className="inline-flex items-center gap-2">
+                        {l.name}
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            l.isReal
+                              ? "bg-emerald-500/15 text-emerald-400"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {l.isReal ? "Real" : "Simulado"}
+                        </span>
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       <span className="inline-flex items-center gap-2">
                         <Icon className="h-3.5 w-3.5" />
