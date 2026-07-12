@@ -125,10 +125,11 @@ export function WhatsAppQuoteDrawer({
       },
     });
     // Fire-and-forget (não bloqueia a abertura do WhatsApp)
-    publicSupabase
-      .from("leads" as never)
-      .insert(payload as never)
-      .then(({ error }) => {
+    void (async () => {
+      try {
+        const { error } = await publicSupabase
+          .from("leads" as never)
+          .insert(payload as never);
         if (error) {
           console.warn("[leads] supabase insert failed:", error.message);
           addDebugLog({
@@ -145,8 +146,7 @@ export function WhatsAppQuoteDrawer({
           message: "Lead enviado ao Supabase sem erro de INSERT.",
           details: { table: "public.leads" },
         });
-      })
-      .catch((error: unknown) => {
+      } catch (error: unknown) {
         console.warn("[leads] supabase insert crashed:", error);
         addDebugLog({
           level: "error",
@@ -154,7 +154,8 @@ export function WhatsAppQuoteDrawer({
           message: compactError(error).message,
           details: compactError(error),
         });
-      });
+      }
+    })();
     addLead(payload);
 
     const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Database, RefreshCw, Trash2 } from "lucide-react";
 import { DashboardSection } from "@/components/dashboard-layout";
-import { supabase } from "@/integrations/supabase/client";
+import { publicSupabase } from "@/integrations/supabase/client";
 import { useFormDebugLogStore, type FormDebugLog } from "@/lib/form-debug-log";
 
 export const Route = createFileRoute("/dashboard/debug")({
@@ -24,7 +24,7 @@ type LeadPreview = {
 
 async function fetchLeadDiagnostics() {
   const checkedAt = new Date().toISOString();
-  const { data, error, status, statusText } = await supabase
+  const { data, error, status, statusText } = await publicSupabase
     .from("leads" as never)
     .select("id, name, phone, created_at")
     .order("created_at", { ascending: false })
