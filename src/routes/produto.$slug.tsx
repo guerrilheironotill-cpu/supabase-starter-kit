@@ -130,36 +130,6 @@ function ProductPage() {
     (a, b) => a.sort_order - b.sort_order,
   );
 
-  const [selectedSizeId, setSelectedSizeId] = useState<string>(
-    sizes[0]?.id ?? "",
-  );
-  const [selectedFinish, setSelectedFinish] = useState<string>(
-    finishes[0]?.name ?? "",
-  );
-  const [selectedColor, setSelectedColor] = useState<string>(
-    colors[0]?.name ?? "",
-  );
-  const [qty, setQty] = useState<number>(1);
-
-  function handleAddSelected() {
-    const idx = sizes.findIndex((s) => s.id === selectedSizeId);
-    const s = sizes[idx];
-    if (!s) return;
-    const extras = [
-      sizeCode(idx, sizes.length),
-      selectedFinish,
-      selectedColor,
-    ]
-      .filter(Boolean)
-      .join(" · ");
-    addItem({
-      id: `${p.id}:${s.id}:${selectedFinish}:${selectedColor}`,
-      name: extras ? `${p.name} — ${extras}` : p.name,
-      slug: p.slug,
-      image: images[0],
-      quantity: qty,
-    });
-  }
 
   return (
     <>
