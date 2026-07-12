@@ -1,14 +1,12 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Minus, Plus } from "lucide-react";
-import { useState } from "react";
 import {
   fetchProductBySlug,
   slugify,
   type ProductDetail,
   type ProductSize,
 } from "@/lib/products";
-import { useQuoteStore } from "@/lib/quote-store";
+import { ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/produto/$slug")({
   loader: async ({ params }) => {
