@@ -206,13 +206,121 @@ function DashboardQuotesPage() {
   );
 }
 
+function ShareMenu({ order }: { order: OrderRow }) {
+  const items = Array.isArray(order.items)
+    ? (order.items as Array<{ name: string; quantity: number; price: number; description?: string | null }>)
+    : [];
+
+  const summary = () => {
+    const lines = [
+      `Orçamento #${order.id.slice(0, 6)}`,
+      `Cliente: ${order.customer_name}`,
+      "",
+      "Itens:",
+      ...items.map(
+        (i) => `• ${i.quantity}x ${i.name} — ${currency((i.price ?? 0) * (i.quantity ?? 1))}`,
+      ),
+      "",
+      `Total: ${currency(order.total)}`,
+    ];
+    return lines.join("\n");
+  };
+
+  const shareUrl = () => `${window.location.origin}/orcamento/${order.id}`;
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl());
+      toast.success("Link copiado");
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  };
+
+  const generatePdf = () => {
+    const rows = items
+      .map(
+        (i) =>
+          `<tr><td>${i.name}${i.description ? `<div class="muted">${i.description}</div>` : ""}</td><td>${i.quantity}</td><td>${currency(i.price)}</td><td>${currency((i.price ?? 0) * (i.quantity ?? 1))}</td></tr>`,
+      )
+      .join("");
+    const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Orçamento ${order.id.slice(0, 6)}</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 24px; color: #111; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .muted { color: #666; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 14px; }
+  th { background: #fafafa; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #666; }
+  .total { text-align: right; font-size: 18px; font-weight: 600; margin-top: 24px; }
+  @media print { .noprint { display: none; } }
+</style></head><body>
+<h1>Orçamento #${order.id.slice(0, 6)}</h1>
+<div class="muted">${new Date(order.created_at).toLocaleDateString("pt-BR")} — ${order.customer_name}${order.customer_phone ? " · " + order.customer_phone : ""}</div>
+<table><thead><tr><th>Item</th><th>Qtd</th><th>Unit.</th><th>Subtotal</th></tr></thead><tbody>${rows}</tbody></table>
+<div class="total">Total: ${currency(order.total)}</div>
+<div class="noprint" style="margin-top:24px;text-align:center;"><button onclick="window.print()" style="padding:10px 20px;font-size:14px;cursor:pointer;">Salvar como PDF</button></div>
+<script>setTimeout(function(){window.print();},300);</script>
+</body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) {
+      toast.error("Bloqueado pelo navegador");
+      return;
+    }
+    w.document.write(html);
+    w.document.close();
+  };
+
+  const sendWhatsapp = () => {
+    const phone = (order.customer_phone ?? "").replace(/\D/g, "");
+    if (!phone) {
+      toast.error("Cliente sem telefone cadastrado");
+      return;
+    }
+    const text = encodeURIComponent(`${summary()}\n\n${shareUrl()}`);
+    window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+  };
+
+  const sendEmail = () => {
+    const email = order.customer_email;
+    if (!email) {
+      toast.error("Cliente sem e-mail cadastrado");
+      return;
+    }
+    const subject = encodeURIComponent(`Orçamento #${order.id.slice(0, 6)}`);
+    const body = encodeURIComponent(`${summary()}\n\n${shareUrl()}`);
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Share2 className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={copyLink}>
+          <LinkIcon className="mr-2 h-4 w-4" /> Copiar link
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={generatePdf}>
+          <FileDown className="mr-2 h-4 w-4" /> Gerar PDF
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={sendWhatsapp}>
+          <MessageCircle className="mr-2 h-4 w-4" /> Enviar por WhatsApp
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={sendEmail}>
+          <Mail className="mr-2 h-4 w-4" /> Enviar por e-mail
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [origin, setOrigin] = useState<"manual" | "instagram" | "whatsapp" | "site">(
-    "instagram",
-  );
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<ItemDraft[]>([
     { kind: "custom", name: "", quantity: 1, price: 0 },
