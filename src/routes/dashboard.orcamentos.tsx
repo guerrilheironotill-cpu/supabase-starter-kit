@@ -61,10 +61,11 @@ type QuoteMeta = {
   payment: string;
   pix: string;
   note: string;
+  address: string;
 };
 
 function parseMeta(raw: string | null | undefined): QuoteMeta {
-  const empty: QuoteMeta = { freight: 0, freightNote: "", deadline: "", payment: "", pix: "", note: "" };
+  const empty: QuoteMeta = { freight: 0, freightNote: "", deadline: "", payment: "", pix: "", note: "", address: "" };
   if (!raw) return empty;
   try {
     const p = JSON.parse(raw);
@@ -76,6 +77,7 @@ function parseMeta(raw: string | null | undefined): QuoteMeta {
         payment: String(p.payment ?? ""),
         pix: String(p.pix ?? ""),
         note: String(p.note ?? ""),
+        address: String(p.address ?? ""),
       };
     }
   } catch {
@@ -288,6 +290,7 @@ function ShareMenu({ order }: { order: OrderRow }) {
       <div class="row"><span>Cliente</span><b>${order.customer_name}</b></div>
       ${order.customer_phone ? `<div class="row"><span>Telefone</span><b>${order.customer_phone}</b></div>` : ""}
       ${order.customer_email ? `<div class="row"><span>E-mail</span><b>${order.customer_email}</b></div>` : ""}
+      ${meta.address ? `<div class="row"><span>Endereço de entrega</span><b style="text-align:right;max-width:60%;white-space:pre-wrap;">${meta.address.replace(/</g, "&lt;")}</b></div>` : ""}
       <div class="row"><span>Data</span><b>${new Date(order.created_at).toLocaleDateString("pt-BR")}</b></div>
     `;
     const totalsBody = `
@@ -396,6 +399,7 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [freight, setFreight] = useState<number>(0);
   const [freightNote, setFreightNote] = useState("");
@@ -486,6 +490,7 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
         payment,
         pix,
         note: notes,
+        address,
       });
       const { error: orderErr } = await supabase.from("orders" as never).insert({
         status: "orcamento",
@@ -533,6 +538,15 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
+        </div>
+
+        <div>
+          <Label>Endereço de entrega</Label>
+          <Textarea
+            placeholder="Rua, número, complemento, bairro, cidade/UF, CEP"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+          />
         </div>
 
         <div>
