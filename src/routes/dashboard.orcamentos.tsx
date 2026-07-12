@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { FileText, Plus, Trash2 } from "lucide-react";
+import { FileText, Plus, Trash2, Share2, Link as LinkIcon, FileDown, MessageCircle, Mail } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardSection } from "@/components/dashboard-layout";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +23,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard/orcamentos")({
