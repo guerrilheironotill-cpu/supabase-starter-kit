@@ -12,7 +12,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import { useQuoteStore, type QuoteItem } from "@/lib/quote-store";
-import { whatsappLink } from "@/lib/site-config";
+import { useWhatsAppNumber, whatsappLinkFrom } from "@/lib/site-settings";
 
 export const Route = createFileRoute("/orcamento")({
   head: () => ({
@@ -123,6 +123,7 @@ function OrcamentoPage() {
   });
   const [customerAddress, setCustomerAddress] = useState<Address>(EMPTY_ADDRESS);
   const [sameAsDelivery, setSameAsDelivery] = useState(true);
+  const whatsappNumber = useWhatsAppNumber();
 
   useCepAutocomplete(deliveryAddress.cep, (patch) =>
     setDeliveryAddress((a) => ({ ...a, ...patch })),
@@ -281,7 +282,11 @@ function OrcamentoPage() {
   };
 
   const sendWhatsApp = () => {
-    window.open(whatsappLink(buildSummary()), "_blank", "noopener,noreferrer");
+    window.open(
+      whatsappLinkFrom(whatsappNumber, buildSummary()),
+      "_blank",
+      "noopener,noreferrer",
+    );
   };
 
   const sendEmail = () => {
