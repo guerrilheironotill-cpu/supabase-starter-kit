@@ -31,6 +31,7 @@ export function WhatsAppQuoteDrawer({
   const [phone, setPhone] = useState("");
   const [errors, setErrors] = useState<{ name?: string; phone?: string }>({});
   const items = useQuoteStore((s) => s.items);
+  const whatsappNumber = useWhatsAppNumber();
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +61,7 @@ export function WhatsAppQuoteDrawer({
       `Produtos:\n${list}`;
 
     // TODO: enviar lead para o CRM (server function) antes de abrir o WhatsApp
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+    const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank", "noopener,noreferrer");
     onClose();
   };
