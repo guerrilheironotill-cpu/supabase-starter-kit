@@ -128,22 +128,31 @@ function DashboardQuotesPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
 
-  const { data: orders = [], isLoading } = useQuery({
+  const { data: orders = [], isLoading, error } = useQuery({
     queryKey: ["orders"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders" as never)
-        .select(
-          "id, status, origin, customer_name, customer_phone, customer_email, total, items, created_at, notes",
-        )
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (error) {
-        console.warn("[orders] fetch failed:", error.message);
-        return [] as OrderRow[];
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      try {
+        const { data, error } = await supabase
+          .from("orders" as never)
+          .select(
+            "id, status, origin, customer_name, customer_phone, customer_email, total, items, created_at, notes",
+          )
+          .order("created_at", { ascending: false })
+          .limit(200)
+          .abortSignal(controller.signal);
+        if (error) {
+          console.warn("[orders] fetch failed:", error.message);
+          throw new Error(error.message);
+        }
+        return (data ?? []) as unknown as OrderRow[];
+      } finally {
+        clearTimeout(timeout);
       }
-      return (data ?? []) as unknown as OrderRow[];
     },
+    retry: 1,
+    staleTime: 30_000,
   });
 
   return (
@@ -195,7 +204,14 @@ function DashboardQuotesPage() {
                   </td>
                 </tr>
               )}
-              {!isLoading && orders.length === 0 && (
+              {!isLoading && error && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-destructive">
+                    Erro ao carregar orçamentos: {error instanceof Error ? error.message : String(error)}
+                  </td>
+                </tr>
+              )}
+              {!isLoading && !error && orders.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                     Nenhum orçamento ainda. Clique em "Novo orçamento" para criar.
