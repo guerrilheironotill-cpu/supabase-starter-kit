@@ -47,6 +47,7 @@ type OrderRow = {
   origin: string;
   customer_name: string;
   customer_phone: string | null;
+  customer_email?: string | null;
   total: number | null;
   items: unknown;
   created_at: string;
@@ -96,7 +97,7 @@ function DashboardQuotesPage() {
       const { data, error } = await supabase
         .from("orders" as never)
         .select(
-          "id, status, origin, customer_name, customer_phone, total, items, created_at",
+          "id, status, origin, customer_name, customer_phone, customer_email, total, items, created_at",
         )
         .order("created_at", { ascending: false })
         .limit(200);
