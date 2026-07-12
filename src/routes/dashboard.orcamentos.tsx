@@ -61,10 +61,11 @@ type QuoteMeta = {
   payment: string;
   pix: string;
   note: string;
+  address: string;
 };
 
 function parseMeta(raw: string | null | undefined): QuoteMeta {
-  const empty: QuoteMeta = { freight: 0, freightNote: "", deadline: "", payment: "", pix: "", note: "" };
+  const empty: QuoteMeta = { freight: 0, freightNote: "", deadline: "", payment: "", pix: "", note: "", address: "" };
   if (!raw) return empty;
   try {
     const p = JSON.parse(raw);
@@ -76,6 +77,7 @@ function parseMeta(raw: string | null | undefined): QuoteMeta {
         payment: String(p.payment ?? ""),
         pix: String(p.pix ?? ""),
         note: String(p.note ?? ""),
+        address: String(p.address ?? ""),
       };
     }
   } catch {
