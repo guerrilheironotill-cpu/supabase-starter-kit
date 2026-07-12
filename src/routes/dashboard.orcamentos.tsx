@@ -385,14 +385,14 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
         phone: phone || null,
         email: email || null,
         items: interest,
-        source: origin,
+        source: "manual",
       } as never);
       if (leadErr) console.warn("[lead insert]", leadErr.message);
 
       // 2) create the order
       const { error: orderErr } = await supabase.from("orders" as never).insert({
         status: "orcamento",
-        origin,
+        origin: "manual",
         customer_name: name,
         customer_phone: phone || null,
         customer_email: email || null,
@@ -423,20 +423,6 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
           <div>
             <Label>Nome do cliente *</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div>
-            <Label>Origem</Label>
-            <Select value={origin} onValueChange={(v) => setOrigin(v as typeof origin)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="instagram">Instagram</SelectItem>
-                <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                <SelectItem value="manual">Manual</SelectItem>
-                <SelectItem value="site">Site</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
           <div>
             <Label>Telefone</Label>
