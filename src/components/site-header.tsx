@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ChevronDown, FileText, Menu, Search, X } from "lucide-react";
 import { useQuoteStore } from "@/lib/quote-store";
@@ -36,7 +36,10 @@ function useHydrated() {
 export function SiteHeader() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolledRaw, setScrolled] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isDashboard = pathname.startsWith("/dashboard");
+  const scrolled = scrolledRaw || isDashboard;
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [waOpen, setWaOpen] = useState(false);
@@ -70,7 +73,11 @@ export function SiteHeader() {
       )}
       style={
         scrolled
-          ? { backgroundColor: "color-mix(in oklab, #2a2f2c 85%, transparent)" }
+          ? {
+              backgroundColor: isDashboard
+                ? "#1c211d"
+                : "color-mix(in oklab, #2a2f2c 85%, transparent)",
+            }
           : undefined
       }
     >
