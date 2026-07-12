@@ -594,24 +594,115 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
                 </div>
 
                 {it.kind === "catalog" ? (
-                  <Select
-                    value={it.product_id ?? ""}
-                    onValueChange={(v) => {
-                      const p = products.find((x) => x.id === v);
-                      updateItem(idx, { product_id: v, name: p?.name ?? "" });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um produto" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  (() => {
+                    const p = products.find((x) => x.id === it.product_id);
+                    const sizes = [...(p?.product_sizes ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+                    const finishes = [...(p?.product_finishes ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+                    const colors = [...(p?.product_colors ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+                    return (
+                      <div className="space-y-2">
+                        <Select
+                          value={it.product_id ?? ""}
+                          onValueChange={(v) => {
+                            const prod = products.find((x) => x.id === v);
+                            updateItem(idx, {
+                              product_id: v,
+                              name: prod?.name ?? "",
+                              size_id: undefined,
+                              size_name: undefined,
+                              finish: undefined,
+                              color: undefined,
+                              price: 0,
+                            });
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um produto" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {products.map((prod) => (
+                              <SelectItem key={prod.id} value={prod.id}>
+                                {prod.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {p && (
+                          <div className="grid gap-2 sm:grid-cols-3">
+                            {sizes.length > 0 && (
+                              <div>
+                                <Label className="text-xs">Tamanho</Label>
+                                <Select
+                                  value={it.size_id ?? ""}
+                                  onValueChange={(v) => {
+                                    const s = sizes.find((x) => x.id === v);
+                                    const priceFromSize = s ? (s.sale_price ?? s.base_price) : it.price;
+                                    updateItem(idx, {
+                                      size_id: v,
+                                      size_name: s?.name,
+                                      price: Number(priceFromSize) || 0,
+                                    });
+                                  }}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {sizes.map((s) => (
+                                      <SelectItem key={s.id} value={s.id}>
+                                        {s.name} — {currency(s.sale_price ?? s.base_price)}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                            {finishes.length > 0 && (
+                              <div>
+                                <Label className="text-xs">Acabamento</Label>
+                                <Select
+                                  value={it.finish ?? ""}
+                                  onValueChange={(v) => updateItem(idx, { finish: v })}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {finishes.map((f) => (
+                                      <SelectItem key={f.id} value={f.name}>
+                                        {f.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                            {colors.length > 0 && (
+                              <div>
+                                <Label className="text-xs">Cor</Label>
+                                <Select
+                                  value={it.color ?? ""}
+                                  onValueChange={(v) => updateItem(idx, { color: v })}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {colors.map((c) => (
+                                      <SelectItem key={c.id} value={c.name}>
+                                        {c.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()
                 ) : (
                   <>
                     <Input
