@@ -11,6 +11,7 @@ export type QuoteItem = {
   dimensions?: string;
   finish?: string;
   color?: string;
+  unitPrice?: number;
 };
 
 type QuoteState = {

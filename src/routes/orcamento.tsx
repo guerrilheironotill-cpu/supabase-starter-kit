@@ -1,8 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Minus, Plus, Trash2, FileText, Download, Mail } from "lucide-react";
-import { useMemo, useState } from "react";
+import {
+  Minus,
+  Plus,
+  Trash2,
+  Download,
+  Mail,
+  Check,
+  ArrowLeft,
+  ArrowRight,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
-import { useQuoteStore } from "@/lib/quote-store";
+import { useQuoteStore, type QuoteItem } from "@/lib/quote-store";
 
 export const Route = createFileRoute("/orcamento")({
   head: () => ({
@@ -25,31 +34,125 @@ export const Route = createFileRoute("/orcamento")({
   component: OrcamentoPage,
 });
 
+type Address = {
+  cep: string;
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+};
+
+type Customer = {
+  name: string;
+  email: string;
+  phone: string;
+};
+
+const EMPTY_ADDRESS: Address = {
+  cep: "",
+  street: "",
+  number: "",
+  complement: "",
+  neighborhood: "",
+  city: "",
+  state: "",
+};
+
+function formatBRL(n: number) {
+  return n.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+}
+
+function useCepAutocomplete(
+  cep: string,
+  onFill: (data: Partial<Address>) => void,
+) {
+  useEffect(() => {
+    const digits = cep.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    let cancelled = false;
+    fetch(`https://viacep.com.br/ws/${digits}/json/`)
+      .then((r) => r.json())
+      .then((d: {
+        logradouro?: string;
+        bairro?: string;
+        localidade?: string;
+        uf?: string;
+        erro?: boolean;
+      }) => {
+        if (cancelled || d.erro) return;
+        onFill({
+          street: d.logradouro ?? "",
+          neighborhood: d.bairro ?? "",
+          city: d.localidade ?? "",
+          state: d.uf ?? "",
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cep]);
+}
+
+function itemSubtotal(it: QuoteItem) {
+  return (it.unitPrice ?? 0) * it.quantity;
+}
+
 function OrcamentoPage() {
   const items = useQuoteStore((s) => s.items);
   const removeItem = useQuoteStore((s) => s.removeItem);
   const updateQuantity = useQuoteStore((s) => s.updateQuantity);
   const clear = useQuoteStore((s) => s.clear);
 
+  const [step, setStep] = useState<1 | 2>(1);
   const [delivery, setDelivery] = useState<"pickup" | "shipping">("pickup");
-  const [cep, setCep] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState<Address>(EMPTY_ADDRESS);
+  const [customer, setCustomer] = useState<Customer>({
+    name: "",
+    email: "",
+    phone: "",
+  });
+  const [customerAddress, setCustomerAddress] = useState<Address>(EMPTY_ADDRESS);
+  const [sameAsDelivery, setSameAsDelivery] = useState(true);
 
-  const cepDigits = cep.replace(/\D/g, "");
-  // Florianópolis e região (Grande Fpolis): 88000-88169
+  useCepAutocomplete(deliveryAddress.cep, (patch) =>
+    setDeliveryAddress((a) => ({ ...a, ...patch })),
+  );
+  useCepAutocomplete(customerAddress.cep, (patch) =>
+    setCustomerAddress((a) => ({ ...a, ...patch })),
+  );
+
+  // Florianópolis / Grande Fpolis: 88000–88169
+  const cepDigits = deliveryAddress.cep.replace(/\D/g, "");
   const shippingAvailable = useMemo(() => {
     if (cepDigits.length !== 8) return null;
     const n = parseInt(cepDigits.slice(0, 5), 10);
     return n >= 88000 && n <= 88169;
   }, [cepDigits]);
 
-  // If user selected shipping but CEP is out of area, force pickup
   const effectiveDelivery =
     delivery === "shipping" && shippingAvailable === false ? "pickup" : delivery;
+
+  const subtotal = items.reduce((sum, it) => sum + itemSubtotal(it), 0);
+  const hasPrices = items.some((it) => typeof it.unitPrice === "number");
+
+  // Effective address the customer will register (step 2). If sameAsDelivery is
+  // checked, the shipping address IS the customer address.
+  const finalDeliveryAddress = sameAsDelivery ? customerAddress : deliveryAddress;
 
   const buildSummary = () => {
     const lines: string[] = [];
     lines.push("Orçamento — Casa & Jardim");
     lines.push("");
+    lines.push("PRODUTOS");
     items.forEach((it, idx) => {
       lines.push(`${idx + 1}. ${it.name} (x${it.quantity})`);
       const details = [
@@ -57,13 +160,31 @@ function OrcamentoPage() {
         it.dimensions && `Medidas: ${it.dimensions}`,
         it.finish && `Acabamento: ${it.finish}`,
         it.color && `Cor: ${it.color}`,
+        typeof it.unitPrice === "number" &&
+          `Subtotal: ${formatBRL(itemSubtotal(it))}`,
       ].filter(Boolean);
       details.forEach((d) => lines.push(`   - ${d}`));
     });
+    if (hasPrices) {
+      lines.push("");
+      lines.push(`SUBTOTAL: ${formatBRL(subtotal)}`);
+    }
     lines.push("");
-    lines.push(
-      `Entrega: ${effectiveDelivery === "pickup" ? "Retirar na fábrica" : `Cotar frete (CEP ${cep})`}`,
-    );
+    lines.push("CLIENTE");
+    lines.push(`Nome: ${customer.name}`);
+    lines.push(`E-mail: ${customer.email}`);
+    lines.push(`Telefone: ${customer.phone}`);
+    lines.push("");
+    lines.push("ENTREGA");
+    if (effectiveDelivery === "pickup") {
+      lines.push("Retirar na fábrica");
+    } else {
+      const a = finalDeliveryAddress;
+      lines.push(
+        `Frete — ${a.street}, ${a.number}${a.complement ? ` (${a.complement})` : ""}`,
+      );
+      lines.push(`${a.neighborhood} — ${a.city}/${a.state} — CEP ${a.cep}`);
+    }
     return lines.join("\n");
   };
 
@@ -83,7 +204,7 @@ function OrcamentoPage() {
 
     doc.setFontSize(11);
     items.forEach((it, idx) => {
-      if (y > 270) {
+      if (y > 260) {
         doc.addPage();
         y = 20;
       }
@@ -96,6 +217,8 @@ function OrcamentoPage() {
         it.dimensions && `Medidas: ${it.dimensions}`,
         it.finish && `Acabamento: ${it.finish}`,
         it.color && `Cor: ${it.color}`,
+        typeof it.unitPrice === "number" &&
+          `Subtotal: ${formatBRL(itemSubtotal(it))}`,
       ].filter(Boolean) as string[];
       details.forEach((d) => {
         doc.text(`   • ${d}`, marginX, y);
@@ -104,7 +227,17 @@ function OrcamentoPage() {
       y += 2;
     });
 
-    if (y > 260) {
+    if (hasPrices) {
+      if (y > 260) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.setFont("helvetica", "bold");
+      doc.text(`Subtotal: ${formatBRL(subtotal)}`, marginX, y);
+      y += 8;
+    }
+
+    if (y > 240) {
       doc.addPage();
       y = 20;
     }
@@ -112,16 +245,36 @@ function OrcamentoPage() {
     doc.line(marginX, y, 195, y);
     y += 6;
     doc.setFont("helvetica", "bold");
+    doc.text("Cliente", marginX, y);
+    y += 5;
+    doc.setFont("helvetica", "normal");
+    doc.text(`Nome: ${customer.name}`, marginX, y);
+    y += 5;
+    doc.text(`E-mail: ${customer.email}`, marginX, y);
+    y += 5;
+    doc.text(`Telefone: ${customer.phone}`, marginX, y);
+    y += 8;
+
+    doc.setFont("helvetica", "bold");
     doc.text("Entrega", marginX, y);
     y += 5;
     doc.setFont("helvetica", "normal");
-    doc.text(
-      effectiveDelivery === "pickup"
-        ? "Retirar na fábrica"
-        : `Cotar frete — CEP ${cep}`,
-      marginX,
-      y,
-    );
+    if (effectiveDelivery === "pickup") {
+      doc.text("Retirar na fábrica", marginX, y);
+    } else {
+      const a = finalDeliveryAddress;
+      doc.text(
+        `${a.street}, ${a.number}${a.complement ? ` (${a.complement})` : ""}`,
+        marginX,
+        y,
+      );
+      y += 5;
+      doc.text(
+        `${a.neighborhood} — ${a.city}/${a.state} — CEP ${a.cep}`,
+        marginX,
+        y,
+      );
+    }
 
     doc.save("orcamento.pdf");
   };
@@ -137,17 +290,22 @@ function OrcamentoPage() {
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8 animate-fade-in">
-      <div className="mb-8 flex items-center gap-3">
-        <FileText className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-semibold tracking-tight">
+  const canGoStep2 = items.length > 0;
+  const canFinish =
+    customer.name.trim() !== "" &&
+    customer.email.trim() !== "" &&
+    customer.phone.trim() !== "" &&
+    customerAddress.cep.replace(/\D/g, "").length === 8 &&
+    customerAddress.street.trim() !== "" &&
+    customerAddress.number.trim() !== "";
+
+  if (items.length === 0) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
+        <h1 className="text-2xl font-semibold tracking-tight text-primary">
           Seu orçamento
         </h1>
-      </div>
-
-      {items.length === 0 ? (
-        <div className="border border-dashed border-border p-10 text-center">
+        <div className="mt-8 border border-dashed border-border p-10 text-center">
           <p className="text-muted-foreground">
             Nenhum produto adicionado ao orçamento ainda.
           </p>
@@ -158,175 +316,565 @@ function OrcamentoPage() {
             Ver produtos
           </Link>
         </div>
-      ) : (
-        <div className="space-y-4">
-          <ul className="divide-y divide-border overflow-hidden border border-border bg-card">
-            {items.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-center gap-4 p-4 animate-fade-in"
-              >
-                <div className="h-16 w-16 shrink-0 overflow-hidden bg-muted">
-                  {item.image && (
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-foreground">
-                    {item.name}
-                  </p>
-                  {(item.sizeLabel || item.dimensions) && (
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      Tamanho{" "}
-                      {[item.sizeLabel, item.dimensions]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  )}
-                  {(item.finish || item.color) && (
-                    <p className="truncate text-xs text-muted-foreground">
-                      {item.finish && <>Acabamento: {item.finish}</>}
-                      {item.finish && item.color && " · "}
-                      {item.color && <>Cor: {item.color}</>}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateQuantity(item.id, item.quantity - 1)
-                    }
-                    className="inline-flex h-8 w-8 items-center justify-center border border-border transition-colors hover:bg-accent"
-                    aria-label="Diminuir"
-                  >
-                    <Minus className="h-3.5 w-3.5" />
-                  </button>
-                  <span className="w-6 text-center text-sm font-medium">
-                    {item.quantity}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      {/* Stepper */}
+      <Stepper step={step} onSelect={(s) => (s === 1 || canGoStep2) && setStep(s)} />
+
+      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-start">
+        {/* Left column — active step content */}
+        <div className="min-w-0">
+          {step === 1 ? (
+            <StepProducts
+              items={items}
+              updateQuantity={updateQuantity}
+              removeItem={removeItem}
+              clear={clear}
+              delivery={delivery}
+              setDelivery={setDelivery}
+              shippingAvailable={shippingAvailable}
+              effectiveDelivery={effectiveDelivery}
+              deliveryAddress={deliveryAddress}
+              setDeliveryAddress={setDeliveryAddress}
+            />
+          ) : (
+            <StepCustomer
+              customer={customer}
+              setCustomer={setCustomer}
+              customerAddress={customerAddress}
+              setCustomerAddress={setCustomerAddress}
+              sameAsDelivery={sameAsDelivery}
+              setSameAsDelivery={setSameAsDelivery}
+              effectiveDelivery={effectiveDelivery}
+            />
+          )}
+        </div>
+
+        {/* Right column — sticky summary */}
+        <aside className="lg:sticky lg:top-24">
+          <div className="border border-border bg-card">
+            <div className="border-b border-border px-5 py-4">
+              <h2 className="text-sm font-semibold uppercase tracking-widest text-primary">
+                Resumo do orçamento
+              </h2>
+            </div>
+            <ul className="divide-y divide-border">
+              {items.map((it) => (
+                <li key={it.id} className="flex gap-3 px-5 py-3 text-sm">
+                  <span className="min-w-0 flex-1 truncate text-foreground">
+                    {it.quantity}× {it.name}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateQuantity(item.id, item.quantity + 1)
-                    }
-                    className="inline-flex h-8 w-8 items-center justify-center border border-border transition-colors hover:bg-accent"
-                    aria-label="Aumentar"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeItem(item.id)}
-                  className="inline-flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                  aria-label="Remover"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </li>
-            ))}
-          </ul>
-
-          <div className="flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={clear}
-              className="text-sm text-muted-foreground transition-colors hover:text-destructive"
-            >
-              Limpar lista
-            </button>
-          </div>
-
-          <div className="border border-border bg-card p-5 space-y-4">
-            <div>
-              <p className="text-sm font-semibold text-foreground">
-                Método de entrega
-              </p>
-              <div className="mt-3 space-y-2">
-                <label className="flex items-center gap-3 text-sm">
-                  <input
-                    type="radio"
-                    name="delivery"
-                    checked={effectiveDelivery === "pickup"}
-                    onChange={() => setDelivery("pickup")}
-                  />
-                  Retirar na fábrica
-                </label>
-                <label
-                  className={`flex items-center gap-3 text-sm ${
-                    shippingAvailable === false
-                      ? "opacity-50"
-                      : ""
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="delivery"
-                    disabled={shippingAvailable === false}
-                    checked={effectiveDelivery === "shipping"}
-                    onChange={() => setDelivery("shipping")}
-                  />
-                  Cotar frete
-                </label>
+                  <span className="shrink-0 text-muted-foreground">
+                    {typeof it.unitPrice === "number"
+                      ? formatBRL(itemSubtotal(it))
+                      : "—"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="border-t border-border px-5 py-4 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="font-semibold text-foreground">
+                  {hasPrices ? formatBRL(subtotal) : "A consultar"}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                <span>Entrega</span>
+                <span>
+                  {effectiveDelivery === "pickup"
+                    ? "Retirar na fábrica"
+                    : "Frete a cotar"}
+                </span>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                CEP de entrega
-              </label>
+            {step === 1 ? (
+              <div className="border-t border-border p-5">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="inline-flex w-full items-center justify-center gap-2 bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  Continuar
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2 border-t border-border p-5">
+                <button
+                  type="button"
+                  onClick={sendWhatsApp}
+                  disabled={!canFinish}
+                  className="inline-flex w-full items-center justify-center gap-2 bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-4 w-4"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M20.52 3.48A11.86 11.86 0 0 0 12.06 0C5.5 0 .18 5.32.18 11.88c0 2.09.55 4.13 1.6 5.93L0 24l6.34-1.66a11.86 11.86 0 0 0 5.72 1.46h.01c6.55 0 11.88-5.32 11.88-11.88 0-3.17-1.24-6.15-3.43-8.44Z" />
+                  </svg>
+                  Enviar por WhatsApp
+                </button>
+                <button
+                  type="button"
+                  onClick={sendEmail}
+                  disabled={!canFinish}
+                  className="inline-flex w-full items-center justify-center gap-2 border border-border px-5 py-3 text-sm font-medium transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Mail className="h-4 w-4" />
+                  Enviar por e-mail
+                </button>
+                <button
+                  type="button"
+                  onClick={generatePDF}
+                  disabled={!canFinish}
+                  className="inline-flex w-full items-center justify-center gap-2 border border-border px-5 py-3 text-sm font-medium transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Download className="h-4 w-4" />
+                  Gerar PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="mt-2 inline-flex w-full items-center justify-center gap-2 text-xs text-muted-foreground transition-colors hover:text-primary"
+                >
+                  <ArrowLeft className="h-3 w-3" />
+                  Voltar para produtos
+                </button>
+              </div>
+            )}
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function Stepper({
+  step,
+  onSelect,
+}: {
+  step: 1 | 2;
+  onSelect: (s: 1 | 2) => void;
+}) {
+  const steps = [
+    { n: 1, label: "Produtos" },
+    { n: 2, label: "Seus dados" },
+  ] as const;
+  return (
+    <ol className="flex items-center gap-6 border-b border-border pb-4">
+      {steps.map((s, i) => {
+        const active = step === s.n;
+        const done = step > s.n;
+        return (
+          <li key={s.n} className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => onSelect(s.n)}
+              className="flex items-center gap-3 text-left"
+            >
+              <span
+                className={`inline-flex h-7 w-7 items-center justify-center border text-xs font-semibold transition-colors ${
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : done
+                      ? "border-primary text-primary"
+                      : "border-border text-muted-foreground"
+                }`}
+              >
+                {done ? <Check className="h-3.5 w-3.5" /> : s.n}
+              </span>
+              <span
+                className={`text-xs font-semibold uppercase tracking-widest ${
+                  active ? "text-primary" : "text-muted-foreground"
+                }`}
+              >
+                {s.label}
+              </span>
+            </button>
+            {i === 0 && (
+              <span className="ml-1 h-px w-10 bg-border sm:w-16" aria-hidden />
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function StepProducts({
+  items,
+  updateQuantity,
+  removeItem,
+  clear,
+  delivery,
+  setDelivery,
+  shippingAvailable,
+  effectiveDelivery,
+  deliveryAddress,
+  setDeliveryAddress,
+}: {
+  items: QuoteItem[];
+  updateQuantity: (id: string, q: number) => void;
+  removeItem: (id: string) => void;
+  clear: () => void;
+  delivery: "pickup" | "shipping";
+  setDelivery: (d: "pickup" | "shipping") => void;
+  shippingAvailable: boolean | null;
+  effectiveDelivery: "pickup" | "shipping";
+  deliveryAddress: Address;
+  setDeliveryAddress: (updater: (a: Address) => Address) => void;
+}) {
+  return (
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Produtos
+        </h2>
+        <ul className="mt-3 divide-y divide-border border border-border bg-card">
+          {items.map((item) => (
+            <li key={item.id} className="flex gap-5 p-5">
+              <div className="h-28 w-28 shrink-0 overflow-hidden bg-muted sm:h-32 sm:w-32">
+                {item.image && (
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </div>
+              <div className="flex min-w-0 flex-1 flex-col">
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="font-display text-lg font-semibold text-primary sm:text-xl">
+                    {item.name}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => removeItem(item.id)}
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    aria-label="Remover"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-muted-foreground sm:grid-cols-3">
+                  {item.sizeLabel && (
+                    <div>
+                      <dt className="uppercase tracking-widest">Tamanho</dt>
+                      <dd className="text-foreground">{item.sizeLabel}</dd>
+                    </div>
+                  )}
+                  {item.dimensions && (
+                    <div className="col-span-2 sm:col-span-1">
+                      <dt className="uppercase tracking-widest">Medidas</dt>
+                      <dd className="text-foreground">{item.dimensions}</dd>
+                    </div>
+                  )}
+                  {item.finish && (
+                    <div>
+                      <dt className="uppercase tracking-widest">Acabamento</dt>
+                      <dd className="text-foreground">{item.finish}</dd>
+                    </div>
+                  )}
+                  {item.color && (
+                    <div>
+                      <dt className="uppercase tracking-widest">Cor</dt>
+                      <dd className="text-foreground">{item.color}</dd>
+                    </div>
+                  )}
+                </dl>
+                <div className="mt-auto flex items-end justify-between pt-4">
+                  <div className="inline-flex items-center border border-border">
+                    <button
+                      type="button"
+                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                      className="inline-flex h-9 w-9 items-center justify-center transition-colors hover:bg-accent"
+                      aria-label="Diminuir"
+                    >
+                      <Minus className="h-3.5 w-3.5" />
+                    </button>
+                    <span className="w-8 text-center text-sm font-medium">
+                      {item.quantity}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      className="inline-flex h-9 w-9 items-center justify-center transition-colors hover:bg-accent"
+                      aria-label="Aumentar"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  {typeof item.unitPrice === "number" && (
+                    <div className="text-right">
+                      <div className="text-xs uppercase tracking-widest text-muted-foreground">
+                        Subtotal
+                      </div>
+                      <div className="font-display text-lg font-semibold text-primary">
+                        {formatBRL(itemSubtotal(item))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            onClick={clear}
+            className="text-xs text-muted-foreground transition-colors hover:text-destructive"
+          >
+            Limpar lista
+          </button>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Entrega
+        </h2>
+        <div className="mt-3 border border-border bg-card p-5 space-y-4">
+          <div className="space-y-2">
+            <label className="flex items-center gap-3 text-sm">
               <input
-                type="text"
-                value={cep}
-                onChange={(e) => setCep(e.target.value)}
-                maxLength={9}
-                placeholder="00000-000"
-                className="mt-2 block w-full max-w-xs border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
+                type="radio"
+                name="delivery"
+                checked={effectiveDelivery === "pickup"}
+                onChange={() => setDelivery("pickup")}
               />
-              {shippingAvailable === false && (
-                <p className="mt-2 text-xs text-destructive">
-                  Não temos logística de entrega para este endereço. Se quiser
-                  continuar, selecione a opção "Retirar na fábrica".
-                </p>
-              )}
-            </div>
+              Retirar na fábrica
+            </label>
+            <label
+              className={`flex items-center gap-3 text-sm ${
+                shippingAvailable === false ? "opacity-50" : ""
+              }`}
+            >
+              <input
+                type="radio"
+                name="delivery"
+                disabled={shippingAvailable === false}
+                checked={effectiveDelivery === "shipping"}
+                onChange={() => setDelivery("shipping")}
+              />
+              Cotar frete
+            </label>
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={generatePDF}
-              className="inline-flex items-center gap-2 border border-border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-accent"
-            >
-              <Download className="h-4 w-4" />
-              Gerar PDF
-            </button>
-            <button
-              type="button"
-              onClick={sendEmail}
-              className="inline-flex items-center gap-2 border border-border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-accent"
-            >
-              <Mail className="h-4 w-4" />
-              Continuar por e-mail
-            </button>
-            <button
-              type="button"
-              onClick={sendWhatsApp}
-              className="inline-flex items-center gap-2 bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-                <path d="M20.52 3.48A11.86 11.86 0 0 0 12.06 0C5.5 0 .18 5.32.18 11.88c0 2.09.55 4.13 1.6 5.93L0 24l6.34-1.66a11.86 11.86 0 0 0 5.72 1.46h.01c6.55 0 11.88-5.32 11.88-11.88 0-3.17-1.24-6.15-3.43-8.44Z" />
-              </svg>
-              Continuar por WhatsApp
-            </button>
-          </div>
+          <AddressFields
+            title="Endereço de entrega"
+            address={deliveryAddress}
+            onChange={setDeliveryAddress}
+            requireFull={delivery === "shipping"}
+          />
+
+          {shippingAvailable === false && delivery === "shipping" && (
+            <p className="text-xs text-destructive">
+              Não temos logística de entrega para este endereço. Se quiser
+              continuar, selecione "Retirar na fábrica".
+            </p>
+          )}
         </div>
+      </section>
+    </div>
+  );
+}
+
+function StepCustomer({
+  customer,
+  setCustomer,
+  customerAddress,
+  setCustomerAddress,
+  sameAsDelivery,
+  setSameAsDelivery,
+  effectiveDelivery,
+}: {
+  customer: Customer;
+  setCustomer: (updater: (c: Customer) => Customer) => void;
+  customerAddress: Address;
+  setCustomerAddress: (updater: (a: Address) => Address) => void;
+  sameAsDelivery: boolean;
+  setSameAsDelivery: (v: boolean) => void;
+  effectiveDelivery: "pickup" | "shipping";
+}) {
+  return (
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Seus dados
+        </h2>
+        <div className="mt-3 grid gap-4 border border-border bg-card p-5 sm:grid-cols-2">
+          <Field
+            label="Nome completo"
+            value={customer.name}
+            onChange={(v) => setCustomer((c) => ({ ...c, name: v }))}
+            className="sm:col-span-2"
+          />
+          <Field
+            label="E-mail"
+            type="email"
+            value={customer.email}
+            onChange={(v) => setCustomer((c) => ({ ...c, email: v }))}
+          />
+          <Field
+            label="Telefone / WhatsApp"
+            value={customer.phone}
+            onChange={(v) => setCustomer((c) => ({ ...c, phone: v }))}
+          />
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Endereço de cadastro
+        </h2>
+        <div className="mt-3 border border-border bg-card p-5">
+          <AddressFields
+            title="Endereço de cadastro"
+            address={customerAddress}
+            onChange={setCustomerAddress}
+            requireFull
+            hideTitle
+          />
+
+          {effectiveDelivery === "shipping" && (
+            <label className="mt-4 flex items-start gap-3 border-t border-border pt-4 text-sm">
+              <input
+                type="checkbox"
+                checked={sameAsDelivery}
+                onChange={(e) => setSameAsDelivery(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                Usar este endereço também para a entrega.
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Desmarque para entregar em outro endereço (informado no passo
+                  anterior).
+                </span>
+              </span>
+            </label>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function AddressFields({
+  title,
+  address,
+  onChange,
+  requireFull,
+  hideTitle,
+}: {
+  title: string;
+  address: Address;
+  onChange: (updater: (a: Address) => Address) => void;
+  requireFull: boolean;
+  hideTitle?: boolean;
+}) {
+  const set = <K extends keyof Address>(k: K, v: Address[K]) =>
+    onChange((a) => ({ ...a, [k]: v }));
+  return (
+    <div>
+      {!hideTitle && (
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+      )}
+      <div className="mt-3 grid gap-4 sm:grid-cols-6">
+        <Field
+          label="CEP"
+          value={address.cep}
+          onChange={(v) => set("cep", v)}
+          maxLength={9}
+          placeholder="00000-000"
+          className="sm:col-span-2"
+        />
+        <Field
+          label="Rua"
+          value={address.street}
+          onChange={(v) => set("street", v)}
+          className="sm:col-span-4"
+        />
+        <Field
+          label="Número"
+          value={address.number}
+          onChange={(v) => set("number", v)}
+          className="sm:col-span-2"
+        />
+        <Field
+          label="Complemento"
+          value={address.complement}
+          onChange={(v) => set("complement", v)}
+          className="sm:col-span-4"
+        />
+        <Field
+          label="Bairro"
+          value={address.neighborhood}
+          onChange={(v) => set("neighborhood", v)}
+          className="sm:col-span-3"
+        />
+        <Field
+          label="Cidade"
+          value={address.city}
+          onChange={(v) => set("city", v)}
+          className="sm:col-span-2"
+        />
+        <Field
+          label="UF"
+          value={address.state}
+          onChange={(v) => set("state", v.toUpperCase())}
+          maxLength={2}
+          className="sm:col-span-1"
+        />
+      </div>
+      {requireFull && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Digite o CEP para preencher rua, bairro, cidade e estado
+          automaticamente.
+        </p>
       )}
     </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  type = "text",
+  maxLength,
+  placeholder,
+  className,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  maxLength?: number;
+  placeholder?: string;
+  className?: string;
+}) {
+  return (
+    <label className={`block ${className ?? ""}`}>
+      <span className="block text-xs font-medium uppercase tracking-widest text-muted-foreground">
+        {label}
+      </span>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        maxLength={maxLength}
+        placeholder={placeholder}
+        className="mt-1.5 block w-full border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-primary"
+      />
+    </label>
   );
 }
