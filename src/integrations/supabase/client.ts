@@ -10,3 +10,12 @@ export const supabase = createClient(url, key, {
     detectSessionInUrl: true,
   },
 });
+
+export const publicSupabase = createClient(url, key, {
+  auth: {
+    storage: undefined,
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+});

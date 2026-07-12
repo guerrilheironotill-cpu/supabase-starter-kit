@@ -4,7 +4,8 @@ import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { useQuoteStore } from "@/lib/quote-store";
 import { useLeadsStore } from "@/lib/leads-store";
-import { supabase } from "@/integrations/supabase/client";
+import { publicSupabase } from "@/integrations/supabase/client";
+import { compactError, useFormDebugLogStore } from "@/lib/form-debug-log";
 
 import { useWhatsAppNumber } from "@/lib/site-settings";
 
@@ -35,6 +36,7 @@ export function WhatsAppQuoteDrawer({
   const items = useQuoteStore((s) => s.items);
   const whatsappNumber = useWhatsAppNumber();
   const addLead = useLeadsStore((s) => s.addLead);
+  const addDebugLog = useFormDebugLogStore((s) => s.addLog);
 
   const formatBRL = (n: number) =>
     n.toLocaleString("pt-BR", {
@@ -54,6 +56,12 @@ export function WhatsAppQuoteDrawer({
         if (!fieldErrors[key]) fieldErrors[key] = issue.message;
       }
       setErrors(fieldErrors);
+      addDebugLog({
+        level: "error",
+        action: "whatsapp_form_validation",
+        message: "O formulário não passou na validação antes do envio.",
+        details: fieldErrors,
+      });
       return;
     }
     setErrors({});
@@ -104,13 +112,50 @@ export function WhatsAppQuoteDrawer({
       items,
       source: "whatsapp" as const,
     };
+    addDebugLog({
+      level: "info",
+      action: "whatsapp_form_submit",
+      message: "Tentativa de gravar lead na tabela public.leads.",
+      details: {
+        table: "public.leads",
+        role: "anon/public client",
+        name: payload.name,
+        phone: payload.phone,
+        itemCount: payload.items.length,
+      },
+    });
     // Fire-and-forget (não bloqueia a abertura do WhatsApp)
-    supabase
-      .from("leads" as never)
-      .insert(payload as never)
-      .then(({ error }) => {
-        if (error) console.warn("[leads] supabase insert failed:", error.message);
-      });
+    void (async () => {
+      try {
+        const { error } = await publicSupabase
+          .from("leads" as never)
+          .insert(payload as never);
+        if (error) {
+          console.warn("[leads] supabase insert failed:", error.message);
+          addDebugLog({
+            level: "error",
+            action: "supabase_insert_lead_failed",
+            message: error.message,
+            details: compactError(error),
+          });
+          return;
+        }
+        addDebugLog({
+          level: "success",
+          action: "supabase_insert_lead_success",
+          message: "Lead enviado ao Supabase sem erro de INSERT.",
+          details: { table: "public.leads" },
+        });
+      } catch (error: unknown) {
+        console.warn("[leads] supabase insert crashed:", error);
+        addDebugLog({
+          level: "error",
+          action: "supabase_insert_lead_crash",
+          message: compactError(error).message,
+          details: compactError(error),
+        });
+      }
+    })();
     addLead(payload);
 
     const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;

@@ -237,7 +237,8 @@ function ProductPage() {
               <ChevronRight className="h-3 w-3 opacity-60" />
               <li>
                 <Link
-                  to={`/categoria/${slugify(p.category)}`}
+                  to="/categoria/$slug"
+                  params={{ slug: slugify(p.category) }}
                   className="hover:text-primary"
                 >
                   {p.category}
