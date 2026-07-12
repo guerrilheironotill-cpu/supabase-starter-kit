@@ -45,7 +45,9 @@ export function AboutSection() {
               <ArrowRight className="h-4 w-4" />
             </a>
             <a
-              href="/"
+              href={`https://wa.me/5548988486279`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-3 rounded-full border border-primary/25 bg-transparent px-7 py-3.5 text-sm font-semibold text-primary transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:bg-primary hover:text-white"
             >
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-primary/40">
