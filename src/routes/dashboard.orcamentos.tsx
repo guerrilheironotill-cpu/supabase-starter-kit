@@ -93,6 +93,10 @@ type ItemDraft = {
   description?: string;
   quantity: number;
   price: number;
+  size_id?: string;
+  size_name?: string;
+  finish?: string;
+  color?: string;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -241,7 +245,15 @@ function DashboardQuotesPage() {
 
 function ShareMenu({ order }: { order: OrderRow }) {
   const items = Array.isArray(order.items)
-    ? (order.items as Array<{ name: string; quantity: number; price: number; description?: string | null }>)
+    ? (order.items as Array<{
+        name: string;
+        quantity: number;
+        price: number;
+        description?: string | null;
+        size_name?: string | null;
+        finish?: string | null;
+        color?: string | null;
+      }>)
     : [];
   const meta = parseMeta(order.notes);
   const itemsSubtotal = items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0);
@@ -278,10 +290,18 @@ function ShareMenu({ order }: { order: OrderRow }) {
   };
 
   const generatePdf = () => {
+    const attrLine = (i: { size_name?: string | null; finish?: string | null; color?: string | null }) => {
+      const parts = [
+        i.size_name ? `Tamanho: ${i.size_name}` : "",
+        i.finish ? `Acabamento: ${i.finish}` : "",
+        i.color ? `Cor: ${i.color}` : "",
+      ].filter(Boolean);
+      return parts.length ? `<div class="muted">${parts.join(" · ")}</div>` : "";
+    };
     const rows = items
       .map(
         (i) =>
-          `<tr><td>${i.name}${i.description ? `<div class="muted">${i.description}</div>` : ""}</td><td>${i.quantity}</td><td>${currency(i.price)}</td><td>${currency((i.price ?? 0) * (i.quantity ?? 1))}</td></tr>`,
+          `<tr><td>${i.name}${attrLine(i)}${i.description ? `<div class="muted">${i.description}</div>` : ""}</td><td>${i.quantity}</td><td>${currency(i.price)}</td><td>${currency((i.price ?? 0) * (i.quantity ?? 1))}</td></tr>`,
       )
       .join("");
     const module = (title: string, body: string) =>
@@ -411,17 +431,26 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
   ]);
   const [saving, setSaving] = useState(false);
 
+  type ProductFull = {
+    id: string;
+    name: string;
+    product_sizes: Array<{ id: string; name: string; base_price: number; sale_price: number | null; sort_order: number }>;
+    product_finishes: Array<{ id: string; name: string; sort_order: number }>;
+    product_colors: Array<{ id: string; name: string; sort_order: number }>;
+  };
   const { data: products = [] } = useQuery({
-    queryKey: ["products-mini"],
+    queryKey: ["products-for-quote"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name")
+        .select(
+          "id, name, product_sizes(id, name, base_price, sale_price, sort_order), product_finishes(id, name, sort_order), product_colors(id, name, sort_order)",
+        )
         .eq("active", true)
         .order("name")
         .limit(500);
-      if (error) return [] as Array<{ id: string; name: string }>;
-      return (data ?? []) as Array<{ id: string; name: string }>;
+      if (error) return [] as ProductFull[];
+      return (data ?? []) as ProductFull[];
     },
   });
 
@@ -461,6 +490,10 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
           description: i.description ?? null,
           quantity: Number(i.quantity) || 1,
           price: Number(i.price) || 0,
+          size_id: i.size_id ?? null,
+          size_name: i.size_name ?? null,
+          finish: i.finish ?? null,
+          color: i.color ?? null,
         }));
 
       // 1) create a lead so it also appears in CRM (items as jsonb array — same shape as WhatsApp)
@@ -577,24 +610,115 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
                 </div>
 
                 {it.kind === "catalog" ? (
-                  <Select
-                    value={it.product_id ?? ""}
-                    onValueChange={(v) => {
-                      const p = products.find((x) => x.id === v);
-                      updateItem(idx, { product_id: v, name: p?.name ?? "" });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um produto" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  (() => {
+                    const p = products.find((x) => x.id === it.product_id);
+                    const sizes = [...(p?.product_sizes ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+                    const finishes = [...(p?.product_finishes ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+                    const colors = [...(p?.product_colors ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+                    return (
+                      <div className="space-y-2">
+                        <Select
+                          value={it.product_id ?? ""}
+                          onValueChange={(v) => {
+                            const prod = products.find((x) => x.id === v);
+                            updateItem(idx, {
+                              product_id: v,
+                              name: prod?.name ?? "",
+                              size_id: undefined,
+                              size_name: undefined,
+                              finish: undefined,
+                              color: undefined,
+                              price: 0,
+                            });
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um produto" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {products.map((prod) => (
+                              <SelectItem key={prod.id} value={prod.id}>
+                                {prod.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {p && (
+                          <div className="grid gap-2 sm:grid-cols-3">
+                            {sizes.length > 0 && (
+                              <div>
+                                <Label className="text-xs">Tamanho</Label>
+                                <Select
+                                  value={it.size_id ?? ""}
+                                  onValueChange={(v) => {
+                                    const s = sizes.find((x) => x.id === v);
+                                    const priceFromSize = s ? (s.sale_price ?? s.base_price) : it.price;
+                                    updateItem(idx, {
+                                      size_id: v,
+                                      size_name: s?.name,
+                                      price: Number(priceFromSize) || 0,
+                                    });
+                                  }}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {sizes.map((s) => (
+                                      <SelectItem key={s.id} value={s.id}>
+                                        {s.name} — {currency(s.sale_price ?? s.base_price)}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                            {finishes.length > 0 && (
+                              <div>
+                                <Label className="text-xs">Acabamento</Label>
+                                <Select
+                                  value={it.finish ?? ""}
+                                  onValueChange={(v) => updateItem(idx, { finish: v })}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {finishes.map((f) => (
+                                      <SelectItem key={f.id} value={f.name}>
+                                        {f.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                            {colors.length > 0 && (
+                              <div>
+                                <Label className="text-xs">Cor</Label>
+                                <Select
+                                  value={it.color ?? ""}
+                                  onValueChange={(v) => updateItem(idx, { color: v })}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {colors.map((c) => (
+                                      <SelectItem key={c.id} value={c.name}>
+                                        {c.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()
                 ) : (
                   <>
                     <Input
