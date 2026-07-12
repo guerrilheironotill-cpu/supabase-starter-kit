@@ -93,6 +93,10 @@ type ItemDraft = {
   description?: string;
   quantity: number;
   price: number;
+  size_id?: string;
+  size_name?: string;
+  finish?: string;
+  color?: string;
 };
 
 const STATUS_LABEL: Record<string, string> = {
