@@ -248,6 +248,8 @@ function Kpi({
   delta: string;
   icon: typeof Eye;
 }) {
+  const isNegative = typeof delta === "string" && delta.trim().startsWith("-");
+  const isNeutral = delta === "—" || delta === "";
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="flex items-center justify-between">
@@ -262,8 +264,21 @@ function Kpi({
         <span className="text-3xl font-semibold tracking-tight text-foreground">
           {value}
         </span>
-        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
-          <ArrowUpRight className="h-3.5 w-3.5" /> {delta}
+        <span
+          className={`inline-flex items-center gap-1 text-xs font-medium ${
+            isNeutral
+              ? "text-muted-foreground"
+              : isNegative
+                ? "text-red-600"
+                : "text-emerald-600"
+          }`}
+        >
+          {isNeutral ? null : isNegative ? (
+            <ArrowDownRight className="h-3.5 w-3.5" />
+          ) : (
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          )}
+          {delta}
         </span>
       </div>
     </div>
@@ -286,8 +301,16 @@ function DashboardOverview() {
     queryFn: fetchDbSize,
     staleTime: 5 * 60_000,
   });
+  const { data: gsc } = useQuery({
+    queryKey: ["dashboard", "gsc"],
+    queryFn: fetchGsc,
+    staleTime: 10 * 60_000,
+  });
 
   const maxViews = Math.max(...TOP_PRODUCTS.map((p) => p.views));
+  const fmt = (n?: number) => (typeof n === "number" ? n.toLocaleString("pt-BR") : "—");
+  const fmtDelta = (d?: number) =>
+    typeof d === "number" ? `${d > 0 ? "+" : ""}${d.toFixed(1)}%` : "—";
 
   return (
     <>
@@ -296,17 +319,59 @@ function DashboardOverview() {
           Visão geral
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Métricas do site e desempenho dos produtos.
+          {gsc?.configured
+            ? "Últimos 30 dias — dados reais do Google Search Console."
+            : "Métricas do site e desempenho dos produtos."}
         </p>
       </div>
 
       <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <Kpi label="Visitas (mês)" value="14.328" delta="+12,4%" icon={Eye} />
+        <Kpi
+          label="Cliques (30d)"
+          value={gsc?.configured ? fmt(gsc.clicks) : "—"}
+          delta={gsc?.configured ? fmtDelta(gsc.deltaClicks) : "—"}
+          icon={MousePointerClick}
+        />
+        <Kpi
+          label="Impressões (30d)"
+          value={gsc?.configured ? fmt(gsc.impressions) : "—"}
+          delta={gsc?.configured ? fmtDelta(gsc.deltaImpressions) : "—"}
+          icon={Search}
+        />
         <Kpi label="Orçamentos" value="238" delta="+8,1%" icon={FileText} />
         <Kpi label="Pedidos em aberto" value={orders?.open ?? "—"} delta={orders?.configured ? "WC" : "—"} icon={Clock} />
-        <Kpi label="Pedidos finalizados" value={orders?.done ?? "—"} delta={orders?.configured ? "WC" : "—"} icon={CheckCircle2} />
-        <Kpi label="Produtos ativos" value={stats?.products ?? "—"} delta="+3" icon={Package} />
+        <Kpi label="Produtos ativos" value={stats?.products ?? "—"} delta="—" icon={Package} />
       </div>
+
+      {gsc?.configured && gsc.topPages && gsc.topPages.length > 0 && (
+        <div className="mb-8 rounded-2xl border border-border bg-card p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+              Top páginas no Google (30d)
+            </span>
+            <span className="text-[11px] text-muted-foreground">
+              CTR médio {gsc.ctr}% · pos. média {gsc.position}
+            </span>
+          </div>
+          <ul className="space-y-2">
+            {gsc.topPages.map((p) => (
+              <li key={p.url} className="flex items-center justify-between gap-3 text-sm">
+                <a
+                  href={p.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="truncate text-foreground hover:text-primary"
+                >
+                  {p.url.replace(/^https?:\/\/[^/]+/, "")}
+                </a>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {p.clicks.toLocaleString("pt-BR")} cliques · {p.impressions.toLocaleString("pt-BR")} impr.
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <DbUsageCard db={dbSize} />
 
