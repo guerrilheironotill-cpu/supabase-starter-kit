@@ -15,21 +15,39 @@ export const Route = createFileRoute("/dashboard/acabamentos")({
 });
 
 type FinishRow = {
-  id: string;
   name: string;
   image_url: string | null;
   description: string | null;
-  product_id: string;
-  products: { name: string } | null;
+  count: number;
 };
 
 async function fetchFinishes(): Promise<FinishRow[]> {
   const { data, error } = await supabase
     .from("product_finishes")
-    .select("id, name, image_url, description, product_id, products(name)")
+    .select("name, image_url, description")
     .order("name");
   if (error) throw error;
-  return (data ?? []) as unknown as FinishRow[];
+  const map = new Map<string, FinishRow>();
+  for (const r of (data ?? []) as Array<{
+    name: string;
+    image_url: string | null;
+    description: string | null;
+  }>) {
+    const cur = map.get(r.name);
+    if (!cur) {
+      map.set(r.name, {
+        name: r.name,
+        image_url: r.image_url,
+        description: r.description,
+        count: 1,
+      });
+    } else {
+      cur.count += 1;
+      if (!cur.image_url && r.image_url) cur.image_url = r.image_url;
+      if (!cur.description && r.description) cur.description = r.description;
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function DashboardFinishesPage() {
@@ -60,9 +78,9 @@ function DashboardFinishesPage() {
           <div className="grid gap-3">
             {data.map((f) => (
               <DashboardMediaEditor
-                key={f.id}
+                key={f.name}
                 label={f.name}
-                sublabel={f.products?.name ?? undefined}
+                sublabel={`${f.count} produto${f.count === 1 ? "" : "s"}`}
                 imageUrl={f.image_url}
                 description={f.description}
                 bucketFolder="finishes"
@@ -70,7 +88,7 @@ function DashboardFinishesPage() {
                   const { error } = await supabase
                     .from("product_finishes")
                     .update({ image_url, description })
-                    .eq("id", f.id);
+                    .eq("name", f.name);
                   if (error) throw error;
                   qc.invalidateQueries({ queryKey: ["dashboard", "acabamentos"] });
                 }}
