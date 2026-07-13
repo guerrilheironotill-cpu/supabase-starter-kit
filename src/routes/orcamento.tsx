@@ -819,14 +819,14 @@ function StepCustomer({
             label="Nome completo"
             value={customer.name}
             onChange={(v) => setCustomer((c) => ({ ...c, name: v }))}
-            className="sm:col-span-2"
+            disabled={disabled} className="sm:col-span-2"
           />
           {customer.personType === "juridica" && (
             <Field
               label="Nome da empresa"
               value={customer.companyName}
               onChange={(v) => setCustomer((c) => ({ ...c, companyName: v }))}
-              className="sm:col-span-2"
+              disabled={disabled} className="sm:col-span-2"
             />
           )}
           {customer.personType === "fisica" ? (
@@ -836,7 +836,7 @@ function StepCustomer({
               onChange={(v) => setCustomer((c) => ({ ...c, cpf: v }))}
               maxLength={14}
               placeholder="000.000.000-00"
-              className="sm:col-span-2"
+              disabled={disabled} className="sm:col-span-2"
             />
           ) : (
             <Field
@@ -845,7 +845,7 @@ function StepCustomer({
               onChange={(v) => setCustomer((c) => ({ ...c, cnpj: v }))}
               maxLength={18}
               placeholder="00.000.000/0000-00"
-              className="sm:col-span-2"
+              disabled={disabled} className="sm:col-span-2"
             />
           )}
           <Field
@@ -1000,44 +1000,44 @@ function AddressFields({
           onChange={(v) => set("cep", v)}
           maxLength={9}
           placeholder="00000-000"
-          className="sm:col-span-2"
+          disabled={disabled} className="sm:col-span-2"
         />
         <Field
           label="Rua"
           value={address.street}
           onChange={(v) => set("street", v)}
-          className="sm:col-span-4"
+          disabled={disabled} className="sm:col-span-4"
         />
         <Field
           label="Número"
           value={address.number}
           onChange={(v) => set("number", v)}
-          className="sm:col-span-2"
+          disabled={disabled} className="sm:col-span-2"
         />
         <Field
           label="Complemento"
           value={address.complement}
           onChange={(v) => set("complement", v)}
-          className="sm:col-span-4"
+          disabled={disabled} className="sm:col-span-4"
         />
         <Field
           label="Bairro"
           value={address.neighborhood}
           onChange={(v) => set("neighborhood", v)}
-          className="sm:col-span-3"
+          disabled={disabled} className="sm:col-span-3"
         />
         <Field
           label="Cidade"
           value={address.city}
           onChange={(v) => set("city", v)}
-          className="sm:col-span-2"
+          disabled={disabled} className="sm:col-span-2"
         />
         <Field
           label="UF"
           value={address.state}
           onChange={(v) => set("state", v.toUpperCase())}
           maxLength={2}
-          className="sm:col-span-1"
+          disabled={disabled} className="sm:col-span-1"
         />
       </div>
       {requireFull && (
