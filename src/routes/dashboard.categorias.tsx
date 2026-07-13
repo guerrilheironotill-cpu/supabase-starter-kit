@@ -3,9 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSection } from "@/components/dashboard-layout";
 import { useState } from "react";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchCategoryTerms, type CategoryTerm } from "@/lib/dashboard-taxonomies";
+import { slugify } from "@/lib/products";
 
 export const Route = createFileRoute("/dashboard/categorias")({
   head: () => ({
@@ -35,6 +36,12 @@ function DashboardCategoriesPage() {
           Edite capa e ícone (SVG) de cada categoria.
         </p>
       </div>
+
+      <CreateCategoryForm
+        onCreated={() =>
+          qc.invalidateQueries({ queryKey: ["dashboard", "categorias"] })
+        }
+      />
 
       <DashboardSection title={`Categorias (${data.length})`}>
         {isLoading ? (
