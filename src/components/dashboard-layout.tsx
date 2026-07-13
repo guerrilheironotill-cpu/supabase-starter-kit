@@ -107,9 +107,9 @@ export function DashboardLayout() {
   return (
     <div className="dark dashboard-scope">
       <div className="min-h-screen bg-background text-foreground">
-        <div className="mx-auto flex w-full max-w-[1400px] gap-6 px-4 py-8 sm:px-8 lg:px-[50px]">
-      <aside className="hidden w-60 shrink-0 md:block">
-        <div className="sticky top-[88px]">
+        <div className="flex w-full">
+      <aside className="hidden w-60 shrink-0 border-r border-border bg-background md:block">
+        <div className="sticky top-[72px] px-4 py-6">
           <p className="px-2 pb-3 pt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             Painel
           </p>
@@ -139,7 +139,7 @@ export function DashboardLayout() {
           </nav>
         </div>
       </aside>
-      <main className="min-w-0 flex-1">
+      <main className="min-w-0 flex-1 bg-[oklch(0.205_0_0)] px-4 py-8 sm:px-8 lg:px-[50px]">
         <div className="md:hidden mb-4 flex gap-2 overflow-x-auto">
           {NAV.map((item) => {
             const active = item.exact
