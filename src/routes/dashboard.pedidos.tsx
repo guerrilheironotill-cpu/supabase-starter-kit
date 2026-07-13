@@ -129,6 +129,11 @@ function OrdersPage() {
       qc.setQueriesData<AppOrder[]>({ queryKey: ["app-orders"] }, (rows) =>
         rows?.map((order) => (order.id === id ? { ...order, status: next } : order)),
       );
+      setPendingStatusById((current) => {
+        const nextState = { ...current };
+        delete nextState[id];
+        return nextState;
+      });
       toast.success("Status atualizado");
       void qc.invalidateQueries({ queryKey: ["app-orders"] });
     } catch (e) {
