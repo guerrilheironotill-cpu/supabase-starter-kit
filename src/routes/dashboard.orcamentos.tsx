@@ -129,6 +129,12 @@ const STATUS_WRITE_CANDIDATES: Record<QuoteStatus, string[]> = {
     "rejeitado",
     "quote_rejected",
     "rejected",
+    "cancelado",
+    "cancelled",
+    "canceled",
+    "declined",
+    "quote_cancelled",
+    "closed",
   ],
 };
 
