@@ -147,7 +147,11 @@ export async function fetchAttributeTerms(
 
   const catalog = await supabase
     .from(catalogTable)
-    .select("name, image_url, gallery, description");
+    .select(
+      catalogTable === "finish_catalog"
+        ? "name, image_url, gallery, description"
+        : "name, image_url, description",
+    );
   if (catalog.error && !isOptionalMetadataError(catalog.error)) throw catalog.error;
 
   const counts = new Map<string, number>();
