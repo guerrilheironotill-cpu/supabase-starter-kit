@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import {
   Dialog,
@@ -32,6 +33,63 @@ type Props = {
   onSaved: () => void;
 };
 
+type SupabaseLikeError = {
+  code?: string;
+  message?: string;
+  details?: string | null;
+};
+
+function isMissingSeoColumnError(error: SupabaseLikeError | null): boolean {
+  if (!error) return false;
+  const message = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
+  return (
+    error.code === "PGRST204" ||
+    message.includes("meta_title") ||
+    message.includes("meta_description") ||
+    message.includes("schema cache") ||
+    message.includes("could not find")
+  );
+}
+
+function normalizeProduct(row: Partial<ProductData> & { images?: string[] | null }): ProductData {
+  return {
+    id: row.id ?? "",
+    slug: row.slug ?? "",
+    name: row.name ?? "",
+    description: row.description ?? null,
+    category: row.category ?? "",
+    images: row.images ?? [],
+    active: row.active ?? true,
+    meta_title: row.meta_title ?? null,
+    meta_description: row.meta_description ?? null,
+  };
+}
+
+async function fetchEditableProduct(productId: string): Promise<ProductData> {
+  const withSeo = await supabase
+    .from("products")
+    .select("id, slug, name, description, category, images, active, meta_title, meta_description")
+    .eq("id", productId)
+    .maybeSingle();
+
+  if (!withSeo.error) {
+    if (!withSeo.data) throw new Error("Produto não encontrado.");
+    return normalizeProduct(withSeo.data as Partial<ProductData> & { images?: string[] | null });
+  }
+
+  if (!isMissingSeoColumnError(withSeo.error)) throw withSeo.error;
+
+  const fallback = await supabase
+    .from("products")
+    .select("id, slug, name, description, category, images, active")
+    .eq("id", productId)
+    .maybeSingle();
+
+  if (fallback.error) throw fallback.error;
+  if (!fallback.data) throw new Error("Produto não encontrado.");
+  return normalizeProduct(fallback.data as Partial<ProductData> & { images?: string[] | null });
+}
+
 export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -52,20 +110,14 @@ export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
       setError(null);
       try {
         const [p, s, f, c, cats] = await Promise.all([
-          supabase
-            .from("products")
-            .select("id, slug, name, description, category, images, active, meta_title, meta_description")
-            .eq("id", productId)
-            .maybeSingle(),
+          fetchEditableProduct(productId),
           supabase.from("product_sizes").select("*").eq("product_id", productId).order("sort_order"),
           supabase.from("product_finishes").select("*").eq("product_id", productId).order("sort_order"),
           supabase.from("product_colors").select("*").eq("product_id", productId).order("sort_order"),
           fetchProductCategoryOptions(),
         ]);
         if (cancel) return;
-        if (p.error) throw p.error;
-        const row = p.data as ProductData & { images: string[] | null };
-        setProduct({ ...row, images: row.images ?? [] });
+        setProduct(p);
         setSizes((s.data ?? []) as SizeRow[]);
         setFinishes(((f.data ?? []) as AttrRow[]).map((x) => ({ id: x.id, name: x.name, sort_order: x.sort_order })));
         setColors(((c.data ?? []) as AttrRow[]).map((x) => ({ id: x.id, name: x.name, sort_order: x.sort_order })));
@@ -96,20 +148,36 @@ export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
     setSaving(true);
     setError(null);
     try {
+      const productPayload = {
+        name: product.name,
+        slug: product.slug,
+        description: product.description,
+        category: product.category,
+        images: product.images,
+        active: product.active,
+        meta_title: product.meta_title,
+        meta_description: product.meta_description,
+      };
       const { error: pErr } = await supabase
         .from("products")
-        .update({
-          name: product.name,
-          slug: product.slug,
-          description: product.description,
-          category: product.category,
-          images: product.images,
-          active: product.active,
-          meta_title: product.meta_title,
-          meta_description: product.meta_description,
-        })
+        .update(productPayload)
         .eq("id", product.id);
-      if (pErr) throw pErr;
+      if (pErr) {
+        if (!isMissingSeoColumnError(pErr)) throw pErr;
+        const fallbackPayload = {
+          name: productPayload.name,
+          slug: productPayload.slug,
+          description: productPayload.description,
+          category: productPayload.category,
+          images: productPayload.images,
+          active: productPayload.active,
+        };
+        const { error: fallbackErr } = await supabase
+          .from("products")
+          .update(fallbackPayload)
+          .eq("id", product.id);
+        if (fallbackErr) throw fallbackErr;
+      }
 
       await Promise.all([
         replaceRows("product_sizes", product.id, sizes.map((s, i) => ({
@@ -158,11 +226,22 @@ export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
           <DialogTitle>Editar produto</DialogTitle>
         </DialogHeader>
 
-        {loading || !product ? (
+        {loading ? (
           <div className="flex h-64 items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ) : (
+        ) : error && !product ? (
+          <div className="space-y-4 px-6 py-8 text-sm">
+            <p className="text-destructive">{error}</p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+            >
+              Fechar
+            </button>
+          </div>
+        ) : product ? (
           <>
             <div className="flex gap-1 border-b border-border px-6 py-2 overflow-x-auto">
               {(
@@ -234,13 +313,13 @@ export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
               </div>
             </div>
           </>
-        )}
+        ) : null}
       </DialogContent>
     </Dialog>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs font-medium text-muted-foreground">{label}</span>
