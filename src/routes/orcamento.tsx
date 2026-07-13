@@ -49,6 +49,10 @@ type Customer = {
   name: string;
   email: string;
   phone: string;
+  personType: "fisica" | "juridica";
+  cpf: string;
+  cnpj: string;
+  companyName: string;
 };
 
 const EMPTY_ADDRESS: Address = {
@@ -120,6 +124,10 @@ function OrcamentoPage() {
     name: "",
     email: "",
     phone: "",
+    personType: "fisica",
+    cpf: "",
+    cnpj: "",
+    companyName: "",
   });
   const [customerAddress, setCustomerAddress] = useState<Address>(EMPTY_ADDRESS);
   const [sameAsDelivery, setSameAsDelivery] = useState(true);
@@ -174,6 +182,12 @@ function OrcamentoPage() {
     lines.push("");
     lines.push("CLIENTE");
     lines.push(`Nome: ${customer.name}`);
+    if (customer.personType === "juridica") {
+      lines.push(`Empresa: ${customer.companyName}`);
+      lines.push(`CNPJ: ${customer.cnpj}`);
+    } else {
+      lines.push(`CPF: ${customer.cpf}`);
+    }
     lines.push(`E-mail: ${customer.email}`);
     lines.push(`Telefone: ${customer.phone}`);
     lines.push("");
@@ -252,6 +266,15 @@ function OrcamentoPage() {
     doc.setFont("helvetica", "normal");
     doc.text(`Nome: ${customer.name}`, marginX, y);
     y += 5;
+    if (customer.personType === "juridica") {
+      doc.text(`Empresa: ${customer.companyName}`, marginX, y);
+      y += 5;
+      doc.text(`CNPJ: ${customer.cnpj}`, marginX, y);
+      y += 5;
+    } else {
+      doc.text(`CPF: ${customer.cpf}`, marginX, y);
+      y += 5;
+    }
     doc.text(`E-mail: ${customer.email}`, marginX, y);
     y += 5;
     doc.text(`Telefone: ${customer.phone}`, marginX, y);
@@ -296,10 +319,17 @@ function OrcamentoPage() {
   };
 
   const canGoStep2 = items.length > 0;
+  const cpfDigits = customer.cpf.replace(/\D/g, "");
+  const cnpjDigits = customer.cnpj.replace(/\D/g, "");
+  const docOk =
+    customer.personType === "fisica"
+      ? cpfDigits.length === 11
+      : cnpjDigits.length === 14 && customer.companyName.trim() !== "";
   const canFinish =
     customer.name.trim() !== "" &&
     customer.email.trim() !== "" &&
     customer.phone.trim() !== "" &&
+    docOk &&
     customerAddress.cep.replace(/\D/g, "").length === 8 &&
     customerAddress.street.trim() !== "" &&
     customerAddress.number.trim() !== "";
