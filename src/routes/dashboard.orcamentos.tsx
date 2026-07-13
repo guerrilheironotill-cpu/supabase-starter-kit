@@ -878,9 +878,7 @@ ${meta.note ? module("Observações", `<div style="font-size:13px;line-height:1.
   );
 }
 
-function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
-  return NewQuoteDialogImpl({ onCreated });
-}
+const NewQuoteDialog = NewQuoteDialogImpl;
 
 function OriginBadge({ origin }: { origin: string }) {
   const map: Record<string, { label: string; cls: string }> = {
@@ -1033,22 +1031,33 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
         cnpj: personType === "juridica" ? cnpj : null,
         companyName: personType === "juridica" ? companyName : null,
       });
-      const { error: orderErr } = await supabase.from("orders" as never).insert({
+      const basePayload: Record<string, unknown> = {
         status: "em_aberto",
-        origin: "manual",
         customer_name: name,
         customer_phone: phone || null,
-        customer_email: email || null,
         items: cleanItems,
         total,
         notes: metaPayload,
-      } as never);
+      };
+      const attempts: Record<string, unknown>[] = [
+        { ...basePayload, origin: "manual", customer_email: email || null },
+        { ...basePayload, customer_email: email || null },
+        { ...basePayload },
+      ];
+      let orderErr: { message: string } | null = null;
+      for (const payload of attempts) {
+        const { error } = await supabase.from("orders" as never).insert(payload as never);
+        if (!error) { orderErr = null; break; }
+        orderErr = error;
+        console.warn("[order insert attempt]", error.message, Object.keys(payload));
+      }
       if (orderErr) throw orderErr;
 
       toast.success("Orçamento criado");
       onCreated();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
+      console.error("[new order]", e);
       toast.error("Erro ao criar orçamento: " + msg);
     } finally {
       setSaving(false);
