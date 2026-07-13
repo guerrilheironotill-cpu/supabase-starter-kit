@@ -411,6 +411,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
           .single();
         if (cErr) fail("criar cliente", cErr);
         customerId = (created as unknown as { id: string }).id;
+        toast.success("Cliente cadastrado");
       }
 
       // 2) upsert app_order linked to this quote
