@@ -469,25 +469,44 @@ function StatusSelect({ order }: { order: OrderRow }) {
           .from("customers" as never)
           .select("id")
           .eq("email", email)
+          .limit(1)
           .maybeSingle();
         if (findErr) fail("buscar cliente", findErr);
         customerId = (existing as { id: string } | null)?.id ?? null;
+        if (customerId) toast.success("Cliente já cadastrado — vinculando ao pedido");
       }
       if (!customerId) {
-        const { data: created, error: cErr } = await supabase
-          .from("customers" as never)
-          .insert({
-            first_name: first ?? "",
-            last_name: rest.join(" "),
-            email,
-            phone,
-            address_1: meta.address || null,
-          } as never)
-          .select("id")
-          .single();
-        if (cErr) fail("criar cliente", cErr);
-        customerId = (created as unknown as { id: string }).id;
-        toast.success("Cliente cadastrado");
+        const basePayload: Record<string, unknown> = {
+          first_name: first || (order.customer_name ?? "Cliente"),
+          last_name: rest.join(" "),
+          email,
+          phone,
+          address_1: meta.address || null,
+        };
+        // Try with extended fields; fallback if columns don't exist
+        const attempts: Array<Record<string, unknown>> = [
+          { ...basePayload, status: "cliente" },
+          basePayload,
+        ];
+        let created: { id: string } | null = null;
+        let lastErr: unknown = null;
+        for (const payload of attempts) {
+          const { data, error } = await supabase
+            .from("customers" as never)
+            .insert(payload as never)
+            .select("id")
+            .single();
+          if (!error) {
+            created = data as unknown as { id: string };
+            break;
+          }
+          lastErr = error;
+          const msg = (error as { message?: string }).message ?? "";
+          if (!/column .* does not exist|status/i.test(msg)) break;
+        }
+        if (!created) fail("criar cliente", lastErr);
+        customerId = created!.id;
+        toast.success("Cliente cadastrado com sucesso");
       }
 
       // 2) upsert app_order linked to this quote
