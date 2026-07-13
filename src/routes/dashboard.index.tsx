@@ -78,6 +78,98 @@ function formatMB(bytes: number) {
   return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
+function DbUsageCard({ db }: { db?: DbSize }) {
+  if (!db) return null;
+
+  if (!db.configured) {
+    return (
+      <div className="mb-8 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-5">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-500" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">
+              Uso do banco de dados — configuração pendente
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Rode o SQL abaixo no Supabase (SQL Editor) para habilitar o
+              indicador de uso do banco:
+            </p>
+            <pre className="mt-3 overflow-auto rounded-md bg-black/80 p-3 text-[11px] leading-relaxed text-emerald-200">
+{`create or replace function public.db_size_info()
+returns table (size_bytes bigint, limit_bytes bigint)
+language sql stable security definer set search_path = public as $$
+  select pg_database_size(current_database())::bigint,
+         (500 * 1024 * 1024)::bigint -- ajuste ao limite do seu plano
+  where public.has_role(auth.uid(), 'admin');
+$$;
+revoke all on function public.db_size_info() from public, anon;
+grant execute on function public.db_size_info() to authenticated;`}
+            </pre>
+            {db.error && (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Erro: {db.error}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const pct = db.limitBytes > 0 ? (db.sizeBytes / db.limitBytes) * 100 : 0;
+  const warn = pct >= 80;
+  const critical = pct >= 95;
+  const barColor = critical
+    ? "bg-destructive"
+    : warn
+      ? "bg-amber-500"
+      : "bg-primary";
+  const borderColor = critical
+    ? "border-destructive/50 bg-destructive/5"
+    : warn
+      ? "border-amber-500/50 bg-amber-500/5"
+      : "border-border bg-card";
+
+  return (
+    <div className={`mb-8 rounded-2xl border p-5 ${borderColor}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Database className="h-4 w-4 text-primary" />
+          <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            Uso do banco de dados
+          </span>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {formatMB(db.sizeBytes)} / {formatMB(db.limitBytes)}
+        </span>
+      </div>
+      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className={`h-full ${barColor}`}
+          style={{ width: `${Math.min(pct, 100).toFixed(1)}%` }}
+        />
+      </div>
+      <div className="mt-2 flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">
+          {pct.toFixed(1)}% utilizado
+        </span>
+        {warn && (
+          <span
+            className={`inline-flex items-center gap-1 text-xs font-medium ${
+              critical ? "text-destructive" : "text-amber-600"
+            }`}
+          >
+            <AlertTriangle className="h-3.5 w-3.5" />
+            {critical
+              ? "Limite quase atingido — faça upgrade ou migre o banco."
+              : "Perto do limite — considere upgrade em breve."}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 async function fetchOrdersSummary(): Promise<OrdersSummary> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
