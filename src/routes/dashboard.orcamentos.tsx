@@ -118,9 +118,18 @@ const STATUS_STYLES: Record<QuoteStatus, string> = {
 };
 
 const STATUS_WRITE_CANDIDATES: Record<QuoteStatus, string[]> = {
-  em_aberto: ["em_aberto", "em aberto", "aberto", "open"],
+  em_aberto: ["orcamento", "em_aberto", "em aberto", "aberto", "quote_pending", "open"],
   aprovado: ["aprovado", "aprovada", "approved"],
-  nao_aprovado: ["nao_aprovado", "não aprovado", "nao aprovado", "reprovado", "rejeitado", "rejected"],
+  nao_aprovado: [
+    "recusado",
+    "nao_aprovado",
+    "não aprovado",
+    "nao aprovado",
+    "reprovado",
+    "rejeitado",
+    "quote_rejected",
+    "rejected",
+  ],
 };
 
 function normalizeQuoteStatus(status: string | null | undefined): QuoteStatus {
@@ -131,8 +140,8 @@ function normalizeQuoteStatus(status: string | null | undefined): QuoteStatus {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[\s-]+/g, "_");
 
-  if (["aprovado", "aprovada", "approved"].includes(clean)) return "aprovado";
-  if (["nao_aprovado", "reprovado", "rejeitado", "rejected"].includes(clean)) return "nao_aprovado";
+  if (["aprovado", "aprovada", "quote_approved", "approved"].includes(clean)) return "aprovado";
+  if (["nao_aprovado", "recusado", "reprovado", "rejeitado", "quote_rejected", "rejected"].includes(clean)) return "nao_aprovado";
   return "em_aberto";
 }
 
@@ -287,12 +296,14 @@ function StatusSelect({ order }: { order: OrderRow }) {
         const patch: Record<string, unknown> = { status };
         if (extraNotes) patch.notes = extraNotes;
 
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("orders" as never)
           .update(patch as never)
-          .eq("id", order.id);
+          .eq("id", order.id)
+          .select("id")
+          .maybeSingle();
 
-        if (!error) {
+        if (!error && data) {
           setValue(next);
           qc.setQueryData<OrderRow[]>(["orders"], (current) =>
             current?.map((row) =>
@@ -305,11 +316,14 @@ function StatusSelect({ order }: { order: OrderRow }) {
           return true;
         }
 
-        lastError = error;
-        console.warn(`[orders.update:${status}]`, error.message);
+        lastError = error ?? new Error("Nenhuma linha foi atualizada.");
+        console.warn(`[orders.update:${status}]`, error?.message ?? "nenhuma linha atualizada");
       }
 
-      throw lastError instanceof Error ? lastError : new Error("Não foi possível atualizar o status.");
+      throw new Error(
+        (lastError as { message?: string } | null)?.message ??
+          "Não foi possível atualizar o status.",
+      );
     } catch (e) {
       toast.error("Erro ao atualizar status: " + (e as Error).message, {
         duration: 8000,
