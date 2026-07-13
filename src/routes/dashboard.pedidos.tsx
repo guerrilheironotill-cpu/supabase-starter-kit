@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { fetchWc, type WcOrder } from "@/lib/wc-api";
 import { supabase } from "@/integrations/supabase/client";
@@ -629,11 +630,11 @@ function fmtBRL(n: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(n) || 0);
 }
 
-function AppOrdersSection() {
+function AppOrdersRows() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<AppOrder | null>(null);
 
-  const { data: orders = [], isLoading } = useQuery({
+  const { data: orders = [] } = useQuery({
     queryKey: ["app-orders"],
     queryFn: async () => {
       const { data, error } = await supabase
