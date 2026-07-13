@@ -65,6 +65,20 @@ const INITIAL: Item[] = [
       "Alternativa a gerenciar campanhas direto no Google Ads. Passos: 1) Criar OAuth com Google Ads API. 2) Endpoint para criar campanha Performance Max apontando para o feed do Merchant. 3) UI no dashboard para budget diário, países-alvo, pausar/ativar. 4) Métricas (impressões, cliques, conversões) via Ads API. Recomendado: usar Google Ads direto até ter volume que justifique o painel próprio.",
     priority: "baixa",
   },
+  {
+    id: "merchant-reprovados",
+    title: "Merchant — corrigir 7 produtos reprovados",
+    description:
+      "No Merchant Center, abrir Produtos e loja → Diagnóstico e listar os motivos (image_link inválida, brand/gtin ausente, descrição curta etc.). Ajustar o gerador em src/routes/feeds/google-merchant.xml.ts para preencher os campos faltando (ex.: <g:brand>Arteno</g:brand>, garantir image_link absoluto, description mínima).",
+    priority: "alta",
+  },
+  {
+    id: "merchant-devolucao",
+    title: "Merchant — política de devolução (Qualidade da loja)",
+    description:
+      "Merchant marca 'Período de devolução' e 'Custo da devolução' como incompletos. Passos: 1) Criar página /politica-de-devolucao com prazo e custo. 2) Adicionar campo return_policy no feed (<g:return_policy><g:country>BR</g:country><g:days>7</g:days><g:policy>returnable</g:policy></g:return_policy>). 3) Configurar a política também no Merchant Center → Configurações → Devoluções.",
+    priority: "media",
+  },
 ];
 
 
