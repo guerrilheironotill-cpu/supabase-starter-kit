@@ -172,6 +172,7 @@ function OrdersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
+                <AppOrdersRows />
                 {items!.map((o) => (
                   <tr key={o.id} className="hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">#{o.number}</td>
