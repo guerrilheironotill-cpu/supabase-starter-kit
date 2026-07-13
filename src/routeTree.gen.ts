@@ -34,6 +34,7 @@ import { Route as DashboardClientesRouteImport } from './routes/dashboard.client
 import { Route as DashboardCategoriasRouteImport } from './routes/dashboard.categorias'
 import { Route as DashboardAcabamentosRouteImport } from './routes/dashboard.acabamentos'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
+import { Route as ApiWcUpdateOrderRouteImport } from './routes/api/wc.update-order'
 import { Route as ApiWcOrdersSummaryRouteImport } from './routes/api/wc.orders-summary'
 import { Route as ApiWcListRouteImport } from './routes/api/wc.list'
 import { Route as ApiWcCreateOrderRouteImport } from './routes/api/wc.create-order'
@@ -163,6 +164,11 @@ const CategoriaSlugRoute = CategoriaSlugRouteImport.update({
   path: '/categoria/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWcUpdateOrderRoute = ApiWcUpdateOrderRouteImport.update({
+  id: '/api/wc/update-order',
+  path: '/api/wc/update-order',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWcOrdersSummaryRoute = ApiWcOrdersSummaryRouteImport.update({
   id: '/api/wc/orders-summary',
   path: '/api/wc/orders-summary',
@@ -208,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/api/wc/create-order': typeof ApiWcCreateOrderRoute
   '/api/wc/list': typeof ApiWcListRoute
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
+  '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -237,6 +244,7 @@ export interface FileRoutesByTo {
   '/api/wc/create-order': typeof ApiWcCreateOrderRoute
   '/api/wc/list': typeof ApiWcListRoute
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
+  '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -268,6 +276,7 @@ export interface FileRoutesById {
   '/api/wc/create-order': typeof ApiWcCreateOrderRoute
   '/api/wc/list': typeof ApiWcListRoute
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
+  '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -300,6 +309,7 @@ export interface FileRouteTypes {
     | '/api/wc/create-order'
     | '/api/wc/list'
     | '/api/wc/orders-summary'
+    | '/api/wc/update-order'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -329,6 +339,7 @@ export interface FileRouteTypes {
     | '/api/wc/create-order'
     | '/api/wc/list'
     | '/api/wc/orders-summary'
+    | '/api/wc/update-order'
   id:
     | '__root__'
     | '/'
@@ -359,6 +370,7 @@ export interface FileRouteTypes {
     | '/api/wc/create-order'
     | '/api/wc/list'
     | '/api/wc/orders-summary'
+    | '/api/wc/update-order'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -376,6 +388,7 @@ export interface RootRouteChildren {
   ApiWcCreateOrderRoute: typeof ApiWcCreateOrderRoute
   ApiWcListRoute: typeof ApiWcListRoute
   ApiWcOrdersSummaryRoute: typeof ApiWcOrdersSummaryRoute
+  ApiWcUpdateOrderRoute: typeof ApiWcUpdateOrderRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -555,6 +568,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriaSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/wc/update-order': {
+      id: '/api/wc/update-order'
+      path: '/api/wc/update-order'
+      fullPath: '/api/wc/update-order'
+      preLoaderRoute: typeof ApiWcUpdateOrderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/wc/orders-summary': {
       id: '/api/wc/orders-summary'
       path: '/api/wc/orders-summary'
@@ -632,6 +652,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWcCreateOrderRoute: ApiWcCreateOrderRoute,
   ApiWcListRoute: ApiWcListRoute,
   ApiWcOrdersSummaryRoute: ApiWcOrdersSummaryRoute,
+  ApiWcUpdateOrderRoute: ApiWcUpdateOrderRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
