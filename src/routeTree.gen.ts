@@ -22,6 +22,7 @@ import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
 import { Route as DashboardSeoRouteImport } from './routes/dashboard.seo'
 import { Route as DashboardProdutosRouteImport } from './routes/dashboard.produtos'
+import { Route as DashboardPerfilRouteImport } from './routes/dashboard.perfil'
 import { Route as DashboardPendenciasRouteImport } from './routes/dashboard.pendencias'
 import { Route as DashboardPedidosRouteImport } from './routes/dashboard.pedidos'
 import { Route as DashboardOrcamentosRouteImport } from './routes/dashboard.orcamentos'
@@ -104,6 +105,11 @@ const DashboardSeoRoute = DashboardSeoRouteImport.update({
 const DashboardProdutosRoute = DashboardProdutosRouteImport.update({
   id: '/produtos',
   path: '/produtos',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardPerfilRoute = DashboardPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardPendenciasRoute = DashboardPendenciasRouteImport.update({
@@ -221,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/pedidos': typeof DashboardPedidosRoute
   '/dashboard/pendencias': typeof DashboardPendenciasRoute
+  '/dashboard/perfil': typeof DashboardPerfilRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
@@ -253,6 +260,7 @@ export interface FileRoutesByTo {
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/pedidos': typeof DashboardPedidosRoute
   '/dashboard/pendencias': typeof DashboardPendenciasRoute
+  '/dashboard/perfil': typeof DashboardPerfilRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
@@ -287,6 +295,7 @@ export interface FileRoutesById {
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/pedidos': typeof DashboardPedidosRoute
   '/dashboard/pendencias': typeof DashboardPendenciasRoute
+  '/dashboard/perfil': typeof DashboardPerfilRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
@@ -322,6 +331,7 @@ export interface FileRouteTypes {
     | '/dashboard/orcamentos'
     | '/dashboard/pedidos'
     | '/dashboard/pendencias'
+    | '/dashboard/perfil'
     | '/dashboard/produtos'
     | '/dashboard/seo'
     | '/produto/$slug'
@@ -354,6 +364,7 @@ export interface FileRouteTypes {
     | '/dashboard/orcamentos'
     | '/dashboard/pedidos'
     | '/dashboard/pendencias'
+    | '/dashboard/perfil'
     | '/dashboard/produtos'
     | '/dashboard/seo'
     | '/produto/$slug'
@@ -387,6 +398,7 @@ export interface FileRouteTypes {
     | '/dashboard/orcamentos'
     | '/dashboard/pedidos'
     | '/dashboard/pendencias'
+    | '/dashboard/perfil'
     | '/dashboard/produtos'
     | '/dashboard/seo'
     | '/produto/$slug'
@@ -506,6 +518,13 @@ declare module '@tanstack/react-router' {
       path: '/produtos'
       fullPath: '/dashboard/produtos'
       preLoaderRoute: typeof DashboardProdutosRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/perfil': {
+      id: '/dashboard/perfil'
+      path: '/perfil'
+      fullPath: '/dashboard/perfil'
+      preLoaderRoute: typeof DashboardPerfilRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/pendencias': {
@@ -651,6 +670,7 @@ interface DashboardRouteChildren {
   DashboardOrcamentosRoute: typeof DashboardOrcamentosRoute
   DashboardPedidosRoute: typeof DashboardPedidosRoute
   DashboardPendenciasRoute: typeof DashboardPendenciasRoute
+  DashboardPerfilRoute: typeof DashboardPerfilRoute
   DashboardProdutosRoute: typeof DashboardProdutosRoute
   DashboardSeoRoute: typeof DashboardSeoRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
@@ -670,6 +690,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardOrcamentosRoute: DashboardOrcamentosRoute,
   DashboardPedidosRoute: DashboardPedidosRoute,
   DashboardPendenciasRoute: DashboardPendenciasRoute,
+  DashboardPerfilRoute: DashboardPerfilRoute,
   DashboardProdutosRoute: DashboardProdutosRoute,
   DashboardSeoRoute: DashboardSeoRoute,
   DashboardIndexRoute: DashboardIndexRoute,
