@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowUpRight, CheckCircle2, Clock, Eye, FileText, Package, TrendingUp, Users, Database, AlertTriangle } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, Eye, FileText, Package, TrendingUp, Database, AlertTriangle, MousePointerClick, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSection } from "@/components/dashboard-layout";
 
@@ -50,6 +50,23 @@ async function fetchStats(): Promise<Stats> {
 }
 
 type OrdersSummary = { configured: boolean; open: number; done: number };
+
+type GscOverview = {
+  configured: boolean;
+  clicks?: number;
+  impressions?: number;
+  ctr?: number;
+  position?: number;
+  deltaClicks?: number;
+  deltaImpressions?: number;
+  topPages?: Array<{ url: string; clicks: number; impressions: number }>;
+};
+
+async function fetchGsc(): Promise<GscOverview> {
+  const res = await fetch("/api/gsc/overview");
+  if (!res.ok) return { configured: false };
+  return (await res.json()) as GscOverview;
+}
 
 type DbSize = {
   configured: boolean;
