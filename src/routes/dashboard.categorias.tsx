@@ -5,6 +5,7 @@ import { DashboardSection } from "@/components/dashboard-layout";
 import { useState } from "react";
 import { Loader2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { fetchCategoryTerms, type CategoryTerm } from "@/lib/dashboard-taxonomies";
 
 export const Route = createFileRoute("/dashboard/categorias")({
   head: () => ({
@@ -16,29 +17,11 @@ export const Route = createFileRoute("/dashboard/categorias")({
   component: DashboardCategoriesPage,
 });
 
-type CategoryRow = {
-  id: string;
-  slug: string;
-  name: string;
-  cover_image: string | null;
-  icon_svg: string | null;
-};
-
-async function fetchCategories(): Promise<CategoryRow[]> {
-  const { data, error } = await supabase
-    .from("categories")
-    .select("id, slug, name, cover_image, icon_svg")
-    .order("sort_order")
-    .order("name");
-  if (error) throw error;
-  return (data ?? []) as CategoryRow[];
-}
-
 function DashboardCategoriesPage() {
   const qc = useQueryClient();
   const { data = [], isLoading } = useQuery({
     queryKey: ["dashboard", "categorias"],
-    queryFn: fetchCategories,
+    queryFn: fetchCategoryTerms,
     staleTime: 30_000,
   });
 
@@ -76,7 +59,7 @@ function DashboardCategoriesPage() {
   );
 }
 
-function CategoryEditor({ row, onSaved }: { row: CategoryRow; onSaved: () => void }) {
+function CategoryEditor({ row, onSaved }: { row: CategoryTerm; onSaved: () => void }) {
   const [cover, setCover] = useState<string | null>(row.cover_image);
   const [icon, setIcon] = useState<string>(row.icon_svg ?? "");
   const [busy, setBusy] = useState(false);
@@ -107,10 +90,13 @@ function CategoryEditor({ row, onSaved }: { row: CategoryRow; onSaved: () => voi
     setBusy(true);
     setError(null);
     try {
-      const { error: upErr } = await supabase
-        .from("categories")
-        .update({ cover_image: cover, icon_svg: icon.trim() || null })
-        .eq("id", row.id);
+      const payload = { cover_image: cover, icon_svg: icon.trim() || null };
+      const { error: upErr } = row.id
+        ? await supabase.from("categories").update(payload).eq("id", row.id)
+        : await supabase.from("categories").upsert(
+            { name: row.name, slug: row.slug, ...payload },
+            { onConflict: "slug" },
+          );
       if (upErr) throw upErr;
       setDirty(false);
       onSaved();
@@ -139,7 +125,9 @@ function CategoryEditor({ row, onSaved }: { row: CategoryRow; onSaved: () => voi
       <div className="min-w-0 flex-1 space-y-2">
         <div>
           <p className="font-medium text-foreground">{row.name}</p>
-          <p className="text-xs text-muted-foreground">/{row.slug}</p>
+          <p className="text-xs text-muted-foreground">
+            /{row.slug} · {row.count} produto{row.count === 1 ? "" : "s"}
+          </p>
         </div>
         <label className="block text-xs font-medium text-muted-foreground">
           Ícone (SVG)
