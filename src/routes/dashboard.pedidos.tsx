@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { fetchWc, type WcOrder } from "@/lib/wc-api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard/pedidos")({
@@ -115,6 +116,8 @@ function OrdersPage() {
           Pedidos importados do WooCommerce em tempo real.
         </p>
       </div>
+
+      <AppOrdersSection />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <select
@@ -567,5 +570,542 @@ function Field({
         className="rounded-md border border-border bg-background px-3 py-2"
       />
     </label>
+  );
+}
+
+// ------------------------------------------------------------------
+// App orders (approved quotes) — persisted in Supabase
+// ------------------------------------------------------------------
+
+type AppOrderItem = {
+  id: string;
+  order_id: string;
+  product_id: string | null;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+  meta: { size_name?: string | null; finish?: string | null; color?: string | null } | null;
+};
+
+type AppOrder = {
+  id: string;
+  number: number;
+  status: string;
+  currency: string;
+  subtotal: number;
+  shipping_total: number;
+  total: number;
+  customer_note: string | null;
+  created_at: string;
+  customer_id: string | null;
+  customer?: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+    phone: string | null;
+    address_1: string | null;
+    city: string | null;
+    state: string | null;
+  } | null;
+  items: AppOrderItem[];
+};
+
+const APP_STATUS = [
+  { value: "pending", label: "Pendente" },
+  { value: "processing", label: "Processando" },
+  { value: "on-hold", label: "Em espera" },
+  { value: "completed", label: "Concluído" },
+  { value: "cancelled", label: "Cancelado" },
+];
+
+const APP_STATUS_COLOR: Record<string, string> = {
+  pending: "bg-yellow-500/15 text-yellow-500",
+  processing: "bg-blue-500/15 text-blue-500",
+  "on-hold": "bg-orange-500/15 text-orange-500",
+  completed: "bg-emerald-500/15 text-emerald-500",
+  cancelled: "bg-red-500/15 text-red-500",
+};
+
+function fmtBRL(n: number) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(n) || 0);
+}
+
+function AppOrdersSection() {
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState<AppOrder | null>(null);
+
+  const { data: orders = [], isLoading } = useQuery({
+    queryKey: ["app-orders"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("app_orders" as never)
+        .select(
+          "id, number, status, currency, subtotal, shipping_total, total, customer_note, created_at, customer_id, customer:customers(id, first_name, last_name, email, phone, address_1, city, state), items:app_order_items(id, order_id, product_id, name, quantity, unit_price, total, meta)",
+        )
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as unknown as AppOrder[];
+    },
+    staleTime: 15_000,
+  });
+
+  async function updateStatus(id: string, status: string) {
+    const { error } = await supabase.from("app_orders" as never).update({ status } as never).eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Status atualizado");
+      qc.invalidateQueries({ queryKey: ["app-orders"] });
+    }
+  }
+
+  return (
+    <div className="mb-8">
+      <h2 className="mb-3 text-lg font-semibold text-foreground">Pedidos aprovados (sistema)</h2>
+      <div className="rounded-2xl border border-border bg-card">
+        {isLoading ? (
+          <div className="flex items-center justify-center p-8 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="p-6 text-sm text-muted-foreground">
+            Nenhum pedido aprovado ainda. Aprove um orçamento em <em>Orçamentos</em> para criar um pedido aqui.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-border bg-muted/30 text-left text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3">Pedido</th>
+                  <th className="px-4 py-3">Cliente</th>
+                  <th className="px-4 py-3">Data</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Itens</th>
+                  <th className="px-4 py-3 text-right">Total</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {orders.map((o) => (
+                  <tr key={o.id} className="hover:bg-muted/30">
+                    <td className="px-4 py-3 font-medium">#{o.number}</td>
+                    <td className="px-4 py-3">
+                      <div>
+                        {(o.customer?.first_name ?? "") + " " + (o.customer?.last_name ?? "")}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{o.customer?.email}</div>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {new Date(o.created_at).toLocaleDateString("pt-BR")}
+                    </td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={o.status}
+                        onChange={(e) => updateStatus(o.id, e.target.value)}
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium border-0 outline-none focus:ring-2 focus:ring-ring ${
+                          APP_STATUS_COLOR[o.status] ?? "bg-muted text-foreground"
+                        }`}
+                      >
+                        {APP_STATUS.map((s) => (
+                          <option key={s.value} value={s.value} className="bg-background text-foreground">
+                            {s.label}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{o.items?.length ?? 0}</td>
+                    <td className="px-4 py-3 text-right font-medium">{fmtBRL(o.total)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => setEditing(o)}
+                        className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
+                      >
+                        <Pencil className="h-3 w-3" /> Editar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {editing && (
+        <AppOrderEditDialog
+          order={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            qc.invalidateQueries({ queryKey: ["app-orders"] });
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+type EditItemDraft = {
+  key: string;
+  id?: string;
+  product_id: string | null;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  meta?: { size_name?: string | null; finish?: string | null; color?: string | null } | null;
+  removed?: boolean;
+};
+
+function AppOrderEditDialog({
+  order,
+  onClose,
+  onSaved,
+}: {
+  order: AppOrder;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [status, setStatus] = useState(order.status);
+  const [note, setNote] = useState(order.customer_note ?? "");
+  const [shipping, setShipping] = useState<number>(Number(order.shipping_total) || 0);
+  const [firstName, setFirstName] = useState(order.customer?.first_name ?? "");
+  const [lastName, setLastName] = useState(order.customer?.last_name ?? "");
+  const [email, setEmail] = useState(order.customer?.email ?? "");
+  const [phone, setPhone] = useState(order.customer?.phone ?? "");
+  const [address, setAddress] = useState(order.customer?.address_1 ?? "");
+  const [city, setCity] = useState(order.customer?.city ?? "");
+  const [state, setState] = useState(order.customer?.state ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const [items, setItems] = useState<EditItemDraft[]>(
+    (order.items ?? []).map((i) => ({
+      key: `l-${i.id}`,
+      id: i.id,
+      product_id: i.product_id,
+      name: i.name,
+      quantity: Number(i.quantity) || 1,
+      unit_price: Number(i.unit_price) || 0,
+      meta: i.meta ?? null,
+    })),
+  );
+
+  const { subtotal, total } = useMemo(() => {
+    const sub = items
+      .filter((i) => !i.removed)
+      .reduce((s, i) => s + Number(i.unit_price || 0) * Number(i.quantity || 0), 0);
+    return { subtotal: sub, total: sub + Number(shipping || 0) };
+  }, [items, shipping]);
+
+  function updateItem(key: string, patch: Partial<EditItemDraft>) {
+    setItems((a) => a.map((i) => (i.key === key ? { ...i, ...patch } : i)));
+  }
+  function addCatalogItem() {
+    setItems((a) => [
+      ...a,
+      { key: `n-${Date.now()}`, product_id: null, name: "", quantity: 1, unit_price: 0 },
+    ]);
+  }
+  function addCustomItem() {
+    setItems((a) => [
+      ...a,
+      { key: `c-${Date.now()}`, product_id: null, name: "", quantity: 1, unit_price: 0, meta: { finish: "custom" } },
+    ]);
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      // update customer
+      if (order.customer_id) {
+        await supabase
+          .from("customers" as never)
+          .update({
+            first_name: firstName,
+            last_name: lastName,
+            email: email || null,
+            phone: phone || null,
+            address_1: address || null,
+            city: city || null,
+            state: state || null,
+          } as never)
+          .eq("id", order.customer_id);
+      }
+
+      // delete removed items
+      const toDelete = items.filter((i) => i.id && i.removed).map((i) => i.id!) as string[];
+      if (toDelete.length > 0) {
+        await supabase.from("app_order_items" as never).delete().in("id", toDelete);
+      }
+      // upsert / insert
+      for (const i of items.filter((x) => !x.removed)) {
+        const row = {
+          order_id: order.id,
+          product_id: i.product_id,
+          name: i.name,
+          quantity: Number(i.quantity) || 1,
+          unit_price: Number(i.unit_price) || 0,
+          total: (Number(i.unit_price) || 0) * (Number(i.quantity) || 1),
+          meta: i.meta ?? null,
+        };
+        if (i.id) {
+          await supabase.from("app_order_items" as never).update(row as never).eq("id", i.id);
+        } else {
+          await supabase.from("app_order_items" as never).insert(row as never);
+        }
+      }
+
+      const { error } = await supabase
+        .from("app_orders" as never)
+        .update({
+          status,
+          customer_note: note || null,
+          shipping_total: Number(shipping) || 0,
+          subtotal,
+          total,
+        } as never)
+        .eq("id", order.id);
+      if (error) throw error;
+
+      toast.success("Pedido atualizado");
+      onSaved();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="mb-4 text-lg font-semibold">Editar pedido #{order.number}</h2>
+
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <Field label="Nome" value={firstName} onChange={setFirstName} />
+          <Field label="Sobrenome" value={lastName} onChange={setLastName} />
+          <Field label="Email" value={email} onChange={setEmail} />
+          <Field label="Telefone" value={phone} onChange={setPhone} />
+          <label className="col-span-2 flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">Endereço</span>
+            <input
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-2"
+            />
+          </label>
+          <Field label="Cidade" value={city} onChange={setCity} />
+          <Field label="Estado" value={state} onChange={setState} />
+          <label className="col-span-2 flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">Status</span>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-2"
+            >
+              {APP_STATUS.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="col-span-2 flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">Observação do cliente</span>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={3}
+              className="rounded-md border border-border bg-background px-3 py-2"
+            />
+          </label>
+        </div>
+
+        <div className="mt-6">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Produtos</h3>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={addCatalogItem}
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
+              >
+                <Plus className="h-3 w-3" /> Catálogo
+              </button>
+              <button
+                type="button"
+                onClick={addCustomItem}
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
+              >
+                <Plus className="h-3 w-3" /> Personalizado
+              </button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {items.map((i) => (
+              <EditItemRow
+                key={i.key}
+                item={i}
+                onChange={(patch) => updateItem(i.key, patch)}
+                onRemove={() =>
+                  i.id
+                    ? updateItem(i.key, { removed: !i.removed })
+                    : setItems((a) => a.filter((x) => x.key !== i.key))
+                }
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-2 rounded-md border border-border bg-muted/30 p-3 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Subtotal</span>
+            <span className="font-medium">{fmtBRL(subtotal)}</span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-muted-foreground">Frete</span>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={shipping}
+              onChange={(e) => setShipping(Number(e.target.value))}
+              className="w-32 rounded-md border border-border bg-background px-2 py-1 text-right text-sm"
+            />
+          </div>
+          <div className="flex items-center justify-between border-t border-border pt-2">
+            <span>Total</span>
+            <span className="text-lg font-semibold">{fmtBRL(total)}</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Os valores são recalculados automaticamente ao alterar quantidade, preço ou frete.
+          </p>
+        </div>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onClose} className="rounded-md border border-border px-3 py-1.5 text-sm">
+            Cancelar
+          </button>
+          <button
+            disabled={saving}
+            onClick={save}
+            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
+          >
+            {saving ? "Salvando…" : "Salvar e atualizar total"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type ProductLite = { id: string; name: string };
+
+function EditItemRow({
+  item,
+  onChange,
+  onRemove,
+}: {
+  item: EditItemDraft;
+  onChange: (patch: Partial<EditItemDraft>) => void;
+  onRemove: () => void;
+}) {
+  const isCustom = !item.product_id && !item.id;
+  const [query, setQuery] = useState(item.name);
+  const [focused, setFocused] = useState(false);
+
+  const { data: matches = [] } = useQuery({
+    queryKey: ["product-search", query],
+    enabled: focused && !isCustom && query.trim().length >= 2 && !item.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name")
+        .ilike("name", `%${query}%`)
+        .eq("active", true)
+        .limit(10);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as ProductLite[];
+    },
+    staleTime: 30_000,
+  });
+
+  return (
+    <div
+      className={`grid grid-cols-12 items-start gap-2 rounded-md border border-border p-2 ${
+        item.removed ? "opacity-40" : ""
+      }`}
+    >
+      <div className="col-span-5 relative">
+        {item.id ? (
+          <div className="text-sm">{item.name}</div>
+        ) : (
+          <>
+            <input
+              placeholder={isCustom ? "Nome do produto personalizado" : "Buscar produto…"}
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                onChange({ name: e.target.value });
+              }}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setTimeout(() => setFocused(false), 150)}
+              className="w-full rounded-md border border-border bg-background px-2 py-1 text-sm"
+            />
+            {focused && !isCustom && matches.length > 0 && (
+              <ul className="absolute z-10 mt-1 max-h-52 w-full overflow-auto rounded-md border border-border bg-popover shadow-lg">
+                {matches.map((p) => (
+                  <li
+                    key={p.id}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      onChange({ product_id: p.id, name: p.name });
+                      setQuery(p.name);
+                      setFocused(false);
+                    }}
+                    className="cursor-pointer px-2 py-1 text-sm hover:bg-muted"
+                  >
+                    {p.name}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+        {item.meta?.finish === "custom" && (
+          <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">Personalizado</div>
+        )}
+      </div>
+      <input
+        type="number"
+        min={1}
+        value={item.quantity}
+        onChange={(e) => onChange({ quantity: Number(e.target.value) })}
+        className="col-span-2 rounded-md border border-border bg-background px-2 py-1 text-sm"
+      />
+      <input
+        type="number"
+        min={0}
+        step="0.01"
+        placeholder="Preço unit."
+        value={item.unit_price}
+        onChange={(e) => onChange({ unit_price: Number(e.target.value) })}
+        className="col-span-2 rounded-md border border-border bg-background px-2 py-1 text-sm"
+      />
+      <div className="col-span-2 py-1 text-right text-sm font-medium">
+        {fmtBRL((Number(item.unit_price) || 0) * (Number(item.quantity) || 0))}
+      </div>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="col-span-1 flex justify-center text-muted-foreground hover:text-destructive"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
   );
 }
