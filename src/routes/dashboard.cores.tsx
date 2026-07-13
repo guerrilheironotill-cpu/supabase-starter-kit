@@ -22,32 +22,32 @@ type ColorRow = {
 };
 
 async function fetchColors(): Promise<ColorRow[]> {
-  const { data, error } = await supabase
-    .from("product_colors")
-    .select("name, image_url, description")
-    .order("name");
-  if (error) throw error;
-  const map = new Map<string, ColorRow>();
-  for (const r of (data ?? []) as Array<{
+  const [{ data: pcs, error: pErr }, { data: cat, error: cErr }] = await Promise.all([
+    supabase.from("product_colors").select("name"),
+    supabase.from("color_catalog").select("name, image_url, description"),
+  ]);
+  if (pErr) throw pErr;
+  if (cErr) throw cErr;
+  const counts = new Map<string, number>();
+  for (const r of (pcs ?? []) as Array<{ name: string }>) {
+    counts.set(r.name, (counts.get(r.name) ?? 0) + 1);
+  }
+  const catMap = new Map<string, { image_url: string | null; description: string | null }>();
+  for (const c of (cat ?? []) as Array<{
     name: string;
     image_url: string | null;
     description: string | null;
   }>) {
-    const cur = map.get(r.name);
-    if (!cur) {
-      map.set(r.name, {
-        name: r.name,
-        image_url: r.image_url,
-        description: r.description,
-        count: 1,
-      });
-    } else {
-      cur.count += 1;
-      if (!cur.image_url && r.image_url) cur.image_url = r.image_url;
-      if (!cur.description && r.description) cur.description = r.description;
-    }
+    catMap.set(c.name, { image_url: c.image_url, description: c.description });
   }
-  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  return Array.from(counts.keys())
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => ({
+      name,
+      image_url: catMap.get(name)?.image_url ?? null,
+      description: catMap.get(name)?.description ?? null,
+      count: counts.get(name) ?? 0,
+    }));
 }
 
 function DashboardColorsPage() {
@@ -86,9 +86,15 @@ function DashboardColorsPage() {
                 bucketFolder="colors"
                 onSave={async ({ image_url, description }) => {
                   const { error } = await supabase
-                    .from("product_colors")
-                    .update({ image_url, description })
-                    .eq("name", c.name);
+                    .from("color_catalog")
+                    .upsert(
+                      {
+                        name: c.name,
+                        image_url,
+                        description: description ?? null,
+                      },
+                      { onConflict: "name" },
+                    );
                   if (error) throw error;
                   qc.invalidateQueries({ queryKey: ["dashboard", "cores"] });
                 }}
