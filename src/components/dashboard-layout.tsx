@@ -105,15 +105,15 @@ export function DashboardLayout() {
   }
 
   return (
-    <div className="dark">
+    <div className="dark dashboard-scope">
       <div className="min-h-screen bg-background text-foreground">
         <div className="mx-auto flex w-full max-w-[1400px] gap-6 px-4 py-8 sm:px-8 lg:px-[50px]">
       <aside className="hidden w-60 shrink-0 md:block">
-        <div className="sticky top-[88px] rounded-2xl border border-border bg-card p-3">
-          <p className="px-3 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <div className="sticky top-[88px]">
+          <p className="px-2 pb-3 pt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             Painel
           </p>
-          <nav className="flex flex-col gap-1">
+          <nav className="flex flex-col gap-0.5">
             {NAV.map((item) => {
               const active = item.exact
                 ? pathname === item.to
@@ -124,14 +124,14 @@ export function DashboardLayout() {
                   key={item.to}
                   to={item.to}
                   className={cn(
-                    "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                    item.child && "ml-4 text-[13px]",
+                    "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] transition-colors",
+                    item.child && "ml-5 text-[12.5px]",
                     active
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground hover:bg-muted",
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                   )}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-4 w-4 shrink-0" />
                   {item.label}
                 </Link>
               );
