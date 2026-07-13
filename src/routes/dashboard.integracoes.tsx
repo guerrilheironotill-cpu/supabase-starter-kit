@@ -123,6 +123,8 @@ function DashboardIntegrationsPage() {
           placeholder="G-XXXXXXXXXX"
           value={ga4}
           onChange={setGa4}
+          validate={(v) => /^G-[A-Z0-9]{6,12}$/.test(v.trim())}
+          hint="Formato esperado: G- seguido de 6 a 12 letras/números maiúsculos."
           steps={[
             "Acesse analytics.google.com e faça login com a conta do site.",
             "No menu inferior esquerdo, clique em Administrador (engrenagem).",
@@ -138,6 +140,8 @@ function DashboardIntegrationsPage() {
           placeholder="1234567890123456"
           value={metaPixel}
           onChange={setMetaPixel}
+          validate={(v) => /^\d{15,16}$/.test(v.trim())}
+          hint="Formato esperado: 15 ou 16 dígitos numéricos."
           steps={[
             "Acesse business.facebook.com e entre no Gerenciador de Negócios.",
             "Vá em Gerenciador de Eventos (Events Manager) no menu lateral.",
@@ -153,6 +157,8 @@ function DashboardIntegrationsPage() {
           placeholder="9876543210987654"
           value={fbCatalogId}
           onChange={setFbCatalogId}
+          validate={(v) => /^\d{10,20}$/.test(v.trim())}
+          hint="Formato esperado: 10 a 20 dígitos numéricos."
           steps={[
             "Acesse business.facebook.com → Gerenciador de Comércio (Commerce Manager).",
             "Selecione o catálogo existente do site atual (ou crie um novo do tipo E-commerce).",
@@ -168,6 +174,8 @@ function DashboardIntegrationsPage() {
           placeholder="123456789"
           value={merchantId}
           onChange={setMerchantId}
+          validate={(v) => /^\d{6,12}$/.test(v.trim())}
+          hint="Formato esperado: 6 a 12 dígitos numéricos."
           steps={[
             "Acesse merchants.google.com e faça login com a conta do site.",
             "O Merchant ID aparece no canto superior direito, ao lado do nome da conta.",
@@ -200,6 +208,8 @@ function IntegrationField({
   value,
   onChange,
   steps,
+  validate,
+  hint,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -207,8 +217,12 @@ function IntegrationField({
   value: string;
   onChange: (v: string) => void;
   steps: string[];
+  validate: (v: string) => boolean;
+  hint?: string;
 }) {
-  const connected = value.trim().length > 0;
+  const filled = value.trim().length > 0;
+  const connected = filled && validate(value);
+  const invalid = filled && !connected;
   return (
     <div className="border-t border-border pt-6 first:border-t-0 first:pt-0">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -230,7 +244,7 @@ function IntegrationField({
                     : "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]"
                 }`}
               />
-              {connected ? "Conectado" : "Não conectado"}
+              {connected ? "Conectado" : invalid ? "Formato inválido" : "Não conectado"}
             </span>
           </span>
           <input
@@ -238,8 +252,15 @@ function IntegrationField({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
-            className="mt-2 block w-full max-w-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
+            className={`mt-2 block w-full max-w-md border bg-transparent px-3 py-2 text-sm outline-none ${
+              invalid
+                ? "border-red-500 focus:border-red-500"
+                : "border-border focus:border-primary"
+            }`}
           />
+          {invalid && hint && (
+            <span className="mt-1 block text-[11px] text-red-600">{hint}</span>
+          )}
         </label>
       </div>
       <details className="mt-3 group">
