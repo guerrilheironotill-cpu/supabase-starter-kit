@@ -164,7 +164,14 @@ export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
         .eq("id", product.id);
       if (pErr) {
         if (!isMissingSeoColumnError(pErr)) throw pErr;
-        const { meta_title: _metaTitle, meta_description: _metaDescription, ...fallbackPayload } = productPayload;
+        const fallbackPayload = {
+          name: productPayload.name,
+          slug: productPayload.slug,
+          description: productPayload.description,
+          category: productPayload.category,
+          images: productPayload.images,
+          active: productPayload.active,
+        };
         const { error: fallbackErr } = await supabase
           .from("products")
           .update(fallbackPayload)
