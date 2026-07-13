@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSection } from "@/components/dashboard-layout";
-import { DashboardMediaEditor } from "@/components/dashboard-media-editor";
+import { DashboardGalleryEditor } from "@/components/dashboard-gallery-editor";
 
 export const Route = createFileRoute("/dashboard/acabamentos")({
   head: () => ({
@@ -17,37 +17,47 @@ export const Route = createFileRoute("/dashboard/acabamentos")({
 type FinishRow = {
   name: string;
   image_url: string | null;
+  gallery: string[];
   description: string | null;
   count: number;
 };
 
 async function fetchFinishes(): Promise<FinishRow[]> {
-  const { data, error } = await supabase
-    .from("product_finishes")
-    .select("name, image_url, description")
-    .order("name");
-  if (error) throw error;
-  const map = new Map<string, FinishRow>();
-  for (const r of (data ?? []) as Array<{
+  const [{ data: pfs, error: pErr }, { data: cat, error: cErr }] = await Promise.all([
+    supabase.from("product_finishes").select("name"),
+    supabase.from("finish_catalog").select("name, image_url, gallery, description"),
+  ]);
+  if (pErr) throw pErr;
+  if (cErr) throw cErr;
+  const counts = new Map<string, number>();
+  for (const r of (pfs ?? []) as Array<{ name: string }>) {
+    counts.set(r.name, (counts.get(r.name) ?? 0) + 1);
+  }
+  const catMap = new Map<string, { image_url: string | null; gallery: string[]; description: string | null }>();
+  for (const c of (cat ?? []) as Array<{
     name: string;
     image_url: string | null;
+    gallery: string[] | null;
     description: string | null;
   }>) {
-    const cur = map.get(r.name);
-    if (!cur) {
-      map.set(r.name, {
-        name: r.name,
-        image_url: r.image_url,
-        description: r.description,
-        count: 1,
-      });
-    } else {
-      cur.count += 1;
-      if (!cur.image_url && r.image_url) cur.image_url = r.image_url;
-      if (!cur.description && r.description) cur.description = r.description;
-    }
+    catMap.set(c.name, {
+      image_url: c.image_url,
+      gallery: c.gallery ?? [],
+      description: c.description,
+    });
   }
-  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  return Array.from(counts.keys())
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => {
+      const c = catMap.get(name);
+      return {
+        name,
+        image_url: c?.image_url ?? null,
+        gallery: c?.gallery ?? [],
+        description: c?.description ?? null,
+        count: counts.get(name) ?? 0,
+      };
+    });
 }
 
 function DashboardFinishesPage() {
@@ -77,18 +87,28 @@ function DashboardFinishesPage() {
         ) : (
           <div className="grid gap-3">
             {data.map((f) => (
-              <DashboardMediaEditor
+              <DashboardGalleryEditor
                 key={f.name}
                 label={f.name}
                 sublabel={`${f.count} produto${f.count === 1 ? "" : "s"}`}
-                imageUrl={f.image_url}
+                mainImage={f.image_url}
+                gallery={f.gallery}
                 description={f.description}
+                showGallery
+                maxGallery={10}
                 bucketFolder="finishes"
-                onSave={async ({ image_url, description }) => {
+                onSave={async ({ image_url, gallery, description }) => {
                   const { error } = await supabase
-                    .from("product_finishes")
-                    .update({ image_url, description })
-                    .eq("name", f.name);
+                    .from("finish_catalog")
+                    .upsert(
+                      {
+                        name: f.name,
+                        image_url,
+                        gallery: gallery ?? [],
+                        description: description ?? null,
+                      },
+                      { onConflict: "name" },
+                    );
                   if (error) throw error;
                   qc.invalidateQueries({ queryKey: ["dashboard", "acabamentos"] });
                 }}
