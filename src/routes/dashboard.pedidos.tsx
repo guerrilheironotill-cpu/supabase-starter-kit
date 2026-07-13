@@ -78,6 +78,7 @@ function OrdersPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("any");
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [pendingStatusById, setPendingStatusById] = useState<Record<string, string>>({});
   const qc = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
@@ -115,16 +116,33 @@ function OrdersPage() {
 
   async function updateStatus(id: string, next: string) {
     setSavingId(id);
+    setPendingStatusById((current) => ({ ...current, [id]: next }));
     try {
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from("app_orders" as never)
         .update({ status: next } as never)
-        .eq("id", id);
+        .eq("id", id)
+        .select("id, status")
+        .single();
       if (error) throw error;
+      if (!updated) throw new Error("Pedido não encontrado para atualizar.");
+      qc.setQueriesData<AppOrder[]>({ queryKey: ["app-orders"] }, (rows) =>
+        rows?.map((order) => (order.id === id ? { ...order, status: next } : order)),
+      );
+      setPendingStatusById((current) => {
+        const nextState = { ...current };
+        delete nextState[id];
+        return nextState;
+      });
       toast.success("Status atualizado");
-      qc.invalidateQueries({ queryKey: ["app-orders"] });
+      void qc.invalidateQueries({ queryKey: ["app-orders"] });
     } catch (e) {
-      toast.error((e as Error).message);
+      setPendingStatusById((current) => {
+        const nextState = { ...current };
+        delete nextState[id];
+        return nextState;
+      });
+      toast.error("Erro ao atualizar status: " + (e as Error).message);
     } finally {
       setSavingId(null);
     }
@@ -185,6 +203,7 @@ function OrdersPage() {
               <tbody className="divide-y divide-border">
                 {data.map((o) => {
                   const c = o.customers;
+                  const currentStatus = pendingStatusById[o.id] ?? o.status;
                   const clientName = `${c?.first_name ?? ""} ${c?.last_name ?? ""}`.trim() || "—";
                   return (
                     <tr key={o.id} className="hover:bg-muted/30">
@@ -200,11 +219,11 @@ function OrdersPage() {
                       </td>
                       <td className="px-4 py-3">
                         <select
-                          value={o.status}
+                          value={currentStatus}
                           disabled={savingId === o.id}
                           onChange={(e) => updateStatus(o.id, e.target.value)}
                           className={`rounded-full px-2 py-0.5 text-xs font-medium border-0 outline-none focus:ring-2 focus:ring-ring ${
-                            STATUS_COLOR[o.status] ?? "bg-muted text-foreground"
+                            STATUS_COLOR[currentStatus] ?? "bg-muted text-foreground"
                           }`}
                         >
                           {STATUS_OPTIONS.map((s) => (
