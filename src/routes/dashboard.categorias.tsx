@@ -66,10 +66,6 @@ function DashboardCategoriesPage() {
   );
 }
 
-function CategoryEditor({ row, onSaved }: { row: CategoryTerm; onSaved: () => void }) {
-// placeholder anchor
-}
-
 function CreateCategoryForm({ onCreated }: { onCreated: () => void }) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -117,7 +113,7 @@ function CreateCategoryForm({ onCreated }: { onCreated: () => void }) {
   );
 }
 
-function _CategoryEditor_({ row, onSaved }: { row: CategoryTerm; onSaved: () => void }) {
+function CategoryEditor({ row, onSaved }: { row: CategoryTerm; onSaved: () => void }) {
   const [cover, setCover] = useState<string | null>(row.cover_image);
   const [icon, setIcon] = useState<string>(row.icon_svg ?? "");
   const [busy, setBusy] = useState(false);
