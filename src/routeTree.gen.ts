@@ -29,6 +29,7 @@ import { Route as DashboardDebugRouteImport } from './routes/dashboard.debug'
 import { Route as DashboardCrmRouteImport } from './routes/dashboard.crm'
 import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.configuracoes'
 import { Route as DashboardCategoriasRouteImport } from './routes/dashboard.categorias'
+import { Route as DashboardAcabamentosRouteImport } from './routes/dashboard.acabamentos'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 
 const SupabaseCheckRoute = SupabaseCheckRouteImport.update({
@@ -131,6 +132,11 @@ const DashboardCategoriasRoute = DashboardCategoriasRouteImport.update({
   path: '/categorias',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardAcabamentosRoute = DashboardAcabamentosRouteImport.update({
+  id: '/acabamentos',
+  path: '/acabamentos',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const CategoriaSlugRoute = CategoriaSlugRouteImport.update({
   id: '/categoria/$slug',
   path: '/categoria/$slug',
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
+  '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/crm': typeof DashboardCrmRoute
@@ -170,6 +177,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
+  '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/crm': typeof DashboardCrmRoute
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
+  '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/crm': typeof DashboardCrmRoute
@@ -219,6 +228,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/supabase-check'
     | '/categoria/$slug'
+    | '/dashboard/acabamentos'
     | '/dashboard/categorias'
     | '/dashboard/configuracoes'
     | '/dashboard/crm'
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/supabase-check'
     | '/categoria/$slug'
+    | '/dashboard/acabamentos'
     | '/dashboard/categorias'
     | '/dashboard/configuracoes'
     | '/dashboard/crm'
@@ -264,6 +275,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/supabase-check'
     | '/categoria/$slug'
+    | '/dashboard/acabamentos'
     | '/dashboard/categorias'
     | '/dashboard/configuracoes'
     | '/dashboard/crm'
@@ -433,6 +445,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardCategoriasRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/acabamentos': {
+      id: '/dashboard/acabamentos'
+      path: '/acabamentos'
+      fullPath: '/dashboard/acabamentos'
+      preLoaderRoute: typeof DashboardAcabamentosRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/categoria/$slug': {
       id: '/categoria/$slug'
       path: '/categoria/$slug'
@@ -444,6 +463,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface DashboardRouteChildren {
+  DashboardAcabamentosRoute: typeof DashboardAcabamentosRoute
   DashboardCategoriasRoute: typeof DashboardCategoriasRoute
   DashboardConfiguracoesRoute: typeof DashboardConfiguracoesRoute
   DashboardCrmRoute: typeof DashboardCrmRoute
@@ -457,6 +477,7 @@ interface DashboardRouteChildren {
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardAcabamentosRoute: DashboardAcabamentosRoute,
   DashboardCategoriasRoute: DashboardCategoriasRoute,
   DashboardConfiguracoesRoute: DashboardConfiguracoesRoute,
   DashboardCrmRoute: DashboardCrmRoute,
