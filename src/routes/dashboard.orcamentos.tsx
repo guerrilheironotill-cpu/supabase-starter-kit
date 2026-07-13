@@ -325,7 +325,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
           .select("id")
           .single();
         if (cErr) fail("criar cliente", cErr);
-        customerId = (created as { id: string }).id;
+        customerId = (created as unknown as { id: string }).id;
       }
 
       // 2) upsert app_order linked to this quote
@@ -384,7 +384,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
           .select("id, number")
           .single();
         if (oErr) fail("criar pedido", oErr);
-        newOrder = created as { id: string; number: number };
+        newOrder = created as unknown as { id: string; number: number };
       }
 
       // 3) items
