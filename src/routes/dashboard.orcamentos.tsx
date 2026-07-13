@@ -160,7 +160,7 @@ function DashboardQuotesPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
 
-  const { data: orders = [], isLoading, error } = useQuery({
+  const { data: allOrders = [], isLoading, error } = useQuery({
     queryKey: ["orders"],
     queryFn: async () => {
       const controller = new AbortController();
@@ -186,6 +186,11 @@ function DashboardQuotesPage() {
     retry: 1,
     staleTime: 30_000,
   });
+
+  const orders = useMemo(
+    () => allOrders.filter((o) => normalizeQuoteStatus(o.status) !== "aprovado"),
+    [allOrders],
+  );
 
   return (
     <>
