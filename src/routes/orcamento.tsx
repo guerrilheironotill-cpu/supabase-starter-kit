@@ -307,6 +307,7 @@ function OrcamentoPage() {
   };
 
   const sendWhatsApp = () => {
+    void persistOrder();
     window.open(
       whatsappLinkFrom(whatsappNumber, buildSummary()),
       "_blank",
@@ -315,6 +316,7 @@ function OrcamentoPage() {
   };
 
   const sendEmail = () => {
+    void persistOrder();
     const subject = encodeURIComponent("Orçamento — Casa & Jardim");
     const body = encodeURIComponent(buildSummary());
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
