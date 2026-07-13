@@ -659,6 +659,53 @@ function AppOrdersRows() {
     }
   }
 
+  async function moveBackToQuote(appOrderId: string) {
+    if (!window.confirm("Voltar este pedido para a aba Orçamentos?")) return;
+    // 1) find linked quote via orders.notes JSON (app_order_id)
+    const { data: quotes, error: qErr } = await supabase
+      .from("orders" as never)
+      .select("id, notes")
+      .ilike("notes", `%${appOrderId}%`)
+      .limit(20);
+    if (qErr) {
+      toast.error(qErr.message);
+      return;
+    }
+    const match = (quotes as Array<{ id: string; notes: string | null }> | null)?.find((r) => {
+      try {
+        const p = JSON.parse(r.notes ?? "");
+        return p?.app_order_id === appOrderId;
+      } catch {
+        return false;
+      }
+    });
+
+    // 2) revert quote status to "em aberto"
+    if (match) {
+      const candidates = ["orcamento", "em_aberto", "em aberto", "aberto", "quote_pending", "open"];
+      for (const status of candidates) {
+        const { error } = await supabase
+          .from("orders" as never)
+          .update({ status } as never)
+          .eq("id", match.id)
+          .select("id")
+          .maybeSingle();
+        if (!error) break;
+      }
+    }
+
+    // 3) delete app_order + items
+    await supabase.from("app_order_items" as never).delete().eq("order_id", appOrderId);
+    const { error: delErr } = await supabase.from("app_orders" as never).delete().eq("id", appOrderId);
+    if (delErr) {
+      toast.error(delErr.message);
+      return;
+    }
+    toast.success("Pedido devolvido para Orçamentos");
+    qc.invalidateQueries({ queryKey: ["app-orders"] });
+    qc.invalidateQueries({ queryKey: ["orders"] });
+  }
+
   return (
     <>
       {orders.map((o) => (
@@ -676,7 +723,11 @@ function AppOrdersRows() {
                     <td className="px-4 py-3">
                       <select
                         value={o.status}
-                        onChange={(e) => updateStatus(o.id, e.target.value)}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v === "__back_to_quote") void moveBackToQuote(o.id);
+                          else void updateStatus(o.id, v);
+                        }}
                         className={`rounded-full px-2 py-0.5 text-xs font-medium border-0 outline-none focus:ring-2 focus:ring-ring ${
                           APP_STATUS_COLOR[o.status] ?? "bg-muted text-foreground"
                         }`}
@@ -686,6 +737,9 @@ function AppOrdersRows() {
                             {s.label}
                           </option>
                         ))}
+                        <option value="__back_to_quote" className="bg-background text-foreground">
+                          ← Voltar para orçamento
+                        </option>
                       </select>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{o.items?.length ?? 0}</td>
