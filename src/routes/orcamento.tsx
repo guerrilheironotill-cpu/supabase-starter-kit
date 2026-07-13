@@ -118,7 +118,7 @@ function OrcamentoPage() {
   const updateQuantity = useQuoteStore((s) => s.updateQuantity);
   const clear = useQuoteStore((s) => s.clear);
 
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [delivery, setDelivery] = useState<"pickup" | "shipping">("pickup");
   const [deliveryAddress, setDeliveryAddress] = useState<Address>(EMPTY_ADDRESS);
   const [customer, setCustomer] = useState<Customer>({
@@ -156,9 +156,9 @@ function OrcamentoPage() {
   const subtotal = items.reduce((sum, it) => sum + itemSubtotal(it), 0);
   const hasPrices = items.some((it) => typeof it.unitPrice === "number");
 
-  // Effective address the customer will register (step 2). If sameAsDelivery is
-  // checked, the shipping address IS the customer address.
+  // If "same as billing" is checked, the delivery address equals the customer address.
   const finalDeliveryAddress = sameAsDelivery ? customerAddress : deliveryAddress;
+  const deliveryFormAddress = sameAsDelivery ? customerAddress : deliveryAddress;
 
   const buildSummary = () => {
     const lines: string[] = [];
@@ -381,7 +381,7 @@ function OrcamentoPage() {
     customer.personType === "fisica"
       ? cpfDigits.length === 11
       : cnpjDigits.length === 14 && customer.companyName.trim() !== "";
-  const canFinish =
+  const canGoStep3 =
     customer.name.trim() !== "" &&
     customer.email.trim() !== "" &&
     customer.phone.trim() !== "" &&
@@ -389,6 +389,13 @@ function OrcamentoPage() {
     customerAddress.cep.replace(/\D/g, "").length === 8 &&
     customerAddress.street.trim() !== "" &&
     customerAddress.number.trim() !== "";
+  const deliveryOk =
+    effectiveDelivery === "pickup" ||
+    sameAsDelivery ||
+    (deliveryAddress.cep.replace(/\D/g, "").length === 8 &&
+      deliveryAddress.street.trim() !== "" &&
+      deliveryAddress.number.trim() !== "");
+  const canFinish = canGoStep3 && deliveryOk;
 
   if (items.length === 0) {
     return (
@@ -414,33 +421,59 @@ function OrcamentoPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       {/* Stepper */}
-      <Stepper step={step} onSelect={(s) => (s === 1 || canGoStep2) && setStep(s)} />
+      <Stepper
+        step={step}
+        onSelect={(s) =>
+          setStep(
+            s === 1
+              ? 1
+              : s === 2
+                ? canGoStep2
+                  ? 2
+                  : step
+                : canGoStep2 && canGoStep3
+                  ? 3
+                  : step,
+          )
+        }
+      />
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-start">
         {/* Left column — active step content */}
         <div className="min-w-0">
-          {step === 1 ? (
+          {step === 1 && (
             <StepProducts
               items={items}
               updateQuantity={updateQuantity}
               removeItem={removeItem}
               clear={clear}
-              delivery={delivery}
-              setDelivery={setDelivery}
-              shippingAvailable={shippingAvailable}
-              effectiveDelivery={effectiveDelivery}
-              deliveryAddress={deliveryAddress}
-              setDeliveryAddress={setDeliveryAddress}
             />
-          ) : (
+          )}
+          {step === 2 && (
             <StepCustomer
               customer={customer}
               setCustomer={setCustomer}
               customerAddress={customerAddress}
               setCustomerAddress={setCustomerAddress}
-              sameAsDelivery={sameAsDelivery}
-              setSameAsDelivery={setSameAsDelivery}
+            />
+          )}
+          {step === 3 && (
+            <StepDelivery
+              delivery={delivery}
+              setDelivery={setDelivery}
+              shippingAvailable={shippingAvailable}
               effectiveDelivery={effectiveDelivery}
+              deliveryAddress={deliveryFormAddress}
+              setDeliveryAddress={setDeliveryAddress}
+              sameAsDelivery={sameAsDelivery}
+              onToggleSame={(v) => {
+                setSameAsDelivery(v);
+                if (v) {
+                  setDeliveryAddress(() => ({ ...customerAddress }));
+                } else {
+                  setDeliveryAddress(() => EMPTY_ADDRESS);
+                }
+              }}
             />
           )}
         </div>
@@ -484,16 +517,30 @@ function OrcamentoPage() {
               </div>
             </div>
 
-            {step === 1 ? (
+            {step < 3 ? (
               <div className="border-t border-border p-5">
                 <button
                   type="button"
-                  onClick={() => setStep(2)}
+                  onClick={() => {
+                    if (step === 1 && canGoStep2) setStep(2);
+                    else if (step === 2 && canGoStep3) setStep(3);
+                  }}
+                  disabled={step === 2 && !canGoStep3}
                   className="inline-flex w-full items-center justify-center gap-2 bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                 >
                   Continuar
                   <ArrowRight className="h-4 w-4" />
                 </button>
+                {step === 2 && (
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="mt-2 inline-flex w-full items-center justify-center gap-2 text-xs text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    <ArrowLeft className="h-3 w-3" />
+                    Voltar
+                  </button>
+                )}
               </div>
             ) : (
               <div className="space-y-2 border-t border-border p-5">
@@ -533,11 +580,11 @@ function OrcamentoPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep(2)}
                   className="mt-2 inline-flex w-full items-center justify-center gap-2 text-xs text-muted-foreground transition-colors hover:text-primary"
                 >
                   <ArrowLeft className="h-3 w-3" />
-                  Voltar para produtos
+                  Voltar
                 </button>
               </div>
             )}
@@ -552,12 +599,13 @@ function Stepper({
   step,
   onSelect,
 }: {
-  step: 1 | 2;
-  onSelect: (s: 1 | 2) => void;
+  step: 1 | 2 | 3;
+  onSelect: (s: 1 | 2 | 3) => void;
 }) {
   const steps = [
     { n: 1, label: "Produtos" },
     { n: 2, label: "Seus dados" },
+    { n: 3, label: "Entrega" },
   ] as const;
   return (
     <ol className="flex items-center gap-6 border-b border-border pb-4">
@@ -590,7 +638,7 @@ function Stepper({
                 {s.label}
               </span>
             </button>
-            {i === 0 && (
+            {i < steps.length - 1 && (
               <span className="ml-1 h-px w-10 bg-border sm:w-16" aria-hidden />
             )}
           </li>
@@ -605,23 +653,11 @@ function StepProducts({
   updateQuantity,
   removeItem,
   clear,
-  delivery,
-  setDelivery,
-  shippingAvailable,
-  effectiveDelivery,
-  deliveryAddress,
-  setDeliveryAddress,
 }: {
   items: QuoteItem[];
   updateQuantity: (id: string, q: number) => void;
   removeItem: (id: string) => void;
   clear: () => void;
-  delivery: "pickup" | "shipping";
-  setDelivery: (d: "pickup" | "shipping") => void;
-  shippingAvailable: boolean | null;
-  effectiveDelivery: "pickup" | "shipping";
-  deliveryAddress: Address;
-  setDeliveryAddress: (updater: (a: Address) => Address) => void;
 }) {
   return (
     <div className="space-y-8">
