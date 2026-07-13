@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Loader2, Pencil } from "lucide-react";
+import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { fetchWc, type WcOrder } from "@/lib/wc-api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -258,15 +258,102 @@ function EditOrderDialog({
   const [lastName, setLastName] = useState(order.billing.last_name ?? "");
   const [email, setEmail] = useState(order.billing.email ?? "");
   const [phone, setPhone] = useState(order.billing.phone ?? "");
+  const [address, setAddress] = useState(order.billing.address_1 ?? "");
   const [city, setCity] = useState(order.billing.city ?? "");
   const [state, setState] = useState(order.billing.state ?? "");
   const [status, setStatus] = useState(order.status);
-  const [note, setNote] = useState("");
+  const [note, setNote] = useState(order.customer_note ?? "");
+
+  type LineDraft = {
+    key: string;
+    id?: number;
+    product_id?: number;
+    name: string;
+    quantity: number;
+    total: string;
+    removed?: boolean;
+  };
+  const [items, setItems] = useState<LineDraft[]>(
+    order.line_items.map((l) => ({
+      key: `l-${l.id}`,
+      id: l.id,
+      product_id: l.product_id,
+      name: l.name,
+      quantity: l.quantity,
+      total: l.total,
+    })),
+  );
+
+  type ShipDraft = {
+    key: string;
+    id?: number;
+    method_title: string;
+    total: string;
+    removed?: boolean;
+  };
+  const [ships, setShips] = useState<ShipDraft[]>(
+    (order.shipping_lines ?? []).map((s) => ({
+      key: `s-${s.id}`,
+      id: s.id,
+      method_title: s.method_title ?? "Frete",
+      total: s.total,
+    })),
+  );
+
+  function updateItem(key: string, patch: Partial<LineDraft>) {
+    setItems((arr) => arr.map((i) => (i.key === key ? { ...i, ...patch } : i)));
+  }
+  function updateShip(key: string, patch: Partial<ShipDraft>) {
+    setShips((arr) => arr.map((i) => (i.key === key ? { ...i, ...patch } : i)));
+  }
+
+  function buildPatch(): Record<string, unknown> {
+    const line_items = items
+      .filter((i) => i.id || (!i.removed && (i.product_id || i.name)))
+      .map((i) => {
+        if (i.id && i.removed) return { id: i.id, quantity: 0 };
+        const row: Record<string, unknown> = {};
+        if (i.id) row.id = i.id;
+        if (i.product_id) row.product_id = i.product_id;
+        if (!i.id && i.name) row.name = i.name;
+        row.quantity = i.quantity;
+        if (i.total) row.total = i.total;
+        return row;
+      });
+
+    const shipping_lines = ships
+      .filter((s) => s.id || (!s.removed && (s.method_title || s.total)))
+      .map((s) => {
+        if (s.id && s.removed) return { id: s.id, method_id: "" };
+        const row: Record<string, unknown> = {};
+        if (s.id) row.id = s.id;
+        row.method_title = s.method_title || "Frete";
+        row.method_id = "flat_rate";
+        row.total = s.total || "0";
+        return row;
+      });
+
+    return {
+      status,
+      customer_note: note,
+      billing: {
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        phone,
+        address_1: address,
+        city,
+        state,
+      },
+      line_items,
+      shipping_lines,
+    };
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-xl"
+        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="mb-4 text-lg font-semibold">Editar pedido #{order.number}</h2>
@@ -275,6 +362,14 @@ function EditOrderDialog({
           <Field label="Sobrenome" value={lastName} onChange={setLastName} />
           <Field label="Email" value={email} onChange={setEmail} />
           <Field label="Telefone" value={phone} onChange={setPhone} />
+          <label className="col-span-2 flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">Endereço</span>
+            <input
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-2"
+            />
+          </label>
           <Field label="Cidade" value={city} onChange={setCity} />
           <Field label="Estado" value={state} onChange={setState} />
           <label className="col-span-2 flex flex-col gap-1">
@@ -301,6 +396,122 @@ function EditOrderDialog({
             />
           </label>
         </div>
+
+        <div className="mt-6">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Produtos</h3>
+            <button
+              type="button"
+              onClick={() =>
+                setItems((a) => [
+                  ...a,
+                  { key: `n-${Date.now()}`, name: "", quantity: 1, total: "0" },
+                ])
+              }
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
+            >
+              <Plus className="h-3 w-3" /> Adicionar
+            </button>
+          </div>
+          <div className="space-y-2">
+            {items.map((i) => (
+              <div
+                key={i.key}
+                className={`grid grid-cols-12 items-center gap-2 rounded-md border border-border p-2 ${
+                  i.removed ? "opacity-40" : ""
+                }`}
+              >
+                {i.id ? (
+                  <div className="col-span-5 text-sm">{i.name}</div>
+                ) : (
+                  <input
+                    placeholder="ID do produto"
+                    value={i.product_id ?? ""}
+                    onChange={(e) =>
+                      updateItem(i.key, { product_id: Number(e.target.value) || undefined })
+                    }
+                    className="col-span-5 rounded-md border border-border bg-background px-2 py-1 text-sm"
+                  />
+                )}
+                <input
+                  type="number"
+                  min={1}
+                  value={i.quantity}
+                  onChange={(e) => updateItem(i.key, { quantity: Number(e.target.value) })}
+                  className="col-span-2 rounded-md border border-border bg-background px-2 py-1 text-sm"
+                />
+                <input
+                  placeholder="Total"
+                  value={i.total}
+                  onChange={(e) => updateItem(i.key, { total: e.target.value })}
+                  className="col-span-4 rounded-md border border-border bg-background px-2 py-1 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    i.id
+                      ? updateItem(i.key, { removed: !i.removed })
+                      : setItems((a) => a.filter((x) => x.key !== i.key))
+                  }
+                  className="col-span-1 flex justify-center text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Frete</h3>
+            <button
+              type="button"
+              onClick={() =>
+                setShips((a) => [
+                  ...a,
+                  { key: `n-${Date.now()}`, method_title: "Frete", total: "0" },
+                ])
+              }
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
+            >
+              <Plus className="h-3 w-3" /> Adicionar
+            </button>
+          </div>
+          <div className="space-y-2">
+            {ships.map((s) => (
+              <div
+                key={s.key}
+                className={`grid grid-cols-12 items-center gap-2 rounded-md border border-border p-2 ${
+                  s.removed ? "opacity-40" : ""
+                }`}
+              >
+                <input
+                  value={s.method_title}
+                  onChange={(e) => updateShip(s.key, { method_title: e.target.value })}
+                  className="col-span-7 rounded-md border border-border bg-background px-2 py-1 text-sm"
+                />
+                <input
+                  value={s.total}
+                  onChange={(e) => updateShip(s.key, { total: e.target.value })}
+                  className="col-span-4 rounded-md border border-border bg-background px-2 py-1 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    s.id
+                      ? updateShip(s.key, { removed: !s.removed })
+                      : setShips((a) => a.filter((x) => x.key !== s.key))
+                  }
+                  className="col-span-1 flex justify-center text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="mt-5 flex justify-end gap-2">
           <button
             onClick={onClose}
@@ -310,20 +521,7 @@ function EditOrderDialog({
           </button>
           <button
             disabled={saving}
-            onClick={() =>
-              onSave({
-                status,
-                customer_note: note || undefined,
-                billing: {
-                  first_name: firstName,
-                  last_name: lastName,
-                  email,
-                  phone,
-                  city,
-                  state,
-                },
-              })
-            }
+            onClick={() => onSave(buildPatch())}
             className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
           >
             {saving ? "Salvando…" : "Salvar"}
