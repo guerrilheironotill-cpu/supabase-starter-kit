@@ -18,6 +18,7 @@ import {
   ShoppingCart,
   UserRound,
   ListTodo,
+  Plug,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,7 @@ type NavItem = {
     | "/dashboard/seo"
     | "/dashboard/desempenho"
     | "/dashboard/configuracoes"
+    | "/dashboard/integracoes"
     | "/dashboard/pendencias";
   label: string;
   icon: typeof LayoutDashboard;
@@ -60,6 +62,7 @@ const NAV: NavItem[] = [
   { to: "/dashboard/seo", label: "SEO", icon: Search },
   { to: "/dashboard/desempenho", label: "Desempenho", icon: Gauge },
   { to: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
+  { to: "/dashboard/integracoes", label: "Integrações", icon: Plug },
   { to: "/dashboard/pendencias", label: "Pendências", icon: ListTodo },
 ];
 
