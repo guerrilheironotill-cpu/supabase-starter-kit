@@ -916,6 +916,7 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
     { kind: "custom", name: "", quantity: 1, price: 0 },
   ]);
   const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
 
   type ProductFull = {
     id: string;
@@ -1059,7 +1060,43 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
         <DialogTitle>Novo orçamento</DialogTitle>
       </DialogHeader>
 
+      <ol className="mb-2 flex items-center gap-4 border-b border-border pb-3 text-xs uppercase tracking-widest">
+        {[
+          { n: 1, label: "Produtos" },
+          { n: 2, label: "Cliente" },
+          { n: 3, label: "Entrega" },
+        ].map((s) => {
+          const active = step === s.n;
+          const done = step > s.n;
+          return (
+            <li key={s.n}>
+              <button
+                type="button"
+                onClick={() => setStep(s.n as 1 | 2 | 3)}
+                className={`flex items-center gap-2 ${
+                  active ? "text-primary" : done ? "text-primary/70" : "text-muted-foreground"
+                }`}
+              >
+                <span
+                  className={`inline-flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-semibold ${
+                    active
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : done
+                        ? "border-primary text-primary"
+                        : "border-border"
+                  }`}
+                >
+                  {s.n}
+                </span>
+                {s.label}
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+
       <div className="grid gap-4 py-2">
+        {step === 2 && (
         <div>
           <Label>Tipo de pessoa *</Label>
           <div className="mt-2 flex gap-4 text-sm">
@@ -1083,7 +1120,9 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
             </label>
           </div>
         </div>
+        )}
 
+        {step === 2 && (
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Label>Nome do cliente *</Label>
@@ -1132,7 +1171,9 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
             </>
           )}
         </div>
+        )}
 
+        {step === 3 && (
         <div className="rounded-lg border border-border p-3">
           <Label className="mb-2 block text-xs uppercase tracking-widest text-muted-foreground">
             Entrega
@@ -1196,7 +1237,9 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
             </div>
           )}
         </div>
+        )}
 
+        {step === 1 && (
         <div>
           <div className="mb-2 flex items-center justify-between">
             <Label>Itens</Label>
@@ -1375,12 +1418,16 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
             ))}
           </div>
         </div>
+        )}
 
+        {step === 1 && (
         <div>
           <Label>Observações</Label>
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
+        )}
 
+        {step === 3 && (
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Label>Prazo de produção</Label>
@@ -1407,6 +1454,7 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
             />
           </div>
         </div>
+        )}
 
         <div className="space-y-1 rounded-lg bg-muted/30 px-4 py-3 text-sm">
           <div className="flex items-center justify-between text-muted-foreground">
@@ -1427,9 +1475,20 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
       </div>
 
       <DialogFooter>
-        <Button onClick={submit} disabled={saving}>
-          {saving ? "Salvando…" : "Criar orçamento"}
-        </Button>
+        {step > 1 && (
+          <Button variant="outline" type="button" onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)}>
+            Voltar
+          </Button>
+        )}
+        {step < 3 ? (
+          <Button type="button" onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}>
+            Próximo
+          </Button>
+        ) : (
+          <Button onClick={submit} disabled={saving}>
+            {saving ? "Salvando…" : "Criar orçamento"}
+          </Button>
+        )}
       </DialogFooter>
     </DialogContent>
   );
