@@ -118,7 +118,7 @@ function OrcamentoPage() {
   const updateQuantity = useQuoteStore((s) => s.updateQuantity);
   const clear = useQuoteStore((s) => s.clear);
 
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [delivery, setDelivery] = useState<"pickup" | "shipping">("pickup");
   const [deliveryAddress, setDeliveryAddress] = useState<Address>(EMPTY_ADDRESS);
   const [customer, setCustomer] = useState<Customer>({
@@ -156,9 +156,9 @@ function OrcamentoPage() {
   const subtotal = items.reduce((sum, it) => sum + itemSubtotal(it), 0);
   const hasPrices = items.some((it) => typeof it.unitPrice === "number");
 
-  // Effective address the customer will register (step 2). If sameAsDelivery is
-  // checked, the shipping address IS the customer address.
+  // If "same as billing" is checked, the delivery address equals the customer address.
   const finalDeliveryAddress = sameAsDelivery ? customerAddress : deliveryAddress;
+  const deliveryFormAddress = sameAsDelivery ? customerAddress : deliveryAddress;
 
   const buildSummary = () => {
     const lines: string[] = [];
@@ -381,7 +381,7 @@ function OrcamentoPage() {
     customer.personType === "fisica"
       ? cpfDigits.length === 11
       : cnpjDigits.length === 14 && customer.companyName.trim() !== "";
-  const canFinish =
+  const canGoStep3 =
     customer.name.trim() !== "" &&
     customer.email.trim() !== "" &&
     customer.phone.trim() !== "" &&
@@ -389,6 +389,13 @@ function OrcamentoPage() {
     customerAddress.cep.replace(/\D/g, "").length === 8 &&
     customerAddress.street.trim() !== "" &&
     customerAddress.number.trim() !== "";
+  const deliveryOk =
+    effectiveDelivery === "pickup" ||
+    sameAsDelivery ||
+    (deliveryAddress.cep.replace(/\D/g, "").length === 8 &&
+      deliveryAddress.street.trim() !== "" &&
+      deliveryAddress.number.trim() !== "");
+  const canFinish = canGoStep3 && deliveryOk;
 
   if (items.length === 0) {
     return (
@@ -414,33 +421,59 @@ function OrcamentoPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       {/* Stepper */}
-      <Stepper step={step} onSelect={(s) => (s === 1 || canGoStep2) && setStep(s)} />
+      <Stepper
+        step={step}
+        onSelect={(s) =>
+          setStep(
+            s === 1
+              ? 1
+              : s === 2
+                ? canGoStep2
+                  ? 2
+                  : step
+                : canGoStep2 && canGoStep3
+                  ? 3
+                  : step,
+          )
+        }
+      />
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-start">
         {/* Left column — active step content */}
         <div className="min-w-0">
-          {step === 1 ? (
+          {step === 1 && (
             <StepProducts
               items={items}
               updateQuantity={updateQuantity}
               removeItem={removeItem}
               clear={clear}
-              delivery={delivery}
-              setDelivery={setDelivery}
-              shippingAvailable={shippingAvailable}
-              effectiveDelivery={effectiveDelivery}
-              deliveryAddress={deliveryAddress}
-              setDeliveryAddress={setDeliveryAddress}
             />
-          ) : (
+          )}
+          {step === 2 && (
             <StepCustomer
               customer={customer}
               setCustomer={setCustomer}
               customerAddress={customerAddress}
               setCustomerAddress={setCustomerAddress}
-              sameAsDelivery={sameAsDelivery}
-              setSameAsDelivery={setSameAsDelivery}
+            />
+          )}
+          {step === 3 && (
+            <StepDelivery
+              delivery={delivery}
+              setDelivery={setDelivery}
+              shippingAvailable={shippingAvailable}
               effectiveDelivery={effectiveDelivery}
+              deliveryAddress={deliveryFormAddress}
+              setDeliveryAddress={setDeliveryAddress}
+              sameAsDelivery={sameAsDelivery}
+              onToggleSame={(v) => {
+                setSameAsDelivery(v);
+                if (v) {
+                  setDeliveryAddress(() => ({ ...customerAddress }));
+                } else {
+                  setDeliveryAddress(() => EMPTY_ADDRESS);
+                }
+              }}
             />
           )}
         </div>
@@ -484,16 +517,30 @@ function OrcamentoPage() {
               </div>
             </div>
 
-            {step === 1 ? (
+            {step < 3 ? (
               <div className="border-t border-border p-5">
                 <button
                   type="button"
-                  onClick={() => setStep(2)}
+                  onClick={() => {
+                    if (step === 1 && canGoStep2) setStep(2);
+                    else if (step === 2 && canGoStep3) setStep(3);
+                  }}
+                  disabled={step === 2 && !canGoStep3}
                   className="inline-flex w-full items-center justify-center gap-2 bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                 >
                   Continuar
                   <ArrowRight className="h-4 w-4" />
                 </button>
+                {step === 2 && (
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="mt-2 inline-flex w-full items-center justify-center gap-2 text-xs text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    <ArrowLeft className="h-3 w-3" />
+                    Voltar
+                  </button>
+                )}
               </div>
             ) : (
               <div className="space-y-2 border-t border-border p-5">
@@ -533,11 +580,11 @@ function OrcamentoPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep(2)}
                   className="mt-2 inline-flex w-full items-center justify-center gap-2 text-xs text-muted-foreground transition-colors hover:text-primary"
                 >
                   <ArrowLeft className="h-3 w-3" />
-                  Voltar para produtos
+                  Voltar
                 </button>
               </div>
             )}
@@ -552,12 +599,13 @@ function Stepper({
   step,
   onSelect,
 }: {
-  step: 1 | 2;
-  onSelect: (s: 1 | 2) => void;
+  step: 1 | 2 | 3;
+  onSelect: (s: 1 | 2 | 3) => void;
 }) {
   const steps = [
     { n: 1, label: "Produtos" },
     { n: 2, label: "Seus dados" },
+    { n: 3, label: "Entrega" },
   ] as const;
   return (
     <ol className="flex items-center gap-6 border-b border-border pb-4">
@@ -590,7 +638,7 @@ function Stepper({
                 {s.label}
               </span>
             </button>
-            {i === 0 && (
+            {i < steps.length - 1 && (
               <span className="ml-1 h-px w-10 bg-border sm:w-16" aria-hidden />
             )}
           </li>
@@ -605,23 +653,11 @@ function StepProducts({
   updateQuantity,
   removeItem,
   clear,
-  delivery,
-  setDelivery,
-  shippingAvailable,
-  effectiveDelivery,
-  deliveryAddress,
-  setDeliveryAddress,
 }: {
   items: QuoteItem[];
   updateQuantity: (id: string, q: number) => void;
   removeItem: (id: string) => void;
   clear: () => void;
-  delivery: "pickup" | "shipping";
-  setDelivery: (d: "pickup" | "shipping") => void;
-  shippingAvailable: boolean | null;
-  effectiveDelivery: "pickup" | "shipping";
-  deliveryAddress: Address;
-  setDeliveryAddress: (updater: (a: Address) => Address) => void;
 }) {
   return (
     <div className="space-y-8">
@@ -728,53 +764,6 @@ function StepProducts({
           </button>
         </div>
       </section>
-
-      <section>
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Entrega
-        </h2>
-        <div className="mt-3 border border-border bg-card p-5 space-y-4">
-          <div className="space-y-2">
-            <label className="flex items-center gap-3 text-sm">
-              <input
-                type="radio"
-                name="delivery"
-                checked={effectiveDelivery === "pickup"}
-                onChange={() => setDelivery("pickup")}
-              />
-              Retirar na fábrica
-            </label>
-            <label
-              className={`flex items-center gap-3 text-sm ${
-                shippingAvailable === false ? "opacity-50" : ""
-              }`}
-            >
-              <input
-                type="radio"
-                name="delivery"
-                disabled={shippingAvailable === false}
-                checked={effectiveDelivery === "shipping"}
-                onChange={() => setDelivery("shipping")}
-              />
-              Cotar frete
-            </label>
-          </div>
-
-          <AddressFields
-            title="Endereço de entrega"
-            address={deliveryAddress}
-            onChange={setDeliveryAddress}
-            requireFull={delivery === "shipping"}
-          />
-
-          {shippingAvailable === false && delivery === "shipping" && (
-            <p className="text-xs text-destructive">
-              Não temos logística de entrega para este endereço. Se quiser
-              continuar, selecione "Retirar na fábrica".
-            </p>
-          )}
-        </div>
-      </section>
     </div>
   );
 }
@@ -784,17 +773,11 @@ function StepCustomer({
   setCustomer,
   customerAddress,
   setCustomerAddress,
-  sameAsDelivery,
-  setSameAsDelivery,
-  effectiveDelivery,
 }: {
   customer: Customer;
   setCustomer: (updater: (c: Customer) => Customer) => void;
   customerAddress: Address;
   setCustomerAddress: (updater: (a: Address) => Address) => void;
-  sameAsDelivery: boolean;
-  setSameAsDelivery: (v: boolean) => void;
-  effectiveDelivery: "pickup" | "shipping";
 }) {
   return (
     <div className="space-y-8">
@@ -891,23 +874,96 @@ function StepCustomer({
             requireFull
             hideTitle
           />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function StepDelivery({
+  delivery,
+  setDelivery,
+  shippingAvailable,
+  effectiveDelivery,
+  deliveryAddress,
+  setDeliveryAddress,
+  sameAsDelivery,
+  onToggleSame,
+}: {
+  delivery: "pickup" | "shipping";
+  setDelivery: (d: "pickup" | "shipping") => void;
+  shippingAvailable: boolean | null;
+  effectiveDelivery: "pickup" | "shipping";
+  deliveryAddress: Address;
+  setDeliveryAddress: (updater: (a: Address) => Address) => void;
+  sameAsDelivery: boolean;
+  onToggleSame: (v: boolean) => void;
+}) {
+  return (
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Entrega
+        </h2>
+        <div className="mt-3 space-y-4 border border-border bg-card p-5">
+          <div className="space-y-2">
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="radio"
+                name="delivery"
+                checked={effectiveDelivery === "pickup"}
+                onChange={() => setDelivery("pickup")}
+              />
+              Retirar na fábrica
+            </label>
+            <label
+              className={`flex items-center gap-3 text-sm ${
+                shippingAvailable === false ? "opacity-50" : ""
+              }`}
+            >
+              <input
+                type="radio"
+                name="delivery"
+                disabled={shippingAvailable === false}
+                checked={effectiveDelivery === "shipping"}
+                onChange={() => setDelivery("shipping")}
+              />
+              Cotar frete
+            </label>
+          </div>
 
           {effectiveDelivery === "shipping" && (
-            <label className="mt-4 flex items-start gap-3 border-t border-border pt-4 text-sm">
-              <input
-                type="checkbox"
-                checked={sameAsDelivery}
-                onChange={(e) => setSameAsDelivery(e.target.checked)}
-                className="mt-0.5"
-              />
-              <span>
-                Usar este endereço também para a entrega.
-                <span className="mt-0.5 block text-xs text-muted-foreground">
-                  Desmarque para entregar em outro endereço (informado no passo
-                  anterior).
+            <>
+              <label className="flex items-start gap-3 border-t border-border pt-4 text-sm">
+                <input
+                  type="checkbox"
+                  checked={sameAsDelivery}
+                  onChange={(e) => onToggleSame(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  Entregar no mesmo endereço de cobrança.
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Desmarque para informar outro endereço de entrega.
+                  </span>
                 </span>
-              </span>
-            </label>
+              </label>
+
+              <AddressFields
+                title="Endereço de entrega"
+                address={deliveryAddress}
+                onChange={setDeliveryAddress}
+                requireFull
+                disabled={sameAsDelivery}
+              />
+            </>
+          )}
+
+          {shippingAvailable === false && delivery === "shipping" && (
+            <p className="text-xs text-destructive">
+              Não temos logística de entrega para este endereço. Se quiser
+              continuar, selecione "Retirar na fábrica".
+            </p>
           )}
         </div>
       </section>
@@ -921,12 +977,14 @@ function AddressFields({
   onChange,
   requireFull,
   hideTitle,
+  disabled,
 }: {
   title: string;
   address: Address;
   onChange: (updater: (a: Address) => Address) => void;
   requireFull: boolean;
   hideTitle?: boolean;
+  disabled?: boolean;
 }) {
   const set = <K extends keyof Address>(k: K, v: Address[K]) =>
     onChange((a) => ({ ...a, [k]: v }));
@@ -942,44 +1000,44 @@ function AddressFields({
           onChange={(v) => set("cep", v)}
           maxLength={9}
           placeholder="00000-000"
-          className="sm:col-span-2"
+          disabled={disabled} className="sm:col-span-2"
         />
         <Field
           label="Rua"
           value={address.street}
           onChange={(v) => set("street", v)}
-          className="sm:col-span-4"
+          disabled={disabled} className="sm:col-span-4"
         />
         <Field
           label="Número"
           value={address.number}
           onChange={(v) => set("number", v)}
-          className="sm:col-span-2"
+          disabled={disabled} className="sm:col-span-2"
         />
         <Field
           label="Complemento"
           value={address.complement}
           onChange={(v) => set("complement", v)}
-          className="sm:col-span-4"
+          disabled={disabled} className="sm:col-span-4"
         />
         <Field
           label="Bairro"
           value={address.neighborhood}
           onChange={(v) => set("neighborhood", v)}
-          className="sm:col-span-3"
+          disabled={disabled} className="sm:col-span-3"
         />
         <Field
           label="Cidade"
           value={address.city}
           onChange={(v) => set("city", v)}
-          className="sm:col-span-2"
+          disabled={disabled} className="sm:col-span-2"
         />
         <Field
           label="UF"
           value={address.state}
           onChange={(v) => set("state", v.toUpperCase())}
           maxLength={2}
-          className="sm:col-span-1"
+          disabled={disabled} className="sm:col-span-1"
         />
       </div>
       {requireFull && (
@@ -1000,6 +1058,7 @@ function Field({
   maxLength,
   placeholder,
   className,
+  disabled,
 }: {
   label: string;
   value: string;
@@ -1008,6 +1067,7 @@ function Field({
   maxLength?: number;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <label className={`block ${className ?? ""}`}>
@@ -1020,7 +1080,8 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         maxLength={maxLength}
         placeholder={placeholder}
-        className="mt-1.5 block w-full border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-primary"
+        disabled={disabled}
+        className="mt-1.5 block w-full border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );
