@@ -30,6 +30,7 @@ import { Route as DashboardDebugRouteImport } from './routes/dashboard.debug'
 import { Route as DashboardCrmRouteImport } from './routes/dashboard.crm'
 import { Route as DashboardCoresRouteImport } from './routes/dashboard.cores'
 import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.configuracoes'
+import { Route as DashboardClientesRouteImport } from './routes/dashboard.clientes'
 import { Route as DashboardCategoriasRouteImport } from './routes/dashboard.categorias'
 import { Route as DashboardAcabamentosRouteImport } from './routes/dashboard.acabamentos'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
@@ -141,6 +142,11 @@ const DashboardConfiguracoesRoute = DashboardConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardClientesRoute = DashboardClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardCategoriasRoute = DashboardCategoriasRouteImport.update({
   id: '/categorias',
   path: '/categorias',
@@ -180,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
+  '/dashboard/clientes': typeof DashboardClientesRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/cores': typeof DashboardCoresRoute
   '/dashboard/crm': typeof DashboardCrmRoute
@@ -207,6 +214,7 @@ export interface FileRoutesByTo {
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
+  '/dashboard/clientes': typeof DashboardClientesRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/cores': typeof DashboardCoresRoute
   '/dashboard/crm': typeof DashboardCrmRoute
@@ -236,6 +244,7 @@ export interface FileRoutesById {
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
+  '/dashboard/clientes': typeof DashboardClientesRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/cores': typeof DashboardCoresRoute
   '/dashboard/crm': typeof DashboardCrmRoute
@@ -266,6 +275,7 @@ export interface FileRouteTypes {
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
     | '/dashboard/categorias'
+    | '/dashboard/clientes'
     | '/dashboard/configuracoes'
     | '/dashboard/cores'
     | '/dashboard/crm'
@@ -293,6 +303,7 @@ export interface FileRouteTypes {
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
     | '/dashboard/categorias'
+    | '/dashboard/clientes'
     | '/dashboard/configuracoes'
     | '/dashboard/cores'
     | '/dashboard/crm'
@@ -321,6 +332,7 @@ export interface FileRouteTypes {
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
     | '/dashboard/categorias'
+    | '/dashboard/clientes'
     | '/dashboard/configuracoes'
     | '/dashboard/cores'
     | '/dashboard/crm'
@@ -502,6 +514,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardConfiguracoesRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/clientes': {
+      id: '/dashboard/clientes'
+      path: '/clientes'
+      fullPath: '/dashboard/clientes'
+      preLoaderRoute: typeof DashboardClientesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/categorias': {
       id: '/dashboard/categorias'
       path: '/categorias'
@@ -543,6 +562,7 @@ declare module '@tanstack/react-router' {
 interface DashboardRouteChildren {
   DashboardAcabamentosRoute: typeof DashboardAcabamentosRoute
   DashboardCategoriasRoute: typeof DashboardCategoriasRoute
+  DashboardClientesRoute: typeof DashboardClientesRoute
   DashboardConfiguracoesRoute: typeof DashboardConfiguracoesRoute
   DashboardCoresRoute: typeof DashboardCoresRoute
   DashboardCrmRoute: typeof DashboardCrmRoute
@@ -559,6 +579,7 @@ interface DashboardRouteChildren {
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAcabamentosRoute: DashboardAcabamentosRoute,
   DashboardCategoriasRoute: DashboardCategoriasRoute,
+  DashboardClientesRoute: DashboardClientesRoute,
   DashboardConfiguracoesRoute: DashboardConfiguracoesRoute,
   DashboardCoresRoute: DashboardCoresRoute,
   DashboardCrmRoute: DashboardCrmRoute,

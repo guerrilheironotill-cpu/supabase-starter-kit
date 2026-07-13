@@ -15,6 +15,8 @@ import {
   Layers,
   Palette,
   Sparkles,
+  ShoppingCart,
+  UserRound,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -23,6 +25,8 @@ type NavItem = {
   to:
     | "/dashboard"
     | "/dashboard/orcamentos"
+    | "/dashboard/pedidos"
+    | "/dashboard/clientes"
     | "/dashboard/produtos"
     | "/dashboard/categorias"
     | "/dashboard/acabamentos"
@@ -42,6 +46,8 @@ type NavItem = {
 const NAV: NavItem[] = [
   { to: "/dashboard", label: "Visão geral", icon: LayoutDashboard, exact: true },
   { to: "/dashboard/orcamentos", label: "Orçamentos", icon: FileText },
+  { to: "/dashboard/pedidos", label: "Pedidos", icon: ShoppingCart },
+  { to: "/dashboard/clientes", label: "Clientes", icon: UserRound },
   { to: "/dashboard/produtos", label: "Produtos", icon: Package },
   { to: "/dashboard/categorias", label: "Categorias", icon: Layers, child: true },
   { to: "/dashboard/acabamentos", label: "Acabamentos", icon: Sparkles, child: true },
