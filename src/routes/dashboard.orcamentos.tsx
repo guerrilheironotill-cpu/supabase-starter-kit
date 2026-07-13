@@ -881,6 +881,10 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [personType, setPersonType] = useState<"fisica" | "juridica">("fisica");
+  const [cpf, setCpf] = useState("");
+  const [cnpj, setCnpj] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [freight, setFreight] = useState<number>(0);
@@ -937,6 +941,22 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
       toast.error("Informe o nome do cliente");
       return;
     }
+    const cpfDigits = cpf.replace(/\D/g, "");
+    const cnpjDigits = cnpj.replace(/\D/g, "");
+    if (personType === "fisica" && cpfDigits.length !== 11) {
+      toast.error("Informe um CPF válido (11 dígitos)");
+      return;
+    }
+    if (personType === "juridica") {
+      if (cnpjDigits.length !== 14) {
+        toast.error("Informe um CNPJ válido (14 dígitos)");
+        return;
+      }
+      if (!companyName.trim()) {
+        toast.error("Informe o nome da empresa");
+        return;
+      }
+    }
     if (items.length === 0 || items.every((i) => !i.name.trim())) {
       toast.error("Adicione ao menos um item");
       return;
@@ -986,6 +1006,10 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
         pix,
         note: notes,
         address,
+        personType,
+        cpf: personType === "fisica" ? cpf : null,
+        cnpj: personType === "juridica" ? cnpj : null,
+        companyName: personType === "juridica" ? companyName : null,
       });
       const { error: orderErr } = await supabase.from("orders" as never).insert({
         status: "em_aberto",
