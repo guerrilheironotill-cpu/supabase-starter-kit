@@ -20,6 +20,27 @@ type Body = {
     city?: string;
     state?: string;
   };
+  shipping?: Body["billing"];
+  line_items?: Array<{
+    id?: number;
+    product_id?: number;
+    variation_id?: number;
+    name?: string;
+    quantity?: number;
+    subtotal?: string;
+    total?: string;
+  }>;
+  shipping_lines?: Array<{
+    id?: number;
+    method_id?: string;
+    method_title?: string;
+    total?: string;
+  }>;
+  fee_lines?: Array<{
+    id?: number;
+    name?: string;
+    total?: string;
+  }>;
 };
 
 export const Route = createFileRoute("/api/wc/update-order")({
@@ -60,6 +81,10 @@ export const Route = createFileRoute("/api/wc/update-order")({
         if (body.status) payload.status = body.status;
         if (typeof body.customer_note === "string") payload.customer_note = body.customer_note;
         if (body.billing) payload.billing = body.billing;
+        if (body.shipping) payload.shipping = body.shipping;
+        if (body.line_items) payload.line_items = body.line_items;
+        if (body.shipping_lines) payload.shipping_lines = body.shipping_lines;
+        if (body.fee_lines) payload.fee_lines = body.fee_lines;
 
         try {
           const res = await fetch(`${base}/wp-json/wc/v3/orders/${body.id}`, {
