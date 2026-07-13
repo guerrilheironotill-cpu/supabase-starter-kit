@@ -15,21 +15,39 @@ export const Route = createFileRoute("/dashboard/cores")({
 });
 
 type ColorRow = {
-  id: string;
   name: string;
   image_url: string | null;
   description: string | null;
-  product_id: string;
-  products: { name: string } | null;
+  count: number;
 };
 
 async function fetchColors(): Promise<ColorRow[]> {
   const { data, error } = await supabase
     .from("product_colors")
-    .select("id, name, image_url, description, product_id, products(name)")
+    .select("name, image_url, description")
     .order("name");
   if (error) throw error;
-  return (data ?? []) as unknown as ColorRow[];
+  const map = new Map<string, ColorRow>();
+  for (const r of (data ?? []) as Array<{
+    name: string;
+    image_url: string | null;
+    description: string | null;
+  }>) {
+    const cur = map.get(r.name);
+    if (!cur) {
+      map.set(r.name, {
+        name: r.name,
+        image_url: r.image_url,
+        description: r.description,
+        count: 1,
+      });
+    } else {
+      cur.count += 1;
+      if (!cur.image_url && r.image_url) cur.image_url = r.image_url;
+      if (!cur.description && r.description) cur.description = r.description;
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function DashboardColorsPage() {
@@ -60,9 +78,9 @@ function DashboardColorsPage() {
           <div className="grid gap-3">
             {data.map((c) => (
               <DashboardMediaEditor
-                key={c.id}
+                key={c.name}
                 label={c.name}
-                sublabel={c.products?.name ?? undefined}
+                sublabel={`${c.count} produto${c.count === 1 ? "" : "s"}`}
                 imageUrl={c.image_url}
                 description={c.description}
                 bucketFolder="colors"
@@ -70,7 +88,7 @@ function DashboardColorsPage() {
                   const { error } = await supabase
                     .from("product_colors")
                     .update({ image_url, description })
-                    .eq("id", c.id);
+                    .eq("name", c.name);
                   if (error) throw error;
                   qc.invalidateQueries({ queryKey: ["dashboard", "cores"] });
                 }}
