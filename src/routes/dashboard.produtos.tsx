@@ -19,7 +19,7 @@ export const Route = createFileRoute("/dashboard/produtos")({
 async function fetchProducts() {
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, category, active, images")
+    .select("id, name, category, active, images, product_sizes(id)")
     .order("created_at", { ascending: false })
     .limit(50);
   if (error) throw error;
@@ -53,6 +53,7 @@ function DashboardProductsPage() {
               <tr>
                 <th className="px-4 py-3">Produto</th>
                 <th className="px-4 py-3">Categoria</th>
+                <th className="px-4 py-3">Tamanhos</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3"></th>
               </tr>
@@ -60,13 +61,13 @@ function DashboardProductsPage() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                     Carregando…
                   </td>
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                     Nenhum produto cadastrado.
                   </td>
                 </tr>
@@ -78,7 +79,9 @@ function DashboardProductsPage() {
                     category: string;
                     active: boolean;
                     images: string[] | null;
+                    product_sizes: Array<{ id: string }> | null;
                   };
+                  const sizeCount = row.product_sizes?.length ?? 0;
                   return (
                     <tr key={row.id} className="border-t border-border">
                       <td className="px-4 py-3">
@@ -96,6 +99,11 @@ function DashboardProductsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{row.category}</td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+                          {sizeCount} tamanho{sizeCount === 1 ? "" : "s"}
+                        </span>
+                      </td>
                       <td className="px-4 py-3">
                         <span
                           className={
