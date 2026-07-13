@@ -133,6 +133,7 @@ function OrcamentoPage() {
   const [customerAddress, setCustomerAddress] = useState<Address>(EMPTY_ADDRESS);
   const [sameAsDelivery, setSameAsDelivery] = useState(true);
   const whatsappNumber = useWhatsAppNumber();
+  const [submitted, setSubmitted] = useState(false);
 
   useCepAutocomplete(deliveryAddress.cep, (patch) =>
     setDeliveryAddress((a) => ({ ...a, ...patch })),
