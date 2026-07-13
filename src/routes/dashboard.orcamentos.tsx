@@ -147,7 +147,23 @@ function normalizeQuoteStatus(status: string | null | undefined): QuoteStatus {
     .replace(/[\s-]+/g, "_");
 
   if (["aprovado", "aprovada", "quote_approved", "approved"].includes(clean)) return "aprovado";
-  if (["nao_aprovado", "recusado", "reprovado", "rejeitado", "quote_rejected", "rejected"].includes(clean)) return "nao_aprovado";
+  if (
+    [
+      "nao_aprovado",
+      "recusado",
+      "reprovado",
+      "rejeitado",
+      "quote_rejected",
+      "rejected",
+      "cancelado",
+      "cancelled",
+      "canceled",
+      "declined",
+      "quote_cancelled",
+      "closed",
+    ].includes(clean)
+  )
+    return "nao_aprovado";
   return "em_aberto";
 }
 
@@ -293,6 +309,19 @@ function StatusSelect({ order }: { order: OrderRow }) {
   const qc = useQueryClient();
   const [value, setValue] = useState<QuoteStatus>(() => normalizeQuoteStatus(order.status));
   const [saving, setSaving] = useState(false);
+  const [tagOpen, setTagOpen] = useState(false);
+  const [tagInput, setTagInput] = useState("");
+  const [listInput, setListInput] = useState("Leads – Orçamentos não aprovados");
+
+  const suggestedTags = useMemo(() => {
+    const items = Array.isArray(order.items) ? (order.items as Array<{ name?: string }>) : [];
+    const set = new Set<string>();
+    for (const i of items) {
+      const n = String(i?.name ?? "").trim();
+      if (n) set.add(`Interesse em ${n.split(/\s+/).slice(0, 2).join(" ")}`);
+    }
+    return Array.from(set).slice(0, 6);
+  }, [order.items]);
 
   useEffect(() => {
     setValue(normalizeQuoteStatus(order.status));
@@ -342,6 +371,53 @@ function StatusSelect({ order }: { order: OrderRow }) {
       return false;
     } finally {
       setSaving(false);
+    }
+  };
+
+  const rejectAsLead = async (tag: string, listName: string) => {
+    setSaving(true);
+    try {
+      const items = Array.isArray(order.items) ? (order.items as Array<{
+        product_id?: string | null;
+        name: string;
+        quantity: number;
+        price: number;
+      }>) : [];
+      const leadItems = items.map((i) => ({
+        id: i.product_id ?? `custom_${Math.random().toString(36).slice(2, 8)}`,
+        name: i.name,
+        quantity: Number(i.quantity) || 1,
+        unitPrice: Number(i.price) || 0,
+      }));
+
+      // Try inserting with extra columns; fall back gracefully if columns don't exist.
+      const basePayload: Record<string, unknown> = {
+        name: order.customer_name,
+        phone: order.customer_phone ?? null,
+        items: leadItems,
+        source: "orcamento_nao_aprovado",
+      };
+      const withExtras = { ...basePayload, tag, list_name: listName };
+      let insertErr: { message: string } | null = null;
+      let res = await supabase.from("leads" as never).insert(withExtras as never);
+      if (res.error) {
+        insertErr = res.error;
+        // retry without extras (older schema)
+        res = await supabase.from("leads" as never).insert(basePayload as never);
+        if (!res.error) insertErr = null;
+      }
+      if (insertErr) {
+        toast.error("Erro ao cadastrar lead: " + insertErr.message);
+      } else {
+        toast.success(`Lead cadastrado (${tag})`);
+      }
+      qc.invalidateQueries({ queryKey: ["crm-leads"] });
+
+      // now persist the quote status
+      await persist("nao_aprovado");
+    } finally {
+      setSaving(false);
+      setTagOpen(false);
     }
   };
 
@@ -395,6 +471,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
           .single();
         if (cErr) fail("criar cliente", cErr);
         customerId = (created as unknown as { id: string }).id;
+        toast.success("Cliente cadastrado");
       }
 
       // 2) upsert app_order linked to this quote
@@ -498,34 +575,93 @@ function StatusSelect({ order }: { order: OrderRow }) {
   };
 
   return (
-    <Select
-      value={value}
-      onValueChange={(v) => {
-        const next = normalizeQuoteStatus(v);
-        if (next === "aprovado" && normalizeQuoteStatus(order.status) !== "aprovado") {
-          void approveAndPush();
-        } else {
-          void persist(next);
-        }
-      }}
-      disabled={saving}
-    >
-      <SelectTrigger
-        className={`h-8 w-[150px] border-0 text-xs font-medium ${
-          STATUS_STYLES[value] ?? "bg-muted text-muted-foreground"
-        }`}
+    <>
+      <Select
+        value={value}
+        onValueChange={(v) => {
+          const next = normalizeQuoteStatus(v);
+          const current = normalizeQuoteStatus(order.status);
+          if (next === "aprovado" && current !== "aprovado") {
+            void approveAndPush();
+          } else if (next === "nao_aprovado" && current !== "nao_aprovado") {
+            setTagInput(suggestedTags[0] ?? "");
+            setTagOpen(true);
+          } else {
+            void persist(next);
+          }
+        }}
+        disabled={saving}
       >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {Object.entries(STATUS_LABEL).map(([k, label]) => (
-          <SelectItem key={k} value={k}>
-            {label}
-            {k === "aprovado" ? " → Pedido" : ""}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+        <SelectTrigger
+          className={`h-8 w-[150px] border-0 text-xs font-medium ${
+            STATUS_STYLES[value] ?? "bg-muted text-muted-foreground"
+          }`}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {Object.entries(STATUS_LABEL).map(([k, label]) => (
+            <SelectItem key={k} value={k}>
+              {label}
+              {k === "aprovado" ? " → Pedido" : ""}
+              {k === "nao_aprovado" ? " → Lead" : ""}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Dialog open={tagOpen} onOpenChange={(o) => !saving && setTagOpen(o)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cadastrar como lead</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Tag de interesse</Label>
+              <Input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                placeholder="Ex: Interesse em vaso"
+                className="mt-1"
+              />
+              {suggestedTags.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {suggestedTags.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setTagInput(t)}
+                      className="rounded-full border border-border px-2 py-0.5 text-xs hover:bg-muted"
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <Label>Lista</Label>
+              <Input
+                value={listInput}
+                onChange={(e) => setListInput(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setTagOpen(false)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => void rejectAsLead(tagInput.trim() || "Sem tag", listInput.trim() || "Leads")}
+              disabled={saving || !tagInput.trim()}
+            >
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
