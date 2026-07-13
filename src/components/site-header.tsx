@@ -81,12 +81,12 @@ export function SiteHeader() {
           : undefined
       }
     >
-      <div className="mx-auto flex h-[100px] w-full items-center justify-between gap-6 px-4 sm:px-8 lg:px-[50px]">
+      <div className="mx-auto flex h-[112px] w-full items-center justify-between gap-6 px-4 sm:px-8 lg:px-[50px]">
         <Link to="/" className="flex items-center gap-2">
           <img
             src="https://arteno.com.br/wp-content/uploads/2025/03/Ativo-8-e1782929111841.png"
             alt="Casa & Jardim"
-            className="h-10 w-auto object-contain"
+            className="h-14 w-auto object-contain"
           />
         </Link>
 
@@ -105,7 +105,7 @@ export function SiteHeader() {
                   to={hasChildren ? "/" : "/categoria/$slug"}
                   params={hasChildren ? undefined : { slug: cat.slug }}
                   className={cn(
-                    "group/nav relative inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm font-medium transition-all duration-300 hover:-translate-y-0.5",
+                    "group/nav relative inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[15px] font-medium transition-all duration-300 hover:-translate-y-0.5",
                     scrolled
                       ? "text-white/85 hover:text-white"
                       : "text-primary/80 hover:text-primary",
