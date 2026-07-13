@@ -1381,30 +1381,6 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
 
-        <div className="rounded-lg border border-border p-3">
-          <Label className="mb-2 block text-xs uppercase tracking-widest text-muted-foreground">Frete</Label>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div>
-              <Label className="text-xs">Valor do frete (R$)</Label>
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
-                value={freight}
-                onChange={(e) => setFreight(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <Label className="text-xs">Observação do frete</Label>
-              <Input
-                placeholder="Ex: carga e descarga inclusos"
-                value={freightNote}
-                onChange={(e) => setFreightNote(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Label>Prazo de produção</Label>
