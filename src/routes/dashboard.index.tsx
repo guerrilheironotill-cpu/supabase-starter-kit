@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowUpRight, Eye, FileText, Package, TrendingUp, Users } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, Clock, Eye, FileText, Package, TrendingUp, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSection } from "@/components/dashboard-layout";
 
@@ -139,9 +139,11 @@ function DashboardOverview() {
         </p>
       </div>
 
-      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-6">
         <Kpi label="Visitas (mês)" value="14.328" delta="+12,4%" icon={Eye} />
         <Kpi label="Orçamentos" value="238" delta="+8,1%" icon={FileText} />
+        <Kpi label="Pedidos em aberto" value="17" delta="+4" icon={Clock} />
+        <Kpi label="Pedidos finalizados" value="126" delta="+9,2%" icon={CheckCircle2} />
         <Kpi label="Produtos ativos" value={stats?.products ?? "—"} delta="+3" icon={Package} />
         <Kpi label="Categorias" value={stats?.categories ?? "—"} delta="+1" icon={Users} />
       </div>
