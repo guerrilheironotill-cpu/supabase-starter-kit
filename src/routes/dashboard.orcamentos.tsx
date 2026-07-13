@@ -1130,7 +1130,13 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
           </div>
           <div>
             <Label>Telefone</Label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(maskPhoneBR(e.target.value))}
+              placeholder="(00) 00000-0000"
+              inputMode="tel"
+              maxLength={16}
+            />
           </div>
           <div>
             <Label>E-mail</Label>
