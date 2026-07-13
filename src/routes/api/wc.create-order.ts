@@ -15,7 +15,7 @@ type Body = {
     phone?: string;
     address?: string;
   };
-  items: Array<{ name: string; quantity: number; price: number }>;
+  items: Array<{ name: string; quantity: number; price: number; product_id?: number }>;
   shipping_total?: number;
   note?: string;
 };
@@ -61,16 +61,33 @@ export const Route = createFileRoute("/api/wc/create-order")({
           address_1: body.customer.address ?? "",
         };
 
+        // WooCommerce line_items require product_id. For custom/quote items
+        // without a product_id, use fee_lines so the order can still be
+        // created without a matching WC product.
+        const line_items = body.items
+          .filter((i) => i.product_id)
+          .map((i) => ({
+            product_id: Number(i.product_id),
+            quantity: Number(i.quantity) || 1,
+          }));
+        const fee_lines = body.items
+          .filter((i) => !i.product_id)
+          .map((i) => {
+            const qty = Number(i.quantity) || 1;
+            const price = Number(i.price) || 0;
+            return {
+              name: qty > 1 ? `${qty}x ${i.name}` : i.name,
+              total: String(qty * price),
+              tax_status: "none" as const,
+            };
+          });
+
         const payload = {
           status: "processing",
           billing,
           shipping: billing,
-          line_items: body.items.map((i) => ({
-            name: i.name,
-            quantity: Number(i.quantity) || 1,
-            price: String(i.price),
-            total: String((Number(i.price) || 0) * (Number(i.quantity) || 1)),
-          })),
+          line_items,
+          fee_lines,
           shipping_lines: body.shipping_total
             ? [{ method_id: "flat_rate", method_title: "Frete", total: String(body.shipping_total) }]
             : [],
