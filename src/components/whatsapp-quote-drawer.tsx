@@ -405,8 +405,8 @@ export function WhatsAppQuoteDrawer({
               <input
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                maxLength={20}
+                onChange={(e) => setPhone(maskPhoneBR(e.target.value))}
+                maxLength={16}
                 autoComplete="tel"
                 className="mt-2 block w-full rounded-full border border-border bg-transparent px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary"
                 placeholder="(11) 99999-9999"
