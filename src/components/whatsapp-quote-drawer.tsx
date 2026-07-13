@@ -9,7 +9,7 @@ import { compactError, useFormDebugLogStore } from "@/lib/form-debug-log";
 
 import { useWhatsAppNumber } from "@/lib/site-settings";
 
-const schema = z.object({
+const baseSchema = z.object({
   name: z
     .string()
     .trim()
@@ -21,6 +21,25 @@ const schema = z.object({
     .min(8, "Telefone inválido")
     .max(20, "Telefone inválido")
     .regex(/^[0-9()+\-\s]+$/, "Use apenas números"),
+  personType: z.enum(["fisica", "juridica"]),
+  cpf: z.string().trim().optional(),
+  cnpj: z.string().trim().optional(),
+  companyName: z.string().trim().optional(),
+});
+
+const schema = baseSchema.superRefine((v, ctx) => {
+  if (v.personType === "fisica") {
+    if ((v.cpf ?? "").replace(/\D/g, "").length !== 11) {
+      ctx.addIssue({ code: "custom", path: ["cpf"], message: "CPF inválido" });
+    }
+  } else {
+    if ((v.cnpj ?? "").replace(/\D/g, "").length !== 14) {
+      ctx.addIssue({ code: "custom", path: ["cnpj"], message: "CNPJ inválido" });
+    }
+    if (!(v.companyName ?? "").trim()) {
+      ctx.addIssue({ code: "custom", path: ["companyName"], message: "Informe a empresa" });
+    }
+  }
 });
 
 export function WhatsAppQuoteDrawer({
@@ -32,7 +51,17 @@ export function WhatsAppQuoteDrawer({
 }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [errors, setErrors] = useState<{ name?: string; phone?: string }>({});
+  const [personType, setPersonType] = useState<"fisica" | "juridica">("fisica");
+  const [cpf, setCpf] = useState("");
+  const [cnpj, setCnpj] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [errors, setErrors] = useState<{
+    name?: string;
+    phone?: string;
+    cpf?: string;
+    cnpj?: string;
+    companyName?: string;
+  }>({});
   const items = useQuoteStore((s) => s.items);
   const whatsappNumber = useWhatsAppNumber();
   const addLead = useLeadsStore((s) => s.addLead);
@@ -48,11 +77,24 @@ export function WhatsAppQuoteDrawer({
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = schema.safeParse({ name, phone });
+    const parsed = schema.safeParse({
+      name,
+      phone,
+      personType,
+      cpf,
+      cnpj,
+      companyName,
+    });
     if (!parsed.success) {
-      const fieldErrors: { name?: string; phone?: string } = {};
+      const fieldErrors: {
+        name?: string;
+        phone?: string;
+        cpf?: string;
+        cnpj?: string;
+        companyName?: string;
+      } = {};
       for (const issue of parsed.error.issues) {
-        const key = issue.path[0] as "name" | "phone";
+        const key = issue.path[0] as keyof typeof fieldErrors;
         if (!fieldErrors[key]) fieldErrors[key] = issue.message;
       }
       setErrors(fieldErrors);
@@ -102,6 +144,9 @@ export function WhatsAppQuoteDrawer({
     const message =
       `Olá! Gostaria de solicitar um orçamento.\n\n` +
       `Nome: ${parsed.data.name}\n` +
+      (parsed.data.personType === "juridica"
+        ? `Empresa: ${parsed.data.companyName}\nCNPJ: ${parsed.data.cnpj}\n`
+        : `CPF: ${parsed.data.cpf}\n`) +
       `Telefone: ${parsed.data.phone}\n\n` +
       `Produtos:\n${list}`;
 
