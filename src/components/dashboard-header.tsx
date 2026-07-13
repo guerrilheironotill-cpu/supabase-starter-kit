@@ -11,7 +11,7 @@ export function DashboardHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-white/10" style={{ backgroundColor: "#1c211d" }}>
+    <header className="dark dashboard-scope sticky top-0 z-40 w-full border-b border-white/10 bg-background text-foreground">
       <div className="mx-auto flex h-[72px] w-full items-center justify-between gap-6 px-4 sm:px-8 lg:px-[50px]">
         <Link to="/" className="flex items-center gap-2">
           <img
