@@ -279,50 +279,103 @@ function StatusSelect({ order }: { order: OrderRow }) {
   const approveAndPush = async () => {
     setSaving(true);
     try {
-      const { data: session } = await supabase.auth.getSession();
-      const token = session.session?.access_token;
-      if (!token) throw new Error("Sessão expirada");
-
       const meta = parseMeta(order.notes);
       const items = Array.isArray(order.items)
-        ? (order.items as Array<{ name: string; quantity: number; price: number }>)
+        ? (order.items as Array<{
+            product_id?: string | null;
+            name: string;
+            quantity: number;
+            price: number;
+            size_name?: string | null;
+            finish?: string | null;
+            color?: string | null;
+          }>)
         : [];
       const [first, ...rest] = (order.customer_name ?? "").split(" ");
+      const email = order.customer_email ?? null;
+      const phone = order.customer_phone ?? null;
 
-      const res = await fetch("/api/wc/create-order", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          customer: {
-            first_name: first,
+      // 1) find/create customer
+      let customerId: string | null = null;
+      if (email) {
+        const { data: existing } = await supabase
+          .from("customers" as never)
+          .select("id")
+          .eq("email", email)
+          .maybeSingle();
+        customerId = (existing as { id: string } | null)?.id ?? null;
+      }
+      if (!customerId) {
+        const { data: created, error: cErr } = await supabase
+          .from("customers" as never)
+          .insert({
+            first_name: first ?? "",
             last_name: rest.join(" "),
-            email: order.customer_email ?? "",
-            phone: order.customer_phone ?? "",
-            address: meta.address,
+            email,
+            phone,
+            address_1: meta.address || null,
+          } as never)
+          .select("id")
+          .single();
+        if (cErr) throw cErr;
+        customerId = (created as { id: string }).id;
+      }
+
+      // 2) create app_order
+      const subtotal = items.reduce(
+        (s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 0),
+        0,
+      );
+      const shipping = Number(meta.freight) || 0;
+      const totalVal = subtotal + shipping;
+      const { data: createdOrder, error: oErr } = await supabase
+        .from("app_orders" as never)
+        .insert({
+          customer_id: customerId,
+          status: "pending",
+          currency: "BRL",
+          subtotal,
+          shipping_total: shipping,
+          total: totalVal,
+          customer_note: meta.note || null,
+          is_quote: false,
+          approved_at: new Date().toISOString(),
+        } as never)
+        .select("id, number")
+        .single();
+      if (oErr) throw oErr;
+      const newOrder = createdOrder as { id: string; number: number };
+
+      // 3) items
+      if (items.length > 0) {
+        const rows = items.map((i) => ({
+          order_id: newOrder.id,
+          product_id: i.product_id ?? null,
+          name: i.name,
+          quantity: Number(i.quantity) || 1,
+          unit_price: Number(i.price) || 0,
+          total: (Number(i.price) || 0) * (Number(i.quantity) || 1),
+          meta: {
+            size_name: i.size_name ?? null,
+            finish: i.finish ?? null,
+            color: i.color ?? null,
           },
-          items: items.map((i) => ({
-            name: i.name,
-            quantity: Number(i.quantity) || 1,
-            price: Number(i.price) || 0,
-          })),
-          shipping_total: meta.freight,
-          note: meta.note,
-        }),
-      });
-      const json = (await res.json()) as { ok: boolean; id?: number; number?: string; error?: string };
-      if (!json.ok) throw new Error(json.error ?? "Falha ao criar pedido no WooCommerce");
+        }));
+        const { error: iErr } = await supabase
+          .from("app_order_items" as never)
+          .insert(rows as never);
+        if (iErr) throw iErr;
+      }
 
       const nextNotes = JSON.stringify({
         __meta: 1,
         ...meta,
-        wc_order_id: json.id,
-        wc_order_number: json.number,
+        app_order_id: newOrder.id,
+        app_order_number: newOrder.number,
       });
       await persist("aprovado", nextNotes);
-      toast.success(`Pedido #${json.number} criado no WooCommerce`);
+      toast.success(`Pedido #${newOrder.number} criado`);
+      qc.invalidateQueries({ queryKey: ["app-orders"] });
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -353,7 +406,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
         {Object.entries(STATUS_LABEL).map(([k, label]) => (
           <SelectItem key={k} value={k}>
             {label}
-            {k === "aprovado" ? " → Woo" : ""}
+            {k === "aprovado" ? " → Pedido" : ""}
           </SelectItem>
         ))}
       </SelectContent>
