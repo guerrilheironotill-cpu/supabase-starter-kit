@@ -908,6 +908,7 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
   const [notes, setNotes] = useState("");
   const [freight, setFreight] = useState<number>(0);
   const [freightNote, setFreightNote] = useState("");
+  const [deliveryMode, setDeliveryMode] = useState<"pickup" | "shipping">("pickup");
   const [deadline, setDeadline] = useState("");
   const [payment, setPayment] = useState("");
   const [pix, setPix] = useState("");
