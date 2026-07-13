@@ -881,6 +881,10 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [personType, setPersonType] = useState<"fisica" | "juridica">("fisica");
+  const [cpf, setCpf] = useState("");
+  const [cnpj, setCnpj] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [freight, setFreight] = useState<number>(0);
@@ -937,6 +941,22 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
       toast.error("Informe o nome do cliente");
       return;
     }
+    const cpfDigits = cpf.replace(/\D/g, "");
+    const cnpjDigits = cnpj.replace(/\D/g, "");
+    if (personType === "fisica" && cpfDigits.length !== 11) {
+      toast.error("Informe um CPF válido (11 dígitos)");
+      return;
+    }
+    if (personType === "juridica") {
+      if (cnpjDigits.length !== 14) {
+        toast.error("Informe um CNPJ válido (14 dígitos)");
+        return;
+      }
+      if (!companyName.trim()) {
+        toast.error("Informe o nome da empresa");
+        return;
+      }
+    }
     if (items.length === 0 || items.every((i) => !i.name.trim())) {
       toast.error("Adicione ao menos um item");
       return;
@@ -986,6 +1006,10 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
         pix,
         note: notes,
         address,
+        personType,
+        cpf: personType === "fisica" ? cpf : null,
+        cnpj: personType === "juridica" ? cnpj : null,
+        companyName: personType === "juridica" ? companyName : null,
       });
       const { error: orderErr } = await supabase.from("orders" as never).insert({
         status: "em_aberto",
@@ -1016,6 +1040,30 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
       </DialogHeader>
 
       <div className="grid gap-4 py-2">
+        <div>
+          <Label>Tipo de pessoa *</Label>
+          <div className="mt-2 flex gap-4 text-sm">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="np-personType"
+                checked={personType === "fisica"}
+                onChange={() => setPersonType("fisica")}
+              />
+              Pessoa física
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="np-personType"
+                checked={personType === "juridica"}
+                onChange={() => setPersonType("juridica")}
+              />
+              Pessoa jurídica
+            </label>
+          </div>
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Label>Nome do cliente *</Label>
@@ -1033,6 +1081,36 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
+          {personType === "fisica" ? (
+            <div>
+              <Label>CPF *</Label>
+              <Input
+                value={cpf}
+                onChange={(e) => setCpf(e.target.value)}
+                maxLength={14}
+                placeholder="000.000.000-00"
+              />
+            </div>
+          ) : (
+            <>
+              <div>
+                <Label>CNPJ *</Label>
+                <Input
+                  value={cnpj}
+                  onChange={(e) => setCnpj(e.target.value)}
+                  maxLength={18}
+                  placeholder="00.000.000/0000-00"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Nome da empresa *</Label>
+                <Input
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         <div>
