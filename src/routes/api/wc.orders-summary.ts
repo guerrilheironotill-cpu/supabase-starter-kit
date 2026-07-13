@@ -58,10 +58,13 @@ export const Route = createFileRoute("/api/wc/orders-summary")({
             done: completed,
           });
         } catch (e) {
-          return Response.json(
-            { configured: true, open: 0, done: 0, error: (e as Error).message },
-            { status: 502 },
-          );
+          console.error("[wc/orders-summary]", (e as Error).message);
+          return Response.json({
+            configured: true,
+            open: 0,
+            done: 0,
+            error: (e as Error).message,
+          });
         }
       },
     },
