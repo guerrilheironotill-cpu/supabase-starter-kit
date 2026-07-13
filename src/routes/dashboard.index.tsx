@@ -59,7 +59,9 @@ async function fetchOrdersSummary(): Promise<OrdersSummary> {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) return { configured: false, open: 0, done: 0 };
-  return (await res.json()) as OrdersSummary;
+  const json = (await res.json()) as OrdersSummary & { error?: string };
+  if (json.error) console.warn("[wc/orders-summary]", json.error);
+  return json;
 }
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
