@@ -280,6 +280,80 @@ export function WhatsAppQuoteDrawer({
               )}
             </label>
 
+            <div>
+              <span className="text-xs font-medium uppercase tracking-widest text-primary">
+                Tipo de pessoa
+              </span>
+              <div className="mt-2 flex gap-4 text-sm">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="wa-personType"
+                    checked={personType === "fisica"}
+                    onChange={() => setPersonType("fisica")}
+                  />
+                  Física
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="wa-personType"
+                    checked={personType === "juridica"}
+                    onChange={() => setPersonType("juridica")}
+                  />
+                  Jurídica
+                </label>
+              </div>
+            </div>
+
+            {personType === "juridica" && (
+              <label className="block">
+                <span className="text-xs font-medium uppercase tracking-widest text-primary">
+                  Nome da empresa
+                </span>
+                <input
+                  type="text"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  maxLength={120}
+                  className="mt-2 block w-full rounded-full border border-border bg-transparent px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary"
+                  placeholder="Razão social"
+                />
+                {errors.companyName && (
+                  <span className="mt-1 block text-xs text-destructive">
+                    {errors.companyName}
+                  </span>
+                )}
+              </label>
+            )}
+
+            <label className="block">
+              <span className="text-xs font-medium uppercase tracking-widest text-primary">
+                {personType === "fisica" ? "CPF" : "CNPJ"}
+              </span>
+              <input
+                type="text"
+                value={personType === "fisica" ? cpf : cnpj}
+                onChange={(e) =>
+                  personType === "fisica"
+                    ? setCpf(e.target.value)
+                    : setCnpj(e.target.value)
+                }
+                maxLength={personType === "fisica" ? 14 : 18}
+                className="mt-2 block w-full rounded-full border border-border bg-transparent px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary"
+                placeholder={
+                  personType === "fisica"
+                    ? "000.000.000-00"
+                    : "00.000.000/0000-00"
+                }
+              />
+              {(errors.cpf || errors.cnpj) && (
+                <span className="mt-1 block text-xs text-destructive">
+                  {errors.cpf ?? errors.cnpj}
+                </span>
+              )}
+            </label>
+
             <label className="block">
               <span className="text-xs font-medium uppercase tracking-widest text-primary">
                 Telefone
