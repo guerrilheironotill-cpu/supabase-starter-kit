@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSection } from "@/components/dashboard-layout";
 import { DashboardMediaEditor } from "@/components/dashboard-media-editor";
+import { slugify } from "@/lib/products";
 
 export const Route = createFileRoute("/dashboard/categorias")({
   head: () => ({
@@ -15,19 +16,37 @@ export const Route = createFileRoute("/dashboard/categorias")({
 });
 
 type CategoryRow = {
-  id: string;
   slug: string;
   name: string;
   cover_image: string | null;
 };
 
 async function fetchCategories(): Promise<CategoryRow[]> {
-  const { data, error } = await supabase
-    .from("categories")
-    .select("id, slug, name, cover_image")
-    .order("name");
-  if (error) throw error;
-  return (data ?? []) as CategoryRow[];
+  const [{ data: prods, error: pErr }, { data: cats, error: cErr }] = await Promise.all([
+    supabase.from("products").select("category").eq("active", true),
+    supabase.from("categories").select("slug, name, cover_image"),
+  ]);
+  if (pErr) throw pErr;
+  if (cErr) throw cErr;
+
+  const covers = new Map<string, string | null>();
+  for (const c of cats ?? []) {
+    const row = c as { slug: string; cover_image: string | null };
+    covers.set(row.slug, row.cover_image);
+  }
+
+  const names = new Set<string>();
+  for (const p of prods ?? []) {
+    const n = (p as { category: string | null }).category;
+    if (n) names.add(n);
+  }
+
+  return Array.from(names)
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => {
+      const slug = slugify(name);
+      return { slug, name, cover_image: covers.get(slug) ?? null };
+    });
 }
 
 function DashboardCategoriesPage() {
@@ -58,7 +77,7 @@ function DashboardCategoriesPage() {
           <div className="grid gap-3">
             {data.map((c) => (
               <DashboardMediaEditor
-                key={c.id}
+                key={c.slug}
                 label={c.name}
                 sublabel={`/${c.slug}`}
                 imageUrl={c.cover_image}
@@ -67,8 +86,10 @@ function DashboardCategoriesPage() {
                 onSave={async ({ image_url }) => {
                   const { error } = await supabase
                     .from("categories")
-                    .update({ cover_image: image_url })
-                    .eq("id", c.id);
+                    .upsert(
+                      { slug: c.slug, name: c.name, cover_image: image_url },
+                      { onConflict: "slug" },
+                    );
                   if (error) throw error;
                   qc.invalidateQueries({ queryKey: ["dashboard", "categorias"] });
                 }}

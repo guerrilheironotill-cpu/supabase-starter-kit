@@ -36,15 +36,16 @@ type NavItem = {
   label: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
+  child?: boolean;
 };
 
 const NAV: NavItem[] = [
   { to: "/dashboard", label: "Visão geral", icon: LayoutDashboard, exact: true },
   { to: "/dashboard/orcamentos", label: "Orçamentos", icon: FileText },
   { to: "/dashboard/produtos", label: "Produtos", icon: Package },
-  { to: "/dashboard/categorias", label: "Categorias", icon: Layers },
-  { to: "/dashboard/acabamentos", label: "Acabamentos", icon: Sparkles },
-  { to: "/dashboard/cores", label: "Cores", icon: Palette },
+  { to: "/dashboard/categorias", label: "Categorias", icon: Layers, child: true },
+  { to: "/dashboard/acabamentos", label: "Acabamentos", icon: Sparkles, child: true },
+  { to: "/dashboard/cores", label: "Cores", icon: Palette, child: true },
   { to: "/dashboard/crm", label: "CRM", icon: Users2 },
   { to: "/dashboard/debug", label: "Debug", icon: Bug },
   { to: "/dashboard/midia", label: "Mídia", icon: ImageIcon },
@@ -124,6 +125,7 @@ export function DashboardLayout() {
                   to={item.to}
                   className={cn(
                     "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    item.child && "ml-4 text-[13px]",
                     active
                       ? "bg-primary text-primary-foreground"
                       : "text-foreground hover:bg-muted",
