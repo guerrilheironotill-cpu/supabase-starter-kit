@@ -118,7 +118,6 @@ function OrdersPage() {
       </div>
 
       <AppOrdersSection />
-
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <select
           value={status}
