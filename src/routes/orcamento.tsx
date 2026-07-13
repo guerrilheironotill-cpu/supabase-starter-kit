@@ -819,14 +819,14 @@ function StepCustomer({
             label="Nome completo"
             value={customer.name}
             onChange={(v) => setCustomer((c) => ({ ...c, name: v }))}
-            disabled={disabled} className="sm:col-span-2"
+            className="sm:col-span-2"
           />
           {customer.personType === "juridica" && (
             <Field
               label="Nome da empresa"
               value={customer.companyName}
               onChange={(v) => setCustomer((c) => ({ ...c, companyName: v }))}
-              disabled={disabled} className="sm:col-span-2"
+              className="sm:col-span-2"
             />
           )}
           {customer.personType === "fisica" ? (
@@ -836,7 +836,7 @@ function StepCustomer({
               onChange={(v) => setCustomer((c) => ({ ...c, cpf: v }))}
               maxLength={14}
               placeholder="000.000.000-00"
-              disabled={disabled} className="sm:col-span-2"
+              className="sm:col-span-2"
             />
           ) : (
             <Field
@@ -845,7 +845,7 @@ function StepCustomer({
               onChange={(v) => setCustomer((c) => ({ ...c, cnpj: v }))}
               maxLength={18}
               placeholder="00.000.000/0000-00"
-              disabled={disabled} className="sm:col-span-2"
+              className="sm:col-span-2"
             />
           )}
           <Field
