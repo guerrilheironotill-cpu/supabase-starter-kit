@@ -374,6 +374,53 @@ function StatusSelect({ order }: { order: OrderRow }) {
     }
   };
 
+  const rejectAsLead = async (tag: string, listName: string) => {
+    setSaving(true);
+    try {
+      const items = Array.isArray(order.items) ? (order.items as Array<{
+        product_id?: string | null;
+        name: string;
+        quantity: number;
+        price: number;
+      }>) : [];
+      const leadItems = items.map((i) => ({
+        id: i.product_id ?? `custom_${Math.random().toString(36).slice(2, 8)}`,
+        name: i.name,
+        quantity: Number(i.quantity) || 1,
+        unitPrice: Number(i.price) || 0,
+      }));
+
+      // Try inserting with extra columns; fall back gracefully if columns don't exist.
+      const basePayload: Record<string, unknown> = {
+        name: order.customer_name,
+        phone: order.customer_phone ?? null,
+        items: leadItems,
+        source: "orcamento_nao_aprovado",
+      };
+      const withExtras = { ...basePayload, tag, list_name: listName };
+      let insertErr: { message: string } | null = null;
+      let res = await supabase.from("leads" as never).insert(withExtras as never);
+      if (res.error) {
+        insertErr = res.error;
+        // retry without extras (older schema)
+        res = await supabase.from("leads" as never).insert(basePayload as never);
+        if (!res.error) insertErr = null;
+      }
+      if (insertErr) {
+        toast.error("Erro ao cadastrar lead: " + insertErr.message);
+      } else {
+        toast.success(`Lead cadastrado (${tag})`);
+      }
+      qc.invalidateQueries({ queryKey: ["crm-leads"] });
+
+      // now persist the quote status
+      await persist("nao_aprovado");
+    } finally {
+      setSaving(false);
+      setTagOpen(false);
+    }
+  };
+
   const approveAndPush = async () => {
     setSaving(true);
     const fail = (step: string, err: unknown): never => {
