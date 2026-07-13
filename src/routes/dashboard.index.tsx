@@ -172,6 +172,11 @@ function DashboardOverview() {
     queryFn: fetchOrdersSummary,
     staleTime: 60_000,
   });
+  const { data: dbSize } = useQuery({
+    queryKey: ["dashboard", "db-size"],
+    queryFn: fetchDbSize,
+    staleTime: 5 * 60_000,
+  });
 
   const maxViews = Math.max(...TOP_PRODUCTS.map((p) => p.views));
 
@@ -194,6 +199,8 @@ function DashboardOverview() {
         <Kpi label="Produtos ativos" value={stats?.products ?? "—"} delta="+3" icon={Package} />
         <Kpi label="Categorias" value={stats?.categories ?? "—"} delta="+1" icon={Users} />
       </div>
+
+      <DbUsageCard db={dbSize} />
 
       <DashboardSection
         title="Tráfego e orçamentos"
