@@ -20,6 +20,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
+import { Route as FeedsGoogleMerchantDotxmlRouteImport } from './routes/feeds/google-merchant[.]xml'
 import { Route as DashboardSeoRouteImport } from './routes/dashboard.seo'
 import { Route as DashboardProdutosRouteImport } from './routes/dashboard.produtos'
 import { Route as DashboardPerfilRouteImport } from './routes/dashboard.perfil'
@@ -98,6 +99,12 @@ const ProdutoSlugRoute = ProdutoSlugRouteImport.update({
   path: '/produto/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FeedsGoogleMerchantDotxmlRoute =
+  FeedsGoogleMerchantDotxmlRouteImport.update({
+    id: '/feeds/google-merchant.xml',
+    path: '/feeds/google-merchant.xml',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const DashboardSeoRoute = DashboardSeoRouteImport.update({
   id: '/seo',
   path: '/seo',
@@ -236,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/perfil': typeof DashboardPerfilRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
+  '/feeds/google-merchant.xml': typeof FeedsGoogleMerchantDotxmlRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
@@ -270,6 +278,7 @@ export interface FileRoutesByTo {
   '/dashboard/perfil': typeof DashboardPerfilRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
+  '/feeds/google-merchant.xml': typeof FeedsGoogleMerchantDotxmlRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
@@ -306,6 +315,7 @@ export interface FileRoutesById {
   '/dashboard/perfil': typeof DashboardPerfilRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
+  '/feeds/google-merchant.xml': typeof FeedsGoogleMerchantDotxmlRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
@@ -343,6 +353,7 @@ export interface FileRouteTypes {
     | '/dashboard/perfil'
     | '/dashboard/produtos'
     | '/dashboard/seo'
+    | '/feeds/google-merchant.xml'
     | '/produto/$slug'
     | '/dashboard/'
     | '/api/gsc/overview'
@@ -377,6 +388,7 @@ export interface FileRouteTypes {
     | '/dashboard/perfil'
     | '/dashboard/produtos'
     | '/dashboard/seo'
+    | '/feeds/google-merchant.xml'
     | '/produto/$slug'
     | '/dashboard'
     | '/api/gsc/overview'
@@ -412,6 +424,7 @@ export interface FileRouteTypes {
     | '/dashboard/perfil'
     | '/dashboard/produtos'
     | '/dashboard/seo'
+    | '/feeds/google-merchant.xml'
     | '/produto/$slug'
     | '/dashboard/'
     | '/api/gsc/overview'
@@ -432,6 +445,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SupabaseCheckRoute: typeof SupabaseCheckRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
+  FeedsGoogleMerchantDotxmlRoute: typeof FeedsGoogleMerchantDotxmlRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
   ApiGscOverviewRoute: typeof ApiGscOverviewRoute
   ApiWcCreateOrderRoute: typeof ApiWcCreateOrderRoute
@@ -517,6 +531,13 @@ declare module '@tanstack/react-router' {
       path: '/produto/$slug'
       fullPath: '/produto/$slug'
       preLoaderRoute: typeof ProdutoSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feeds/google-merchant.xml': {
+      id: '/feeds/google-merchant.xml'
+      path: '/feeds/google-merchant.xml'
+      fullPath: '/feeds/google-merchant.xml'
+      preLoaderRoute: typeof FeedsGoogleMerchantDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/seo': {
@@ -731,6 +752,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SupabaseCheckRoute: SupabaseCheckRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
+  FeedsGoogleMerchantDotxmlRoute: FeedsGoogleMerchantDotxmlRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
   ApiGscOverviewRoute: ApiGscOverviewRoute,
   ApiWcCreateOrderRoute: ApiWcCreateOrderRoute,

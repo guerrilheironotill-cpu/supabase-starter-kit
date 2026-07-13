@@ -51,6 +51,20 @@ const INITIAL: Item[] = [
       "Passo a passo: 1) Confirmar GA4 Measurement ID em Configurações → Integrações. 2) Criar helper src/lib/analytics.ts com trackEvent(name, params) usando window.gtag. 3) Instrumentar CTAs: click_whatsapp (header/produto/drawer), generate_lead (envio orçamento), select_item (product-card), view_item (/produto/:slug), search (busca), begin_checkout (abrir drawer orçamento), contact (form contato). 4) Em GA4 → Admin → Events, marcar generate_lead e click_whatsapp como conversão. 5) (Opcional) Espelhar no Meta Pixel (ViewContent, Lead, Contact). 6) Validar no GA4 DebugView antes de publicar.",
     priority: "media",
   },
+  {
+    id: "merchant-fase-2",
+    title: "Google Merchant — Fase 2: Enhanced Conversions",
+    description:
+      "Após instrumentar GA4 (fase 1 de eventos), usar generate_lead como Enhanced Conversion no Google Ads. Passos: 1) Vincular GA4 ao Google Ads em Admin → Product links. 2) Importar generate_lead como conversão no Ads. 3) Ativar Enhanced Conversions passando email/telefone hasheado do lead (form orçamento). 4) Validar no painel Diagnostics do Ads.",
+    priority: "media",
+  },
+  {
+    id: "merchant-fase-3",
+    title: "Google Merchant — Fase 3: Painel de Performance Max (opcional)",
+    description:
+      "Alternativa a gerenciar campanhas direto no Google Ads. Passos: 1) Criar OAuth com Google Ads API. 2) Endpoint para criar campanha Performance Max apontando para o feed do Merchant. 3) UI no dashboard para budget diário, países-alvo, pausar/ativar. 4) Métricas (impressões, cliques, conversões) via Ads API. Recomendado: usar Google Ads direto até ter volume que justifique o painel próprio.",
+    priority: "baixa",
+  },
 ];
 
 
