@@ -3,9 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSection } from "@/components/dashboard-layout";
 import { useState } from "react";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchCategoryTerms, type CategoryTerm } from "@/lib/dashboard-taxonomies";
+import { slugify } from "@/lib/products";
 
 export const Route = createFileRoute("/dashboard/categorias")({
   head: () => ({
@@ -36,6 +37,12 @@ function DashboardCategoriesPage() {
         </p>
       </div>
 
+      <CreateCategoryForm
+        onCreated={() =>
+          qc.invalidateQueries({ queryKey: ["dashboard", "categorias"] })
+        }
+      />
+
       <DashboardSection title={`Categorias (${data.length})`}>
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Carregando…</p>
@@ -56,6 +63,53 @@ function DashboardCategoriesPage() {
         )}
       </DashboardSection>
     </>
+  );
+}
+
+function CreateCategoryForm({ onCreated }: { onCreated: () => void }) {
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function create() {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { error: upErr } = await supabase.from("categories").upsert(
+        { name: trimmed, slug: slugify(trimmed) },
+        { onConflict: "slug" },
+      );
+      if (upErr) throw upErr;
+      setName("");
+      onCreated();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Falha ao criar");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mb-6 flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-3">
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Nome da nova categoria"
+        className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+      />
+      <button
+        type="button"
+        onClick={create}
+        disabled={busy || !name.trim()}
+        className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+      >
+        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+        Criar
+      </button>
+      {error && <span className="text-xs text-destructive">{error}</span>}
+    </div>
   );
 }
 

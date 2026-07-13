@@ -139,7 +139,7 @@ export function DashboardLayout() {
           </nav>
         </div>
       </aside>
-      <main className="min-w-0 flex-1">
+      <main className="min-w-0 flex-1 rounded-2xl bg-[oklch(0.205_0_0)] p-6 sm:p-8">
         <div className="md:hidden mb-4 flex gap-2 overflow-x-auto">
           {NAV.map((item) => {
             const active = item.exact

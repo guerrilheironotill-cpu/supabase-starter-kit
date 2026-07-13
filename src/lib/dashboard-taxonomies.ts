@@ -123,6 +123,21 @@ export async function fetchCategoryTerms(): Promise<CategoryTerm[]> {
     });
   }
 
+  // Include categories that exist in the catalog but have no products yet
+  for (const [slug, base] of baseBySlug) {
+    if (terms.has(slug)) continue;
+    const meta = metaBySlug.get(slug);
+    terms.set(slug, {
+      id: base.id,
+      slug,
+      name: base.name,
+      cover_image: meta?.cover_image ?? null,
+      icon_svg: meta?.icon_svg ?? null,
+      count: 0,
+      sort_order: base.sort_order,
+    });
+  }
+
   return Array.from(terms.values())
     .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
     .map(({ sort_order: _sortOrder, ...term }) => term);
@@ -179,6 +194,7 @@ export async function fetchAttributeTerms(
         gallery: item.gallery ?? [],
         description: item.description ?? null,
       });
+      if (!counts.has(name)) counts.set(name, 0);
     }
   }
 
