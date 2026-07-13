@@ -12,6 +12,9 @@ import {
   Bug,
   Image as ImageIcon,
   Gauge,
+  Layers,
+  Palette,
+  Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -21,6 +24,9 @@ type NavItem = {
     | "/dashboard"
     | "/dashboard/orcamentos"
     | "/dashboard/produtos"
+    | "/dashboard/categorias"
+    | "/dashboard/acabamentos"
+    | "/dashboard/cores"
     | "/dashboard/crm"
     | "/dashboard/debug"
     | "/dashboard/midia"
@@ -36,6 +42,9 @@ const NAV: NavItem[] = [
   { to: "/dashboard", label: "Visão geral", icon: LayoutDashboard, exact: true },
   { to: "/dashboard/orcamentos", label: "Orçamentos", icon: FileText },
   { to: "/dashboard/produtos", label: "Produtos", icon: Package },
+  { to: "/dashboard/categorias", label: "Categorias", icon: Layers },
+  { to: "/dashboard/acabamentos", label: "Acabamentos", icon: Sparkles },
+  { to: "/dashboard/cores", label: "Cores", icon: Palette },
   { to: "/dashboard/crm", label: "CRM", icon: Users2 },
   { to: "/dashboard/debug", label: "Debug", icon: Bug },
   { to: "/dashboard/midia", label: "Mídia", icon: ImageIcon },

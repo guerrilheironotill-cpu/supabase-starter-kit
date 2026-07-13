@@ -27,6 +27,7 @@ import { Route as DashboardMidiaRouteImport } from './routes/dashboard.midia'
 import { Route as DashboardDesempenhoRouteImport } from './routes/dashboard.desempenho'
 import { Route as DashboardDebugRouteImport } from './routes/dashboard.debug'
 import { Route as DashboardCrmRouteImport } from './routes/dashboard.crm'
+import { Route as DashboardCoresRouteImport } from './routes/dashboard.cores'
 import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.configuracoes'
 import { Route as DashboardCategoriasRouteImport } from './routes/dashboard.categorias'
 import { Route as DashboardAcabamentosRouteImport } from './routes/dashboard.acabamentos'
@@ -122,6 +123,11 @@ const DashboardCrmRoute = DashboardCrmRouteImport.update({
   path: '/crm',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardCoresRoute = DashboardCoresRouteImport.update({
+  id: '/cores',
+  path: '/cores',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardConfiguracoesRoute = DashboardConfiguracoesRouteImport.update({
   id: '/configuracoes',
   path: '/configuracoes',
@@ -157,6 +163,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
+  '/dashboard/cores': typeof DashboardCoresRoute
   '/dashboard/crm': typeof DashboardCrmRoute
   '/dashboard/debug': typeof DashboardDebugRoute
   '/dashboard/desempenho': typeof DashboardDesempenhoRoute
@@ -180,6 +187,7 @@ export interface FileRoutesByTo {
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
+  '/dashboard/cores': typeof DashboardCoresRoute
   '/dashboard/crm': typeof DashboardCrmRoute
   '/dashboard/debug': typeof DashboardDebugRoute
   '/dashboard/desempenho': typeof DashboardDesempenhoRoute
@@ -205,6 +213,7 @@ export interface FileRoutesById {
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
+  '/dashboard/cores': typeof DashboardCoresRoute
   '/dashboard/crm': typeof DashboardCrmRoute
   '/dashboard/debug': typeof DashboardDebugRoute
   '/dashboard/desempenho': typeof DashboardDesempenhoRoute
@@ -231,6 +240,7 @@ export interface FileRouteTypes {
     | '/dashboard/acabamentos'
     | '/dashboard/categorias'
     | '/dashboard/configuracoes'
+    | '/dashboard/cores'
     | '/dashboard/crm'
     | '/dashboard/debug'
     | '/dashboard/desempenho'
@@ -254,6 +264,7 @@ export interface FileRouteTypes {
     | '/dashboard/acabamentos'
     | '/dashboard/categorias'
     | '/dashboard/configuracoes'
+    | '/dashboard/cores'
     | '/dashboard/crm'
     | '/dashboard/debug'
     | '/dashboard/desempenho'
@@ -278,6 +289,7 @@ export interface FileRouteTypes {
     | '/dashboard/acabamentos'
     | '/dashboard/categorias'
     | '/dashboard/configuracoes'
+    | '/dashboard/cores'
     | '/dashboard/crm'
     | '/dashboard/debug'
     | '/dashboard/desempenho'
@@ -431,6 +443,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardCrmRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/cores': {
+      id: '/dashboard/cores'
+      path: '/cores'
+      fullPath: '/dashboard/cores'
+      preLoaderRoute: typeof DashboardCoresRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/configuracoes': {
       id: '/dashboard/configuracoes'
       path: '/configuracoes'
@@ -466,6 +485,7 @@ interface DashboardRouteChildren {
   DashboardAcabamentosRoute: typeof DashboardAcabamentosRoute
   DashboardCategoriasRoute: typeof DashboardCategoriasRoute
   DashboardConfiguracoesRoute: typeof DashboardConfiguracoesRoute
+  DashboardCoresRoute: typeof DashboardCoresRoute
   DashboardCrmRoute: typeof DashboardCrmRoute
   DashboardDebugRoute: typeof DashboardDebugRoute
   DashboardDesempenhoRoute: typeof DashboardDesempenhoRoute
@@ -480,6 +500,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAcabamentosRoute: DashboardAcabamentosRoute,
   DashboardCategoriasRoute: DashboardCategoriasRoute,
   DashboardConfiguracoesRoute: DashboardConfiguracoesRoute,
+  DashboardCoresRoute: DashboardCoresRoute,
   DashboardCrmRoute: DashboardCrmRoute,
   DashboardDebugRoute: DashboardDebugRoute,
   DashboardDesempenhoRoute: DashboardDesempenhoRoute,
