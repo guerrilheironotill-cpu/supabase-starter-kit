@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowUpRight, CheckCircle2, Clock, Eye, FileText, Package, TrendingUp, Users } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, Clock, Eye, FileText, Package, TrendingUp, Users, Database, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSection } from "@/components/dashboard-layout";
 
@@ -50,6 +50,33 @@ async function fetchStats(): Promise<Stats> {
 }
 
 type OrdersSummary = { configured: boolean; open: number; done: number };
+
+type DbSize = {
+  configured: boolean;
+  sizeBytes: number;
+  limitBytes: number;
+  error?: string;
+};
+
+async function fetchDbSize(): Promise<DbSize> {
+  const { data, error } = await supabase.rpc("db_size_info" as never);
+  if (error) {
+    return { configured: false, sizeBytes: 0, limitBytes: 0, error: error.message };
+  }
+  const row = Array.isArray(data) ? (data[0] as { size_bytes?: number; limit_bytes?: number } | undefined) : (data as { size_bytes?: number; limit_bytes?: number } | null);
+  if (!row || row.size_bytes == null) {
+    return { configured: false, sizeBytes: 0, limitBytes: 0 };
+  }
+  return {
+    configured: true,
+    sizeBytes: Number(row.size_bytes) || 0,
+    limitBytes: Number(row.limit_bytes) || 500 * 1024 * 1024,
+  };
+}
+
+function formatMB(bytes: number) {
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
 
 async function fetchOrdersSummary(): Promise<OrdersSummary> {
   const { data } = await supabase.auth.getSession();
