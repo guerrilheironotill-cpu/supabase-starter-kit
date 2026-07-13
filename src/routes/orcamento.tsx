@@ -764,53 +764,6 @@ function StepProducts({
           </button>
         </div>
       </section>
-
-      <section>
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Entrega
-        </h2>
-        <div className="mt-3 border border-border bg-card p-5 space-y-4">
-          <div className="space-y-2">
-            <label className="flex items-center gap-3 text-sm">
-              <input
-                type="radio"
-                name="delivery"
-                checked={effectiveDelivery === "pickup"}
-                onChange={() => setDelivery("pickup")}
-              />
-              Retirar na fábrica
-            </label>
-            <label
-              className={`flex items-center gap-3 text-sm ${
-                shippingAvailable === false ? "opacity-50" : ""
-              }`}
-            >
-              <input
-                type="radio"
-                name="delivery"
-                disabled={shippingAvailable === false}
-                checked={effectiveDelivery === "shipping"}
-                onChange={() => setDelivery("shipping")}
-              />
-              Cotar frete
-            </label>
-          </div>
-
-          <AddressFields
-            title="Endereço de entrega"
-            address={deliveryAddress}
-            onChange={setDeliveryAddress}
-            requireFull={delivery === "shipping"}
-          />
-
-          {shippingAvailable === false && delivery === "shipping" && (
-            <p className="text-xs text-destructive">
-              Não temos logística de entrega para este endereço. Se quiser
-              continuar, selecione "Retirar na fábrica".
-            </p>
-          )}
-        </div>
-      </section>
     </div>
   );
 }
@@ -820,17 +773,11 @@ function StepCustomer({
   setCustomer,
   customerAddress,
   setCustomerAddress,
-  sameAsDelivery,
-  setSameAsDelivery,
-  effectiveDelivery,
 }: {
   customer: Customer;
   setCustomer: (updater: (c: Customer) => Customer) => void;
   customerAddress: Address;
   setCustomerAddress: (updater: (a: Address) => Address) => void;
-  sameAsDelivery: boolean;
-  setSameAsDelivery: (v: boolean) => void;
-  effectiveDelivery: "pickup" | "shipping";
 }) {
   return (
     <div className="space-y-8">
@@ -927,23 +874,96 @@ function StepCustomer({
             requireFull
             hideTitle
           />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function StepDelivery({
+  delivery,
+  setDelivery,
+  shippingAvailable,
+  effectiveDelivery,
+  deliveryAddress,
+  setDeliveryAddress,
+  sameAsDelivery,
+  onToggleSame,
+}: {
+  delivery: "pickup" | "shipping";
+  setDelivery: (d: "pickup" | "shipping") => void;
+  shippingAvailable: boolean | null;
+  effectiveDelivery: "pickup" | "shipping";
+  deliveryAddress: Address;
+  setDeliveryAddress: (updater: (a: Address) => Address) => void;
+  sameAsDelivery: boolean;
+  onToggleSame: (v: boolean) => void;
+}) {
+  return (
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Entrega
+        </h2>
+        <div className="mt-3 space-y-4 border border-border bg-card p-5">
+          <div className="space-y-2">
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="radio"
+                name="delivery"
+                checked={effectiveDelivery === "pickup"}
+                onChange={() => setDelivery("pickup")}
+              />
+              Retirar na fábrica
+            </label>
+            <label
+              className={`flex items-center gap-3 text-sm ${
+                shippingAvailable === false ? "opacity-50" : ""
+              }`}
+            >
+              <input
+                type="radio"
+                name="delivery"
+                disabled={shippingAvailable === false}
+                checked={effectiveDelivery === "shipping"}
+                onChange={() => setDelivery("shipping")}
+              />
+              Cotar frete
+            </label>
+          </div>
 
           {effectiveDelivery === "shipping" && (
-            <label className="mt-4 flex items-start gap-3 border-t border-border pt-4 text-sm">
-              <input
-                type="checkbox"
-                checked={sameAsDelivery}
-                onChange={(e) => setSameAsDelivery(e.target.checked)}
-                className="mt-0.5"
-              />
-              <span>
-                Usar este endereço também para a entrega.
-                <span className="mt-0.5 block text-xs text-muted-foreground">
-                  Desmarque para entregar em outro endereço (informado no passo
-                  anterior).
+            <>
+              <label className="flex items-start gap-3 border-t border-border pt-4 text-sm">
+                <input
+                  type="checkbox"
+                  checked={sameAsDelivery}
+                  onChange={(e) => onToggleSame(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  Entregar no mesmo endereço de cobrança.
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Desmarque para informar outro endereço de entrega.
+                  </span>
                 </span>
-              </span>
-            </label>
+              </label>
+
+              <AddressFields
+                title="Endereço de entrega"
+                address={deliveryAddress}
+                onChange={setDeliveryAddress}
+                requireFull
+                disabled={sameAsDelivery}
+              />
+            </>
+          )}
+
+          {shippingAvailable === false && delivery === "shipping" && (
+            <p className="text-xs text-destructive">
+              Não temos logística de entrega para este endereço. Se quiser
+              continuar, selecione "Retirar na fábrica".
+            </p>
           )}
         </div>
       </section>
@@ -957,12 +977,14 @@ function AddressFields({
   onChange,
   requireFull,
   hideTitle,
+  disabled,
 }: {
   title: string;
   address: Address;
   onChange: (updater: (a: Address) => Address) => void;
   requireFull: boolean;
   hideTitle?: boolean;
+  disabled?: boolean;
 }) {
   const set = <K extends keyof Address>(k: K, v: Address[K]) =>
     onChange((a) => ({ ...a, [k]: v }));
