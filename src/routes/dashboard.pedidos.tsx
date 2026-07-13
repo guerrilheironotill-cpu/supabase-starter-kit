@@ -148,15 +148,6 @@ function OrdersPage() {
           <div className="flex items-center justify-center p-10 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
-        ) : !data?.configured ? (
-          <div className="p-6 text-sm text-muted-foreground">
-            WooCommerce não configurado. Cadastre <code>site_url</code>, <code>consumer_key</code> e{" "}
-            <code>consumer_secret</code> na tabela <code>integrations</code>.
-          </div>
-        ) : data.error ? (
-          <div className="p-6 text-sm text-destructive">{data.error}</div>
-        ) : (items?.length ?? 0) === 0 ? (
-          <div className="p-6 text-sm text-muted-foreground">Nenhum pedido encontrado.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -173,7 +164,7 @@ function OrdersPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 <AppOrdersRows />
-                {items!.map((o) => (
+                {(items ?? []).map((o) => (
                   <tr key={o.id} className="hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">#{o.number}</td>
                     <td className="px-4 py-3">
@@ -219,6 +210,13 @@ function OrdersPage() {
                 ))}
               </tbody>
             </table>
+            {!data?.configured ? (
+              <div className="p-4 text-xs text-muted-foreground">
+                WooCommerce não configurado — mostrando apenas pedidos do sistema.
+              </div>
+            ) : data.error ? (
+              <div className="p-4 text-xs text-destructive">{data.error}</div>
+            ) : null}
           </div>
         )}
       </div>
