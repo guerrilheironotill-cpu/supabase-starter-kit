@@ -203,6 +203,50 @@ export function WhatsAppQuoteDrawer({
     })();
     addLead(payload);
 
+    // Also create an orçamento (order) row so it appears in the dashboard
+    void (async () => {
+      try {
+        const cleanItems = items.map((i) => ({
+          kind: "catalog" as const,
+          product_id: i.id ?? null,
+          name: i.name,
+          description: null,
+          quantity: i.quantity,
+          price: i.unitPrice ?? 0,
+          size_id: null,
+          size_name: i.sizeLabel ?? null,
+          finish: i.finish ?? null,
+          color: i.color ?? null,
+        }));
+        const meta = {
+          __meta: 1,
+          personType: parsed.data.personType,
+          cpf: parsed.data.personType === "fisica" ? parsed.data.cpf : null,
+          cnpj: parsed.data.personType === "juridica" ? parsed.data.cnpj : null,
+          companyName:
+            parsed.data.personType === "juridica"
+              ? parsed.data.companyName
+              : null,
+        };
+        const total = items.reduce(
+          (s, i) => s + (i.unitPrice ?? 0) * i.quantity,
+          0,
+        );
+        await publicSupabase.from("orders" as never).insert({
+          status: "em_aberto",
+          origin: "whatsapp",
+          customer_name: parsed.data.name,
+          customer_phone: parsed.data.phone,
+          customer_email: null,
+          items: cleanItems,
+          total,
+          notes: JSON.stringify(meta),
+        } as never);
+      } catch (err) {
+        console.warn("[orders] whatsapp insert failed", err);
+      }
+    })();
+
     const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank", "noopener,noreferrer");
     onClose();

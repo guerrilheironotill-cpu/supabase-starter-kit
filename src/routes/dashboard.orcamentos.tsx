@@ -283,7 +283,7 @@ function DashboardQuotesPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-xs uppercase tracking-wide text-muted-foreground">
-                    {o.origin}
+                    <OriginBadge origin={o.origin} />
                   </td>
                   <td className="px-4 py-3">{currency(o.total)}</td>
                   <td className="px-4 py-3 text-muted-foreground">
@@ -878,6 +878,25 @@ ${meta.note ? module("Observações", `<div style="font-size:13px;line-height:1.
 }
 
 function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
+  return NewQuoteDialogImpl({ onCreated });
+}
+
+function OriginBadge({ origin }: { origin: string }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    manual: { label: "Dashboard", cls: "bg-primary/15 text-primary" },
+    site: { label: "Site", cls: "bg-blue-500/15 text-blue-600" },
+    whatsapp: { label: "WhatsApp", cls: "bg-green-500/15 text-green-600" },
+  };
+  const key = (origin ?? "").toLowerCase();
+  const info = map[key] ?? { label: origin || "—", cls: "bg-muted text-muted-foreground" };
+  return (
+    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${info.cls}`}>
+      {info.label}
+    </span>
+  );
+}
+
+function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
