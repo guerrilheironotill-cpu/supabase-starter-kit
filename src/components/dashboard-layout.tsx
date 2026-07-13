@@ -19,6 +19,7 @@ import {
   UserRound,
   ListTodo,
   Plug,
+  UserCog,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,7 @@ type NavItem = {
     | "/dashboard/desempenho"
     | "/dashboard/configuracoes"
     | "/dashboard/integracoes"
+    | "/dashboard/perfil"
     | "/dashboard/pendencias";
   label: string;
   icon: typeof LayoutDashboard;
@@ -63,6 +65,7 @@ const NAV: NavItem[] = [
   { to: "/dashboard/desempenho", label: "Desempenho", icon: Gauge },
   { to: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
   { to: "/dashboard/integracoes", label: "Integrações", icon: Plug },
+  { to: "/dashboard/perfil", label: "Meu perfil", icon: UserCog },
   { to: "/dashboard/pendencias", label: "Pendências", icon: ListTodo },
 ];
 
