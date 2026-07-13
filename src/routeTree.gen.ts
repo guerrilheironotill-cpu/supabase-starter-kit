@@ -22,6 +22,7 @@ import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
 import { Route as DashboardSeoRouteImport } from './routes/dashboard.seo'
 import { Route as DashboardProdutosRouteImport } from './routes/dashboard.produtos'
+import { Route as DashboardPedidosRouteImport } from './routes/dashboard.pedidos'
 import { Route as DashboardOrcamentosRouteImport } from './routes/dashboard.orcamentos'
 import { Route as DashboardMidiaRouteImport } from './routes/dashboard.midia'
 import { Route as DashboardDesempenhoRouteImport } from './routes/dashboard.desempenho'
@@ -29,10 +30,12 @@ import { Route as DashboardDebugRouteImport } from './routes/dashboard.debug'
 import { Route as DashboardCrmRouteImport } from './routes/dashboard.crm'
 import { Route as DashboardCoresRouteImport } from './routes/dashboard.cores'
 import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.configuracoes'
+import { Route as DashboardClientesRouteImport } from './routes/dashboard.clientes'
 import { Route as DashboardCategoriasRouteImport } from './routes/dashboard.categorias'
 import { Route as DashboardAcabamentosRouteImport } from './routes/dashboard.acabamentos'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 import { Route as ApiWcOrdersSummaryRouteImport } from './routes/api/wc.orders-summary'
+import { Route as ApiWcListRouteImport } from './routes/api/wc.list'
 
 const SupabaseCheckRoute = SupabaseCheckRouteImport.update({
   id: '/supabase-check',
@@ -99,6 +102,11 @@ const DashboardProdutosRoute = DashboardProdutosRouteImport.update({
   path: '/produtos',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardPedidosRoute = DashboardPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardOrcamentosRoute = DashboardOrcamentosRouteImport.update({
   id: '/orcamentos',
   path: '/orcamentos',
@@ -134,6 +142,11 @@ const DashboardConfiguracoesRoute = DashboardConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardClientesRoute = DashboardClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardCategoriasRoute = DashboardCategoriasRouteImport.update({
   id: '/categorias',
   path: '/categorias',
@@ -154,6 +167,11 @@ const ApiWcOrdersSummaryRoute = ApiWcOrdersSummaryRouteImport.update({
   path: '/api/wc/orders-summary',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWcListRoute = ApiWcListRouteImport.update({
+  id: '/api/wc/list',
+  path: '/api/wc/list',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -168,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
+  '/dashboard/clientes': typeof DashboardClientesRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/cores': typeof DashboardCoresRoute
   '/dashboard/crm': typeof DashboardCrmRoute
@@ -175,10 +194,12 @@ export interface FileRoutesByFullPath {
   '/dashboard/desempenho': typeof DashboardDesempenhoRoute
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
+  '/dashboard/pedidos': typeof DashboardPedidosRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/api/wc/list': typeof ApiWcListRoute
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
 }
 export interface FileRoutesByTo {
@@ -193,6 +214,7 @@ export interface FileRoutesByTo {
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
+  '/dashboard/clientes': typeof DashboardClientesRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/cores': typeof DashboardCoresRoute
   '/dashboard/crm': typeof DashboardCrmRoute
@@ -200,10 +222,12 @@ export interface FileRoutesByTo {
   '/dashboard/desempenho': typeof DashboardDesempenhoRoute
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
+  '/dashboard/pedidos': typeof DashboardPedidosRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/api/wc/list': typeof ApiWcListRoute
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
 }
 export interface FileRoutesById {
@@ -220,6 +244,7 @@ export interface FileRoutesById {
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
+  '/dashboard/clientes': typeof DashboardClientesRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/cores': typeof DashboardCoresRoute
   '/dashboard/crm': typeof DashboardCrmRoute
@@ -227,10 +252,12 @@ export interface FileRoutesById {
   '/dashboard/desempenho': typeof DashboardDesempenhoRoute
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
+  '/dashboard/pedidos': typeof DashboardPedidosRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/api/wc/list': typeof ApiWcListRoute
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
 }
 export interface FileRouteTypes {
@@ -248,6 +275,7 @@ export interface FileRouteTypes {
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
     | '/dashboard/categorias'
+    | '/dashboard/clientes'
     | '/dashboard/configuracoes'
     | '/dashboard/cores'
     | '/dashboard/crm'
@@ -255,10 +283,12 @@ export interface FileRouteTypes {
     | '/dashboard/desempenho'
     | '/dashboard/midia'
     | '/dashboard/orcamentos'
+    | '/dashboard/pedidos'
     | '/dashboard/produtos'
     | '/dashboard/seo'
     | '/produto/$slug'
     | '/dashboard/'
+    | '/api/wc/list'
     | '/api/wc/orders-summary'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -273,6 +303,7 @@ export interface FileRouteTypes {
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
     | '/dashboard/categorias'
+    | '/dashboard/clientes'
     | '/dashboard/configuracoes'
     | '/dashboard/cores'
     | '/dashboard/crm'
@@ -280,10 +311,12 @@ export interface FileRouteTypes {
     | '/dashboard/desempenho'
     | '/dashboard/midia'
     | '/dashboard/orcamentos'
+    | '/dashboard/pedidos'
     | '/dashboard/produtos'
     | '/dashboard/seo'
     | '/produto/$slug'
     | '/dashboard'
+    | '/api/wc/list'
     | '/api/wc/orders-summary'
   id:
     | '__root__'
@@ -299,6 +332,7 @@ export interface FileRouteTypes {
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
     | '/dashboard/categorias'
+    | '/dashboard/clientes'
     | '/dashboard/configuracoes'
     | '/dashboard/cores'
     | '/dashboard/crm'
@@ -306,10 +340,12 @@ export interface FileRouteTypes {
     | '/dashboard/desempenho'
     | '/dashboard/midia'
     | '/dashboard/orcamentos'
+    | '/dashboard/pedidos'
     | '/dashboard/produtos'
     | '/dashboard/seo'
     | '/produto/$slug'
     | '/dashboard/'
+    | '/api/wc/list'
     | '/api/wc/orders-summary'
   fileRoutesById: FileRoutesById
 }
@@ -325,6 +361,7 @@ export interface RootRouteChildren {
   SupabaseCheckRoute: typeof SupabaseCheckRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
+  ApiWcListRoute: typeof ApiWcListRoute
   ApiWcOrdersSummaryRoute: typeof ApiWcOrdersSummaryRoute
 }
 
@@ -421,6 +458,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardProdutosRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/pedidos': {
+      id: '/dashboard/pedidos'
+      path: '/pedidos'
+      fullPath: '/dashboard/pedidos'
+      preLoaderRoute: typeof DashboardPedidosRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/orcamentos': {
       id: '/dashboard/orcamentos'
       path: '/orcamentos'
@@ -470,6 +514,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardConfiguracoesRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/clientes': {
+      id: '/dashboard/clientes'
+      path: '/clientes'
+      fullPath: '/dashboard/clientes'
+      preLoaderRoute: typeof DashboardClientesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/categorias': {
       id: '/dashboard/categorias'
       path: '/categorias'
@@ -498,12 +549,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWcOrdersSummaryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/wc/list': {
+      id: '/api/wc/list'
+      path: '/api/wc/list'
+      fullPath: '/api/wc/list'
+      preLoaderRoute: typeof ApiWcListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface DashboardRouteChildren {
   DashboardAcabamentosRoute: typeof DashboardAcabamentosRoute
   DashboardCategoriasRoute: typeof DashboardCategoriasRoute
+  DashboardClientesRoute: typeof DashboardClientesRoute
   DashboardConfiguracoesRoute: typeof DashboardConfiguracoesRoute
   DashboardCoresRoute: typeof DashboardCoresRoute
   DashboardCrmRoute: typeof DashboardCrmRoute
@@ -511,6 +570,7 @@ interface DashboardRouteChildren {
   DashboardDesempenhoRoute: typeof DashboardDesempenhoRoute
   DashboardMidiaRoute: typeof DashboardMidiaRoute
   DashboardOrcamentosRoute: typeof DashboardOrcamentosRoute
+  DashboardPedidosRoute: typeof DashboardPedidosRoute
   DashboardProdutosRoute: typeof DashboardProdutosRoute
   DashboardSeoRoute: typeof DashboardSeoRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
@@ -519,6 +579,7 @@ interface DashboardRouteChildren {
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAcabamentosRoute: DashboardAcabamentosRoute,
   DashboardCategoriasRoute: DashboardCategoriasRoute,
+  DashboardClientesRoute: DashboardClientesRoute,
   DashboardConfiguracoesRoute: DashboardConfiguracoesRoute,
   DashboardCoresRoute: DashboardCoresRoute,
   DashboardCrmRoute: DashboardCrmRoute,
@@ -526,6 +587,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardDesempenhoRoute: DashboardDesempenhoRoute,
   DashboardMidiaRoute: DashboardMidiaRoute,
   DashboardOrcamentosRoute: DashboardOrcamentosRoute,
+  DashboardPedidosRoute: DashboardPedidosRoute,
   DashboardProdutosRoute: DashboardProdutosRoute,
   DashboardSeoRoute: DashboardSeoRoute,
   DashboardIndexRoute: DashboardIndexRoute,
@@ -547,6 +609,7 @@ const rootRouteChildren: RootRouteChildren = {
   SupabaseCheckRoute: SupabaseCheckRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
+  ApiWcListRoute: ApiWcListRoute,
   ApiWcOrdersSummaryRoute: ApiWcOrdersSummaryRoute,
 }
 export const routeTree = rootRouteImport
