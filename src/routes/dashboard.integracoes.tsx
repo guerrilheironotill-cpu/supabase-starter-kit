@@ -9,6 +9,7 @@ import {
   Facebook,
   ShoppingBag,
   Rss,
+  Search,
 } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard/integracoes")({
@@ -117,6 +118,25 @@ function DashboardIntegrationsPage() {
         onSubmit={saveIntegrations}
         className="mt-6 space-y-6 border border-border bg-card p-6"
       >
+        <div className="flex items-start gap-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-4">
+          <Search className="mt-0.5 h-4 w-4 text-emerald-600" />
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-foreground">
+                Google Search Console
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
+                Conectado
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Conta autorizada via OAuth. Cliques, impressões e top páginas já
+              aparecem na Visão geral.
+            </p>
+          </div>
+        </div>
+
         <IntegrationField
           icon={<BarChart3 className="h-4 w-4" />}
           label="Google Analytics 4 — Measurement ID"

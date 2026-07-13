@@ -41,6 +41,7 @@ import { Route as ApiWcUpdateOrderRouteImport } from './routes/api/wc.update-ord
 import { Route as ApiWcOrdersSummaryRouteImport } from './routes/api/wc.orders-summary'
 import { Route as ApiWcListRouteImport } from './routes/api/wc.list'
 import { Route as ApiWcCreateOrderRouteImport } from './routes/api/wc.create-order'
+import { Route as ApiGscOverviewRouteImport } from './routes/api/gsc.overview'
 
 const SupabaseCheckRoute = SupabaseCheckRouteImport.update({
   id: '/supabase-check',
@@ -202,6 +203,11 @@ const ApiWcCreateOrderRoute = ApiWcCreateOrderRouteImport.update({
   path: '/api/wc/create-order',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGscOverviewRoute = ApiGscOverviewRouteImport.update({
+  id: '/api/gsc/overview',
+  path: '/api/gsc/overview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -232,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/api/gsc/overview': typeof ApiGscOverviewRoute
   '/api/wc/create-order': typeof ApiWcCreateOrderRoute
   '/api/wc/list': typeof ApiWcListRoute
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
@@ -265,6 +272,7 @@ export interface FileRoutesByTo {
   '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/api/gsc/overview': typeof ApiGscOverviewRoute
   '/api/wc/create-order': typeof ApiWcCreateOrderRoute
   '/api/wc/list': typeof ApiWcListRoute
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
@@ -300,6 +308,7 @@ export interface FileRoutesById {
   '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/api/gsc/overview': typeof ApiGscOverviewRoute
   '/api/wc/create-order': typeof ApiWcCreateOrderRoute
   '/api/wc/list': typeof ApiWcListRoute
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
@@ -336,6 +345,7 @@ export interface FileRouteTypes {
     | '/dashboard/seo'
     | '/produto/$slug'
     | '/dashboard/'
+    | '/api/gsc/overview'
     | '/api/wc/create-order'
     | '/api/wc/list'
     | '/api/wc/orders-summary'
@@ -369,6 +379,7 @@ export interface FileRouteTypes {
     | '/dashboard/seo'
     | '/produto/$slug'
     | '/dashboard'
+    | '/api/gsc/overview'
     | '/api/wc/create-order'
     | '/api/wc/list'
     | '/api/wc/orders-summary'
@@ -403,6 +414,7 @@ export interface FileRouteTypes {
     | '/dashboard/seo'
     | '/produto/$slug'
     | '/dashboard/'
+    | '/api/gsc/overview'
     | '/api/wc/create-order'
     | '/api/wc/list'
     | '/api/wc/orders-summary'
@@ -421,6 +433,7 @@ export interface RootRouteChildren {
   SupabaseCheckRoute: typeof SupabaseCheckRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
+  ApiGscOverviewRoute: typeof ApiGscOverviewRoute
   ApiWcCreateOrderRoute: typeof ApiWcCreateOrderRoute
   ApiWcListRoute: typeof ApiWcListRoute
   ApiWcOrdersSummaryRoute: typeof ApiWcOrdersSummaryRoute
@@ -653,6 +666,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWcCreateOrderRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/gsc/overview': {
+      id: '/api/gsc/overview'
+      path: '/api/gsc/overview'
+      fullPath: '/api/gsc/overview'
+      preLoaderRoute: typeof ApiGscOverviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -712,6 +732,7 @@ const rootRouteChildren: RootRouteChildren = {
   SupabaseCheckRoute: SupabaseCheckRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
+  ApiGscOverviewRoute: ApiGscOverviewRoute,
   ApiWcCreateOrderRoute: ApiWcCreateOrderRoute,
   ApiWcListRoute: ApiWcListRoute,
   ApiWcOrdersSummaryRoute: ApiWcOrdersSummaryRoute,
