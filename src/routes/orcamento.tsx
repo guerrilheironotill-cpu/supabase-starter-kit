@@ -1058,6 +1058,7 @@ function Field({
   maxLength,
   placeholder,
   className,
+  disabled,
 }: {
   label: string;
   value: string;
@@ -1066,6 +1067,7 @@ function Field({
   maxLength?: number;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <label className={`block ${className ?? ""}`}>
@@ -1078,7 +1080,8 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         maxLength={maxLength}
         placeholder={placeholder}
-        className="mt-1.5 block w-full border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-primary"
+        disabled={disabled}
+        className="mt-1.5 block w-full border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );
