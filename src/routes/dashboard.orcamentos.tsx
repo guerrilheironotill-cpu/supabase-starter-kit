@@ -278,7 +278,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
 
   const approveAndPush = async () => {
     setSaving(true);
-    const fail = (step: string, err: unknown) => {
+    const fail = (step: string, err: unknown): never => {
       const msg = (err as { message?: string })?.message ?? String(err);
       console.error(`[approve:${step}]`, err);
       toast.error(`Falha ao aprovar (${step}): ${msg}`, { duration: 10000 });
