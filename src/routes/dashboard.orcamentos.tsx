@@ -442,7 +442,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
         if (v === "aprovado" && order.status !== "aprovado") {
           void approveAndPush();
         } else {
-          void persist(v);
+          persist(v).catch(() => {});
         }
       }}
       disabled={saving}
