@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { fetchWc, type WcOrder } from "@/lib/wc-api";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard/pedidos")({
@@ -53,6 +52,7 @@ function OrdersPage() {
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<WcOrder | null>(null);
   const [savingId, setSavingId] = useState<number | null>(null);
+  const [overrides, setOverrides] = useState<Record<number, { status?: string; customer_note?: string }>>(() => readOverrides());
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -71,17 +71,14 @@ function OrdersPage() {
   async function updateOrder(id: number, patch: Record<string, unknown>) {
     setSavingId(id);
     try {
-      const { data: s } = await supabase.auth.getSession();
-      const token = s.session?.access_token;
-      if (!token) throw new Error("Sem sessão");
-      const res = await fetch("/api/wc/update-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ id, ...patch }),
-      });
-      const json = (await res.json()) as { ok: boolean; error?: string };
-      if (!json.ok) throw new Error(json.error ?? "Erro ao atualizar");
-      toast.success("Pedido atualizado");
+      const next = { ...overrides };
+      const cur = { ...(next[id] ?? {}) };
+      if (typeof patch.status === "string") cur.status = patch.status;
+      if (typeof patch.customer_note === "string") cur.customer_note = patch.customer_note;
+      next[id] = cur;
+      setOverrides(next);
+      writeOverrides(next);
+      toast.success("Status atualizado (local, não altera o site)");
       qc.invalidateQueries({ queryKey: ["wc-orders"] });
     } catch (e) {
       toast.error((e as Error).message);
@@ -89,6 +86,11 @@ function OrdersPage() {
       setSavingId(null);
     }
   }
+
+  const items = data?.items?.map((o) => {
+    const ov = overrides[o.id];
+    return ov ? { ...o, status: ov.status ?? o.status, customer_note: ov.customer_note ?? o.customer_note } : o;
+  });
 
   return (
     <>
@@ -137,7 +139,7 @@ function OrdersPage() {
           </div>
         ) : data.error ? (
           <div className="p-6 text-sm text-destructive">{data.error}</div>
-        ) : data.items.length === 0 ? (
+        ) : (items?.length ?? 0) === 0 ? (
           <div className="p-6 text-sm text-muted-foreground">Nenhum pedido encontrado.</div>
         ) : (
           <div className="overflow-x-auto">
@@ -154,7 +156,7 @@ function OrdersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {data.items.map((o) => (
+                {items!.map((o) => (
                   <tr key={o.id} className="hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">#{o.number}</td>
                     <td className="px-4 py-3">
