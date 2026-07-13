@@ -22,6 +22,7 @@ import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
 import { Route as DashboardSeoRouteImport } from './routes/dashboard.seo'
 import { Route as DashboardProdutosRouteImport } from './routes/dashboard.produtos'
+import { Route as DashboardPendenciasRouteImport } from './routes/dashboard.pendencias'
 import { Route as DashboardPedidosRouteImport } from './routes/dashboard.pedidos'
 import { Route as DashboardOrcamentosRouteImport } from './routes/dashboard.orcamentos'
 import { Route as DashboardMidiaRouteImport } from './routes/dashboard.midia'
@@ -102,6 +103,11 @@ const DashboardSeoRoute = DashboardSeoRouteImport.update({
 const DashboardProdutosRoute = DashboardProdutosRouteImport.update({
   id: '/produtos',
   path: '/produtos',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardPendenciasRoute = DashboardPendenciasRouteImport.update({
+  id: '/pendencias',
+  path: '/pendencias',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardPedidosRoute = DashboardPedidosRouteImport.update({
@@ -207,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/pedidos': typeof DashboardPedidosRoute
+  '/dashboard/pendencias': typeof DashboardPendenciasRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
@@ -237,6 +244,7 @@ export interface FileRoutesByTo {
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/pedidos': typeof DashboardPedidosRoute
+  '/dashboard/pendencias': typeof DashboardPendenciasRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
@@ -269,6 +277,7 @@ export interface FileRoutesById {
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/pedidos': typeof DashboardPedidosRoute
+  '/dashboard/pendencias': typeof DashboardPendenciasRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
@@ -302,6 +311,7 @@ export interface FileRouteTypes {
     | '/dashboard/midia'
     | '/dashboard/orcamentos'
     | '/dashboard/pedidos'
+    | '/dashboard/pendencias'
     | '/dashboard/produtos'
     | '/dashboard/seo'
     | '/produto/$slug'
@@ -332,6 +342,7 @@ export interface FileRouteTypes {
     | '/dashboard/midia'
     | '/dashboard/orcamentos'
     | '/dashboard/pedidos'
+    | '/dashboard/pendencias'
     | '/dashboard/produtos'
     | '/dashboard/seo'
     | '/produto/$slug'
@@ -363,6 +374,7 @@ export interface FileRouteTypes {
     | '/dashboard/midia'
     | '/dashboard/orcamentos'
     | '/dashboard/pedidos'
+    | '/dashboard/pendencias'
     | '/dashboard/produtos'
     | '/dashboard/seo'
     | '/produto/$slug'
@@ -482,6 +494,13 @@ declare module '@tanstack/react-router' {
       path: '/produtos'
       fullPath: '/dashboard/produtos'
       preLoaderRoute: typeof DashboardProdutosRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/pendencias': {
+      id: '/dashboard/pendencias'
+      path: '/pendencias'
+      fullPath: '/dashboard/pendencias'
+      preLoaderRoute: typeof DashboardPendenciasRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/pedidos': {
@@ -611,6 +630,7 @@ interface DashboardRouteChildren {
   DashboardMidiaRoute: typeof DashboardMidiaRoute
   DashboardOrcamentosRoute: typeof DashboardOrcamentosRoute
   DashboardPedidosRoute: typeof DashboardPedidosRoute
+  DashboardPendenciasRoute: typeof DashboardPendenciasRoute
   DashboardProdutosRoute: typeof DashboardProdutosRoute
   DashboardSeoRoute: typeof DashboardSeoRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
@@ -628,6 +648,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardMidiaRoute: DashboardMidiaRoute,
   DashboardOrcamentosRoute: DashboardOrcamentosRoute,
   DashboardPedidosRoute: DashboardPedidosRoute,
+  DashboardPendenciasRoute: DashboardPendenciasRoute,
   DashboardProdutosRoute: DashboardProdutosRoute,
   DashboardSeoRoute: DashboardSeoRoute,
   DashboardIndexRoute: DashboardIndexRoute,
