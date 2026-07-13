@@ -252,10 +252,6 @@ function DashboardQuotesPage() {
   );
 }
 
-function ShareMenu({ order }: { order: OrderRow }) {
-  return null as never; // placeholder — real body follows below
-}
-
 function StatusSelect({ order }: { order: OrderRow }) {
   const qc = useQueryClient();
   const [value, setValue] = useState(order.status);
@@ -365,7 +361,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
   );
 }
 
-function ShareMenuReal({ order }: { order: OrderRow }) {
+function ShareMenu({ order }: { order: OrderRow }) {
   const items = Array.isArray(order.items)
     ? (order.items as Array<{
         name: string;
