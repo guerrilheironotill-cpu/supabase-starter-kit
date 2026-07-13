@@ -283,7 +283,7 @@ function DashboardQuotesPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-xs uppercase tracking-wide text-muted-foreground">
-                    {o.origin}
+                    <OriginBadge origin={o.origin} />
                   </td>
                   <td className="px-4 py-3">{currency(o.total)}</td>
                   <td className="px-4 py-3 text-muted-foreground">
