@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import { useQuoteStore, type QuoteItem } from "@/lib/quote-store";
 import { useWhatsAppNumber, whatsappLinkFrom } from "@/lib/site-settings";
+import { publicSupabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/orcamento")({
   head: () => ({
