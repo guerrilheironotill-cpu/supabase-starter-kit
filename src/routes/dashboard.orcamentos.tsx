@@ -104,23 +104,15 @@ type ItemDraft = {
 };
 
 const STATUS_LABEL: Record<string, string> = {
-  orcamento: "Orçamento",
-  em_contato: "Em contato",
-  proposta: "Proposta",
+  em_aberto: "Em aberto",
   aprovado: "Aprovado",
-  pago: "Pago",
-  entregue: "Entregue",
-  cancelado: "Cancelado",
+  nao_aprovado: "Não aprovado",
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  orcamento: "bg-primary/15 text-primary",
-  em_contato: "bg-amber-500/15 text-amber-400",
-  proposta: "bg-sky-500/15 text-sky-400",
-  aprovado: "bg-violet-500/15 text-violet-400",
-  pago: "bg-emerald-500/15 text-emerald-400",
-  entregue: "bg-emerald-500/15 text-emerald-400",
-  cancelado: "bg-red-500/15 text-red-400",
+  em_aberto: "bg-amber-500/15 text-amber-400",
+  aprovado: "bg-emerald-500/15 text-emerald-400",
+  nao_aprovado: "bg-red-500/15 text-red-400",
 };
 
 const currency = (n: number | null | undefined) =>
