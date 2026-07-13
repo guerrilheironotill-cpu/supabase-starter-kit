@@ -17,6 +17,7 @@ import {
   Sparkles,
   ShoppingCart,
   UserRound,
+  ListTodo,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -36,7 +37,8 @@ type NavItem = {
     | "/dashboard/midia"
     | "/dashboard/seo"
     | "/dashboard/desempenho"
-    | "/dashboard/configuracoes";
+    | "/dashboard/configuracoes"
+    | "/dashboard/pendencias";
   label: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
@@ -58,6 +60,7 @@ const NAV: NavItem[] = [
   { to: "/dashboard/seo", label: "SEO", icon: Search },
   { to: "/dashboard/desempenho", label: "Desempenho", icon: Gauge },
   { to: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
+  { to: "/dashboard/pendencias", label: "Pendências", icon: ListTodo },
 ];
 
 export function DashboardLayout() {
