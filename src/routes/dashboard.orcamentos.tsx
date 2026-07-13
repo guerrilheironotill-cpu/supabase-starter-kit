@@ -147,7 +147,23 @@ function normalizeQuoteStatus(status: string | null | undefined): QuoteStatus {
     .replace(/[\s-]+/g, "_");
 
   if (["aprovado", "aprovada", "quote_approved", "approved"].includes(clean)) return "aprovado";
-  if (["nao_aprovado", "recusado", "reprovado", "rejeitado", "quote_rejected", "rejected"].includes(clean)) return "nao_aprovado";
+  if (
+    [
+      "nao_aprovado",
+      "recusado",
+      "reprovado",
+      "rejeitado",
+      "quote_rejected",
+      "rejected",
+      "cancelado",
+      "cancelled",
+      "canceled",
+      "declined",
+      "quote_cancelled",
+      "closed",
+    ].includes(clean)
+  )
+    return "nao_aprovado";
   return "em_aberto";
 }
 
