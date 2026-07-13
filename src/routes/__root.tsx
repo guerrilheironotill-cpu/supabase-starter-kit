@@ -134,11 +134,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <head>
+    <html lang="en" suppressHydrationWarning>
+      <head suppressHydrationWarning>
         <HeadContent />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         {children}
         <Scripts />
       </body>
@@ -154,6 +154,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <div
+        suppressHydrationWarning
         className="flex min-h-screen flex-col"
         style={
           isDashboard
@@ -166,7 +167,7 @@ function RootComponent() {
       >
         {isDashboard ? <DashboardHeader /> : <SiteHeader />}
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <main className="flex-1">
+        <main className="flex-1" suppressHydrationWarning>
           <Outlet />
         </main>
         {!isDashboard && <SiteFooter />}
