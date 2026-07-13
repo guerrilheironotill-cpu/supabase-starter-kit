@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FileText, Plus, Trash2, Share2, Link as LinkIcon, FileDown, MessageCircle, Mail } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardSection } from "@/components/dashboard-layout";
@@ -103,17 +103,38 @@ type ItemDraft = {
   color?: string;
 };
 
-const STATUS_LABEL: Record<string, string> = {
+type QuoteStatus = "em_aberto" | "aprovado" | "nao_aprovado";
+
+const STATUS_LABEL: Record<QuoteStatus, string> = {
   em_aberto: "Em aberto",
   aprovado: "Aprovado",
   nao_aprovado: "Não aprovado",
 };
 
-const STATUS_STYLES: Record<string, string> = {
+const STATUS_STYLES: Record<QuoteStatus, string> = {
   em_aberto: "bg-amber-500/15 text-amber-400",
   aprovado: "bg-emerald-500/15 text-emerald-400",
   nao_aprovado: "bg-red-500/15 text-red-400",
 };
+
+const STATUS_WRITE_CANDIDATES: Record<QuoteStatus, string[]> = {
+  em_aberto: ["em_aberto", "em aberto", "aberto", "open"],
+  aprovado: ["aprovado", "aprovada", "approved"],
+  nao_aprovado: ["nao_aprovado", "não aprovado", "nao aprovado", "reprovado", "rejeitado", "rejected"],
+};
+
+function normalizeQuoteStatus(status: string | null | undefined): QuoteStatus {
+  const clean = String(status ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\s-]+/g, "_");
+
+  if (["aprovado", "aprovada", "approved"].includes(clean)) return "aprovado";
+  if (["nao_aprovado", "reprovado", "rejeitado", "rejected"].includes(clean)) return "nao_aprovado";
+  return "em_aberto";
+}
 
 const currency = (n: number | null | undefined) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
@@ -250,35 +271,50 @@ function DashboardQuotesPage() {
 
 function StatusSelect({ order }: { order: OrderRow }) {
   const qc = useQueryClient();
-  const [value, setValue] = useState(order.status);
+  const [value, setValue] = useState<QuoteStatus>(() => normalizeQuoteStatus(order.status));
   const [saving, setSaving] = useState(false);
 
-  const persist = async (next: string, extraNotes?: string) => {
+  useEffect(() => {
+    setValue(normalizeQuoteStatus(order.status));
+  }, [order.status]);
+
+  const persist = async (next: QuoteStatus, extraNotes?: string) => {
     setSaving(true);
     try {
-      const patch: Record<string, unknown> = { status: next };
-      if (extraNotes) patch.notes = extraNotes;
-      const { data, error } = await supabase
-        .from("orders" as never)
-        .update(patch as never)
-        .eq("id", order.id)
-        .select("id, status");
-      if (error) {
-        console.error("[orders.update]", error);
-        throw error;
+      let lastError: unknown = null;
+
+      for (const status of STATUS_WRITE_CANDIDATES[next]) {
+        const patch: Record<string, unknown> = { status };
+        if (extraNotes) patch.notes = extraNotes;
+
+        const { error } = await supabase
+          .from("orders" as never)
+          .update(patch as never)
+          .eq("id", order.id);
+
+        if (!error) {
+          setValue(next);
+          qc.setQueryData<OrderRow[]>(["orders"], (current) =>
+            current?.map((row) =>
+              row.id === order.id
+                ? { ...row, status: next, notes: extraNotes ?? row.notes }
+                : row,
+            ),
+          );
+          qc.invalidateQueries({ queryKey: ["orders"] });
+          return true;
+        }
+
+        lastError = error;
+        console.warn(`[orders.update:${status}]`, error.message);
       }
-      if (!data || (data as unknown[]).length === 0) {
-        throw new Error(
-          "Nenhuma linha atualizada — verifique se você está logado como admin (RLS pode estar bloqueando).",
-        );
-      }
-      setValue(next);
-      qc.invalidateQueries({ queryKey: ["orders"] });
+
+      throw lastError instanceof Error ? lastError : new Error("Não foi possível atualizar o status.");
     } catch (e) {
       toast.error("Erro ao atualizar status: " + (e as Error).message, {
         duration: 8000,
       });
-      throw e;
+      return false;
     } finally {
       setSaving(false);
     }
@@ -422,7 +458,8 @@ function StatusSelect({ order }: { order: OrderRow }) {
         app_order_number: newOrder.number,
       });
       try {
-        await persist("aprovado", nextNotes);
+        const saved = await persist("aprovado", nextNotes);
+        if (!saved) return;
       } catch (e) {
         fail("atualizar status", e);
       }
@@ -439,10 +476,11 @@ function StatusSelect({ order }: { order: OrderRow }) {
     <Select
       value={value}
       onValueChange={(v) => {
-        if (v === "aprovado" && order.status !== "aprovado") {
+        const next = normalizeQuoteStatus(v);
+        if (next === "aprovado" && normalizeQuoteStatus(order.status) !== "aprovado") {
           void approveAndPush();
         } else {
-          persist(v).catch(() => {});
+          void persist(next);
         }
       }}
       disabled={saving}
