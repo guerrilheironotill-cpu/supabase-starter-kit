@@ -87,6 +87,10 @@ export async function fetchCategoryTerms(): Promise<CategoryTerm[]> {
 
   const terms = new Map<string, CategoryTerm & { sort_order: number }>();
 
+  const baseBySlug = new Map<
+    string,
+    { id: string; name: string; sort_order: number }
+  >();
   for (const row of baseCategories ?? []) {
     const item = row as {
       id: string;
@@ -97,30 +101,25 @@ export async function fetchCategoryTerms(): Promise<CategoryTerm[]> {
     const name = cleanName(item.name);
     if (!name) continue;
     const slug = item.slug || slugify(name);
-    const meta = metaBySlug.get(slug);
-    terms.set(slug, {
+    baseBySlug.set(slug, {
       id: item.id,
-      slug,
       name,
-      cover_image: meta?.cover_image ?? null,
-      icon_svg: meta?.icon_svg ?? null,
-      count: counts.get(name) ?? 0,
       sort_order: item.sort_order ?? 999,
     });
   }
 
   for (const [name, count] of counts) {
     const slug = slugify(name);
-    const existing = terms.get(slug);
+    const base = baseBySlug.get(slug);
     const meta = metaBySlug.get(slug);
     terms.set(slug, {
-      id: existing?.id ?? null,
+      id: base?.id ?? null,
       slug,
-      name: existing?.name ?? name,
-      cover_image: existing?.cover_image ?? meta?.cover_image ?? null,
-      icon_svg: existing?.icon_svg ?? meta?.icon_svg ?? null,
+      name: base?.name ?? name,
+      cover_image: meta?.cover_image ?? null,
+      icon_svg: meta?.icon_svg ?? null,
       count,
-      sort_order: existing?.sort_order ?? 999,
+      sort_order: base?.sort_order ?? 999,
     });
   }
 
