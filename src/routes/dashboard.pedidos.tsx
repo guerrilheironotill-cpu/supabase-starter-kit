@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { fetchWc, type WcOrder } from "@/lib/wc-api";
 import { supabase } from "@/integrations/supabase/client";
@@ -117,8 +118,6 @@ function OrdersPage() {
         </p>
       </div>
 
-      <AppOrdersSection />
-
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <select
           value={status}
@@ -150,15 +149,6 @@ function OrdersPage() {
           <div className="flex items-center justify-center p-10 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
-        ) : !data?.configured ? (
-          <div className="p-6 text-sm text-muted-foreground">
-            WooCommerce não configurado. Cadastre <code>site_url</code>, <code>consumer_key</code> e{" "}
-            <code>consumer_secret</code> na tabela <code>integrations</code>.
-          </div>
-        ) : data.error ? (
-          <div className="p-6 text-sm text-destructive">{data.error}</div>
-        ) : (items?.length ?? 0) === 0 ? (
-          <div className="p-6 text-sm text-muted-foreground">Nenhum pedido encontrado.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -174,7 +164,8 @@ function OrdersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {items!.map((o) => (
+                <AppOrdersRows />
+                {(items ?? []).map((o) => (
                   <tr key={o.id} className="hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">#{o.number}</td>
                     <td className="px-4 py-3">
@@ -220,6 +211,13 @@ function OrdersPage() {
                 ))}
               </tbody>
             </table>
+            {!data?.configured ? (
+              <div className="p-4 text-xs text-muted-foreground">
+                WooCommerce não configurado — mostrando apenas pedidos do sistema.
+              </div>
+            ) : data.error ? (
+              <div className="p-4 text-xs text-destructive">{data.error}</div>
+            ) : null}
           </div>
         )}
       </div>
@@ -632,11 +630,11 @@ function fmtBRL(n: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(n) || 0);
 }
 
-function AppOrdersSection() {
+function AppOrdersRows() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<AppOrder | null>(null);
 
-  const { data: orders = [], isLoading } = useQuery({
+  const { data: orders = [] } = useQuery({
     queryKey: ["app-orders"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -662,33 +660,8 @@ function AppOrdersSection() {
   }
 
   return (
-    <div className="mb-8">
-      <h2 className="mb-3 text-lg font-semibold text-foreground">Pedidos aprovados (sistema)</h2>
-      <div className="rounded-2xl border border-border bg-card">
-        {isLoading ? (
-          <div className="flex items-center justify-center p-8 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="p-6 text-sm text-muted-foreground">
-            Nenhum pedido aprovado ainda. Aprove um orçamento em <em>Orçamentos</em> para criar um pedido aqui.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-border bg-muted/30 text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3">Pedido</th>
-                  <th className="px-4 py-3">Cliente</th>
-                  <th className="px-4 py-3">Data</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Itens</th>
-                  <th className="px-4 py-3 text-right">Total</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {orders.map((o) => (
+    <>
+      {orders.map((o) => (
                   <tr key={o.id} className="hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">#{o.number}</td>
                     <td className="px-4 py-3">
@@ -726,24 +699,21 @@ function AppOrdersSection() {
                       </button>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {editing && (
-        <AppOrderEditDialog
-          order={editing}
-          onClose={() => setEditing(null)}
-          onSaved={() => {
-            setEditing(null);
-            qc.invalidateQueries({ queryKey: ["app-orders"] });
-          }}
-        />
-      )}
-    </div>
+      ))}
+      {editing && typeof document !== "undefined"
+        ? createPortal(
+            <AppOrderEditDialog
+              order={editing}
+              onClose={() => setEditing(null)}
+              onSaved={() => {
+                setEditing(null);
+                qc.invalidateQueries({ queryKey: ["app-orders"] });
+              }}
+            />,
+            document.body,
+          )
+        : null}
+    </>
   );
 }
 
