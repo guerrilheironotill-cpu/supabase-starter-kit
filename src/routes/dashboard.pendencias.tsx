@@ -44,7 +44,15 @@ const INITIAL: Item[] = [
       "Implementar cadastro, login e catálogo com preços diferenciados para revendedores.",
     priority: "media",
   },
+  {
+    id: "ga4-eventos-botoes",
+    title: "GA4 — rastrear cliques em botões (eventos customizados)",
+    description:
+      "Passo a passo: 1) Confirmar GA4 Measurement ID em Configurações → Integrações. 2) Criar helper src/lib/analytics.ts com trackEvent(name, params) usando window.gtag. 3) Instrumentar CTAs: click_whatsapp (header/produto/drawer), generate_lead (envio orçamento), select_item (product-card), view_item (/produto/:slug), search (busca), begin_checkout (abrir drawer orçamento), contact (form contato). 4) Em GA4 → Admin → Events, marcar generate_lead e click_whatsapp como conversão. 5) (Opcional) Espelhar no Meta Pixel (ViewContent, Lead, Contact). 6) Validar no GA4 DebugView antes de publicar.",
+    priority: "media",
+  },
 ];
+
 
 const PRIORITY_STYLE: Record<Priority, string> = {
   alta: "bg-red-100 text-red-700 border-red-200",
