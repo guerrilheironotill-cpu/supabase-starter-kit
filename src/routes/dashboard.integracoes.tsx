@@ -208,6 +208,7 @@ function IntegrationField({
   onChange: (v: string) => void;
   steps: string[];
 }) {
+  const connected = value.trim().length > 0;
   return (
     <div className="border-t border-border pt-6 first:border-t-0 first:pt-0">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -215,6 +216,22 @@ function IntegrationField({
           <span className="flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">
             <span className="text-primary">{icon}</span>
             {label}
+            <span
+              className={`ml-auto inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal ${
+                connected
+                  ? "bg-emerald-500/10 text-emerald-600"
+                  : "bg-red-500/10 text-red-600"
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  connected
+                    ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]"
+                    : "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]"
+                }`}
+              />
+              {connected ? "Conectado" : "Não conectado"}
+            </span>
           </span>
           <input
             type="text"
