@@ -38,6 +38,7 @@ import { Route as DashboardClientesRouteImport } from './routes/dashboard.client
 import { Route as DashboardCategoriasRouteImport } from './routes/dashboard.categorias'
 import { Route as DashboardAcabamentosRouteImport } from './routes/dashboard.acabamentos'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
+import { Route as DashboardCrmLeadsRouteImport } from './routes/dashboard.crm.leads'
 import { Route as ApiWcUpdateOrderRouteImport } from './routes/api/wc.update-order'
 import { Route as ApiWcOrdersSummaryRouteImport } from './routes/api/wc.orders-summary'
 import { Route as ApiWcListRouteImport } from './routes/api/wc.list'
@@ -190,6 +191,11 @@ const CategoriaSlugRoute = CategoriaSlugRouteImport.update({
   path: '/categoria/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardCrmLeadsRoute = DashboardCrmLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => DashboardCrmRoute,
+} as any)
 const ApiWcUpdateOrderRoute = ApiWcUpdateOrderRouteImport.update({
   id: '/api/wc/update-order',
   path: '/api/wc/update-order',
@@ -232,7 +238,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/clientes': typeof DashboardClientesRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/cores': typeof DashboardCoresRoute
-  '/dashboard/crm': typeof DashboardCrmRoute
+  '/dashboard/crm': typeof DashboardCrmRouteWithChildren
   '/dashboard/debug': typeof DashboardDebugRoute
   '/dashboard/desempenho': typeof DashboardDesempenhoRoute
   '/dashboard/integracoes': typeof DashboardIntegracoesRoute
@@ -251,6 +257,7 @@ export interface FileRoutesByFullPath {
   '/api/wc/list': typeof ApiWcListRoute
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
   '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
+  '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -267,7 +274,7 @@ export interface FileRoutesByTo {
   '/dashboard/clientes': typeof DashboardClientesRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/cores': typeof DashboardCoresRoute
-  '/dashboard/crm': typeof DashboardCrmRoute
+  '/dashboard/crm': typeof DashboardCrmRouteWithChildren
   '/dashboard/debug': typeof DashboardDebugRoute
   '/dashboard/desempenho': typeof DashboardDesempenhoRoute
   '/dashboard/integracoes': typeof DashboardIntegracoesRoute
@@ -286,6 +293,7 @@ export interface FileRoutesByTo {
   '/api/wc/list': typeof ApiWcListRoute
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
   '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
+  '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -304,7 +312,7 @@ export interface FileRoutesById {
   '/dashboard/clientes': typeof DashboardClientesRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/cores': typeof DashboardCoresRoute
-  '/dashboard/crm': typeof DashboardCrmRoute
+  '/dashboard/crm': typeof DashboardCrmRouteWithChildren
   '/dashboard/debug': typeof DashboardDebugRoute
   '/dashboard/desempenho': typeof DashboardDesempenhoRoute
   '/dashboard/integracoes': typeof DashboardIntegracoesRoute
@@ -323,6 +331,7 @@ export interface FileRoutesById {
   '/api/wc/list': typeof ApiWcListRoute
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
   '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
+  '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -361,6 +370,7 @@ export interface FileRouteTypes {
     | '/api/wc/list'
     | '/api/wc/orders-summary'
     | '/api/wc/update-order'
+    | '/dashboard/crm/leads'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -396,6 +406,7 @@ export interface FileRouteTypes {
     | '/api/wc/list'
     | '/api/wc/orders-summary'
     | '/api/wc/update-order'
+    | '/dashboard/crm/leads'
   id:
     | '__root__'
     | '/'
@@ -432,6 +443,7 @@ export interface FileRouteTypes {
     | '/api/wc/list'
     | '/api/wc/orders-summary'
     | '/api/wc/update-order'
+    | '/dashboard/crm/leads'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -659,6 +671,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriaSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/crm/leads': {
+      id: '/dashboard/crm/leads'
+      path: '/leads'
+      fullPath: '/dashboard/crm/leads'
+      preLoaderRoute: typeof DashboardCrmLeadsRouteImport
+      parentRoute: typeof DashboardCrmRoute
+    }
     '/api/wc/update-order': {
       id: '/api/wc/update-order'
       path: '/api/wc/update-order'
@@ -697,13 +716,25 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface DashboardCrmRouteChildren {
+  DashboardCrmLeadsRoute: typeof DashboardCrmLeadsRoute
+}
+
+const DashboardCrmRouteChildren: DashboardCrmRouteChildren = {
+  DashboardCrmLeadsRoute: DashboardCrmLeadsRoute,
+}
+
+const DashboardCrmRouteWithChildren = DashboardCrmRoute._addFileChildren(
+  DashboardCrmRouteChildren,
+)
+
 interface DashboardRouteChildren {
   DashboardAcabamentosRoute: typeof DashboardAcabamentosRoute
   DashboardCategoriasRoute: typeof DashboardCategoriasRoute
   DashboardClientesRoute: typeof DashboardClientesRoute
   DashboardConfiguracoesRoute: typeof DashboardConfiguracoesRoute
   DashboardCoresRoute: typeof DashboardCoresRoute
-  DashboardCrmRoute: typeof DashboardCrmRoute
+  DashboardCrmRoute: typeof DashboardCrmRouteWithChildren
   DashboardDebugRoute: typeof DashboardDebugRoute
   DashboardDesempenhoRoute: typeof DashboardDesempenhoRoute
   DashboardIntegracoesRoute: typeof DashboardIntegracoesRoute
@@ -723,7 +754,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardClientesRoute: DashboardClientesRoute,
   DashboardConfiguracoesRoute: DashboardConfiguracoesRoute,
   DashboardCoresRoute: DashboardCoresRoute,
-  DashboardCrmRoute: DashboardCrmRoute,
+  DashboardCrmRoute: DashboardCrmRouteWithChildren,
   DashboardDebugRoute: DashboardDebugRoute,
   DashboardDesempenhoRoute: DashboardDesempenhoRoute,
   DashboardIntegracoesRoute: DashboardIntegracoesRoute,

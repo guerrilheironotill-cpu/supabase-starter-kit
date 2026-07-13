@@ -35,6 +35,7 @@ type NavItem = {
     | "/dashboard/acabamentos"
     | "/dashboard/cores"
     | "/dashboard/crm"
+    | "/dashboard/crm/leads"
     | "/dashboard/debug"
     | "/dashboard/midia"
     | "/dashboard/seo"
@@ -59,6 +60,7 @@ const NAV: NavItem[] = [
   { to: "/dashboard/acabamentos", label: "Acabamentos", icon: Sparkles, child: true },
   { to: "/dashboard/cores", label: "Cores", icon: Palette, child: true },
   { to: "/dashboard/crm", label: "CRM", icon: Users2 },
+  { to: "/dashboard/crm/leads", label: "Leads", icon: Users2, child: true },
   { to: "/dashboard/debug", label: "Debug", icon: Bug },
   { to: "/dashboard/midia", label: "Mídia", icon: ImageIcon },
   { to: "/dashboard/seo", label: "SEO", icon: Search },
