@@ -747,12 +747,68 @@ function StepCustomer({
           Seus dados
         </h2>
         <div className="mt-3 grid gap-4 border border-border bg-card p-5 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <span className="block text-xs font-medium uppercase tracking-widest text-muted-foreground">
+              Tipo de pessoa
+            </span>
+            <div className="mt-2 flex gap-4 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="personType"
+                  checked={customer.personType === "fisica"}
+                  onChange={() =>
+                    setCustomer((c) => ({ ...c, personType: "fisica" }))
+                  }
+                />
+                Pessoa física
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="personType"
+                  checked={customer.personType === "juridica"}
+                  onChange={() =>
+                    setCustomer((c) => ({ ...c, personType: "juridica" }))
+                  }
+                />
+                Pessoa jurídica
+              </label>
+            </div>
+          </div>
           <Field
             label="Nome completo"
             value={customer.name}
             onChange={(v) => setCustomer((c) => ({ ...c, name: v }))}
             className="sm:col-span-2"
           />
+          {customer.personType === "juridica" && (
+            <Field
+              label="Nome da empresa"
+              value={customer.companyName}
+              onChange={(v) => setCustomer((c) => ({ ...c, companyName: v }))}
+              className="sm:col-span-2"
+            />
+          )}
+          {customer.personType === "fisica" ? (
+            <Field
+              label="CPF"
+              value={customer.cpf}
+              onChange={(v) => setCustomer((c) => ({ ...c, cpf: v }))}
+              maxLength={14}
+              placeholder="000.000.000-00"
+              className="sm:col-span-2"
+            />
+          ) : (
+            <Field
+              label="CNPJ"
+              value={customer.cnpj}
+              onChange={(v) => setCustomer((c) => ({ ...c, cnpj: v }))}
+              maxLength={18}
+              placeholder="00.000.000/0000-00"
+              className="sm:col-span-2"
+            />
+          )}
           <Field
             label="E-mail"
             type="email"
