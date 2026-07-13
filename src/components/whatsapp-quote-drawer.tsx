@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
+import { maskPhoneBR } from "@/lib/masks";
 import { useQuoteStore } from "@/lib/quote-store";
 import { useLeadsStore } from "@/lib/leads-store";
 import { publicSupabase } from "@/integrations/supabase/client";
