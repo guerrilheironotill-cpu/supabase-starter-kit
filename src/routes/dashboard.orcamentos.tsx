@@ -575,34 +575,93 @@ function StatusSelect({ order }: { order: OrderRow }) {
   };
 
   return (
-    <Select
-      value={value}
-      onValueChange={(v) => {
-        const next = normalizeQuoteStatus(v);
-        if (next === "aprovado" && normalizeQuoteStatus(order.status) !== "aprovado") {
-          void approveAndPush();
-        } else {
-          void persist(next);
-        }
-      }}
-      disabled={saving}
-    >
-      <SelectTrigger
-        className={`h-8 w-[150px] border-0 text-xs font-medium ${
-          STATUS_STYLES[value] ?? "bg-muted text-muted-foreground"
-        }`}
+    <>
+      <Select
+        value={value}
+        onValueChange={(v) => {
+          const next = normalizeQuoteStatus(v);
+          const current = normalizeQuoteStatus(order.status);
+          if (next === "aprovado" && current !== "aprovado") {
+            void approveAndPush();
+          } else if (next === "nao_aprovado" && current !== "nao_aprovado") {
+            setTagInput(suggestedTags[0] ?? "");
+            setTagOpen(true);
+          } else {
+            void persist(next);
+          }
+        }}
+        disabled={saving}
       >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {Object.entries(STATUS_LABEL).map(([k, label]) => (
-          <SelectItem key={k} value={k}>
-            {label}
-            {k === "aprovado" ? " → Pedido" : ""}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+        <SelectTrigger
+          className={`h-8 w-[150px] border-0 text-xs font-medium ${
+            STATUS_STYLES[value] ?? "bg-muted text-muted-foreground"
+          }`}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {Object.entries(STATUS_LABEL).map(([k, label]) => (
+            <SelectItem key={k} value={k}>
+              {label}
+              {k === "aprovado" ? " → Pedido" : ""}
+              {k === "nao_aprovado" ? " → Lead" : ""}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Dialog open={tagOpen} onOpenChange={(o) => !saving && setTagOpen(o)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cadastrar como lead</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Tag de interesse</Label>
+              <Input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                placeholder="Ex: Interesse em vaso"
+                className="mt-1"
+              />
+              {suggestedTags.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {suggestedTags.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setTagInput(t)}
+                      className="rounded-full border border-border px-2 py-0.5 text-xs hover:bg-muted"
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <Label>Lista</Label>
+              <Input
+                value={listInput}
+                onChange={(e) => setListInput(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setTagOpen(false)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => void rejectAsLead(tagInput.trim() || "Sem tag", listInput.trim() || "Leads")}
+              disabled={saving || !tagInput.trim()}
+            >
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
