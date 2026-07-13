@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { fetchProductCategoryOptions } from "@/lib/dashboard-taxonomies";
 
 type Category = { id: string; name: string; slug: string };
 type SizeRow = { id?: string; name: string; base_price: number; sale_price: number | null; sort_order: number };
@@ -59,7 +60,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
           supabase.from("product_sizes").select("*").eq("product_id", productId).order("sort_order"),
           supabase.from("product_finishes").select("*").eq("product_id", productId).order("sort_order"),
           supabase.from("product_colors").select("*").eq("product_id", productId).order("sort_order"),
-          supabase.from("categories").select("id, name, slug").order("sort_order").order("name"),
+          fetchProductCategoryOptions(),
         ]);
         if (cancel) return;
         if (p.error) throw p.error;
@@ -68,7 +69,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
         setSizes((s.data ?? []) as SizeRow[]);
         setFinishes(((f.data ?? []) as AttrRow[]).map((x) => ({ id: x.id, name: x.name, sort_order: x.sort_order })));
         setColors(((c.data ?? []) as AttrRow[]).map((x) => ({ id: x.id, name: x.name, sort_order: x.sort_order })));
-        setCategories((cats.data ?? []) as Category[]);
+        setCategories(cats as Category[]);
       } catch (e) {
         if (!cancel) setError(e instanceof Error ? e.message : "Falha ao carregar");
       } finally {
@@ -471,8 +472,23 @@ function AttrTab({
   const [options, setOptions] = useState<string[]>([]);
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from(catalog).select("name").order("name");
-      setOptions(((data ?? []) as Array<{ name: string }>).map((x) => x.name));
+      const relation = catalog === "finish_catalog" ? "product_finishes" : "product_colors";
+      const [catalogRows, productRows] = await Promise.all([
+        supabase.from(catalog).select("name").order("name"),
+        supabase.from(relation).select("name").order("name"),
+      ]);
+      const names = new Set<string>();
+      if (!catalogRows.error) {
+        for (const row of (catalogRows.data ?? []) as Array<{ name: string | null }>) {
+          if (row.name) names.add(row.name);
+        }
+      }
+      if (!productRows.error) {
+        for (const row of (productRows.data ?? []) as Array<{ name: string | null }>) {
+          if (row.name) names.add(row.name);
+        }
+      }
+      setOptions(Array.from(names).sort((a, b) => a.localeCompare(b)));
     })();
   }, [catalog]);
 
