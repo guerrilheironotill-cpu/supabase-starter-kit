@@ -179,8 +179,9 @@ function DashboardSettingsPage() {
         Logos do site
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Cole a URL de cada versão do logo. Use um logo escuro para fundos claros
-        e um logo claro para fundos escuros.
+        Envie uma imagem para cada versão do logo. Use um logo escuro para
+        fundos claros e um logo claro para fundos escuros. Formatos: PNG, SVG
+        ou JPG (até 2 MB).
       </p>
 
       <form
@@ -189,7 +190,6 @@ function DashboardSettingsPage() {
       >
         <LogoField
           label="Logo para fundo branco (versão escura)"
-          placeholder="https://.../logo-dark.svg"
           value={logoLight}
           onChange={setLogoLight}
           previewBg="#ffffff"
@@ -197,7 +197,6 @@ function DashboardSettingsPage() {
 
         <LogoField
           label="Logo para fundo escuro (versão clara)"
-          placeholder="https://.../logo-light.svg"
           value={logoDark}
           onChange={setLogoDark}
           previewBg="#111111"
@@ -221,32 +220,63 @@ function DashboardSettingsPage() {
 
 function LogoField({
   label,
-  placeholder,
   value,
   onChange,
   previewBg,
 }: {
   label: string;
-  placeholder: string;
   value: string;
   onChange: (v: string) => void;
   previewBg: string;
 }) {
+  const [error, setError] = useState<string | null>(null);
+
+  function handleFile(file: File | null | undefined) {
+    setError(null);
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Selecione um arquivo de imagem.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Imagem muito grande (máx. 2 MB).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") onChange(reader.result);
+    };
+    reader.onerror = () => setError("Falha ao ler o arquivo.");
+    reader.readAsDataURL(file);
+  }
+
   return (
     <div className="border-t border-border pt-6 first:border-t-0 first:pt-0">
-      <label className="block">
-        <span className="flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">
-          <ImagePlus className="h-4 w-4 text-primary" />
-          {label}
-        </span>
-        <input
-          type="url"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="mt-2 block w-full max-w-xl border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
-        />
-      </label>
+      <span className="flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">
+        <ImagePlus className="h-4 w-4 text-primary" />
+        {label}
+      </span>
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <label className="inline-flex cursor-pointer items-center gap-2 border border-border bg-transparent px-4 py-2 text-sm hover:border-primary">
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => handleFile(e.target.files?.[0])}
+          />
+          {value ? "Trocar imagem" : "Escolher imagem"}
+        </label>
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="text-xs text-destructive hover:underline"
+          >
+            Remover
+          </button>
+        )}
+      </div>
+      {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
       {value && (
         <div
           className="mt-3 flex h-24 w-full max-w-xl items-center justify-center border border-border p-3"
