@@ -237,14 +237,7 @@ function DashboardQuotesPage() {
                     {new Date(o.created_at).toLocaleDateString("pt-BR")}
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-                        STATUS_STYLES[o.status] ?? "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      <FileText className="h-3 w-3" />
-                      {STATUS_LABEL[o.status] ?? o.status}
-                    </span>
+                    <StatusSelect order={o} />
                   </td>
                   <td className="px-4 py-3 text-right">
                     <ShareMenu order={o} />
@@ -256,6 +249,115 @@ function DashboardQuotesPage() {
         </div>
       </DashboardSection>
     </>
+  );
+}
+
+function StatusSelect({ order }: { order: OrderRow }) {
+  const qc = useQueryClient();
+  const [value, setValue] = useState(order.status);
+  const [saving, setSaving] = useState(false);
+
+  const persist = async (next: string, extraNotes?: string) => {
+    setSaving(true);
+    try {
+      const patch: Record<string, unknown> = { status: next };
+      if (extraNotes) patch.notes = extraNotes;
+      const { error } = await supabase
+        .from("orders" as never)
+        .update(patch as never)
+        .eq("id", order.id);
+      if (error) throw error;
+      setValue(next);
+      qc.invalidateQueries({ queryKey: ["orders"] });
+    } catch (e) {
+      toast.error("Erro ao atualizar status: " + (e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const approveAndPush = async () => {
+    setSaving(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
+      if (!token) throw new Error("Sessão expirada");
+
+      const meta = parseMeta(order.notes);
+      const items = Array.isArray(order.items)
+        ? (order.items as Array<{ name: string; quantity: number; price: number }>)
+        : [];
+      const [first, ...rest] = (order.customer_name ?? "").split(" ");
+
+      const res = await fetch("/api/wc/create-order", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer: {
+            first_name: first,
+            last_name: rest.join(" "),
+            email: order.customer_email ?? "",
+            phone: order.customer_phone ?? "",
+            address: meta.address,
+          },
+          items: items.map((i) => ({
+            name: i.name,
+            quantity: Number(i.quantity) || 1,
+            price: Number(i.price) || 0,
+          })),
+          shipping_total: meta.freight,
+          note: meta.note,
+        }),
+      });
+      const json = (await res.json()) as { ok: boolean; id?: number; number?: string; error?: string };
+      if (!json.ok) throw new Error(json.error ?? "Falha ao criar pedido no WooCommerce");
+
+      const nextNotes = JSON.stringify({
+        __meta: 1,
+        ...meta,
+        wc_order_id: json.id,
+        wc_order_number: json.number,
+      });
+      await persist("aprovado", nextNotes);
+      toast.success(`Pedido #${json.number} criado no WooCommerce`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Select
+      value={value}
+      onValueChange={(v) => {
+        if (v === "aprovado" && order.status !== "aprovado") {
+          void approveAndPush();
+        } else {
+          void persist(v);
+        }
+      }}
+      disabled={saving}
+    >
+      <SelectTrigger
+        className={`h-8 w-[150px] border-0 text-xs font-medium ${
+          STATUS_STYLES[value] ?? "bg-muted text-muted-foreground"
+        }`}
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {Object.entries(STATUS_LABEL).map(([k, label]) => (
+          <SelectItem key={k} value={k}>
+            {label}
+            {k === "aprovado" ? " → Woo" : ""}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
