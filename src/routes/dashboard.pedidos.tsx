@@ -36,6 +36,21 @@ const STATUS_COLOR: Record<string, string> = {
   failed: "bg-red-500/15 text-red-500",
 };
 
+const OVERRIDES_KEY = "wc-order-overrides-v1";
+type Override = { status?: string; customer_note?: string };
+function readOverrides(): Record<number, Override> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(window.localStorage.getItem(OVERRIDES_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+function writeOverrides(v: Record<number, Override>) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(OVERRIDES_KEY, JSON.stringify(v));
+}
+
 function formatCurrency(value: string, currency: string) {
   const n = Number(value);
   if (Number.isNaN(n)) return `${currency} ${value}`;
