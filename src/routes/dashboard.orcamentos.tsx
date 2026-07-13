@@ -742,7 +742,7 @@ function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
         address,
       });
       const { error: orderErr } = await supabase.from("orders" as never).insert({
-        status: "orcamento",
+        status: "em_aberto",
         origin: "manual",
         customer_name: name,
         customer_phone: phone || null,
