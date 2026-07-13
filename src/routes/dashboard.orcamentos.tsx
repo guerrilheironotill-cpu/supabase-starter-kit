@@ -62,6 +62,8 @@ type QuoteMeta = {
   pix: string;
   note: string;
   address: string;
+  app_order_id?: string;
+  app_order_number?: number;
 };
 
 function parseMeta(raw: string | null | undefined): QuoteMeta {
@@ -78,6 +80,8 @@ function parseMeta(raw: string | null | undefined): QuoteMeta {
         pix: String(p.pix ?? ""),
         note: String(p.note ?? ""),
         address: String(p.address ?? ""),
+        app_order_id: typeof p.app_order_id === "string" ? p.app_order_id : undefined,
+        app_order_number: Number.isFinite(Number(p.app_order_number)) ? Number(p.app_order_number) : undefined,
       };
     }
   } catch {
@@ -336,12 +340,16 @@ function StatusSelect({ order }: { order: OrderRow }) {
       const shipping = Number(meta.freight) || 0;
       const totalVal = subtotal + shipping;
 
-      const { data: existing, error: qErr } = await supabase
-        .from("app_orders" as never)
-        .select("id, number")
-        .eq("quote_order_id", order.id)
-        .maybeSingle();
-      if (qErr) fail("consultar pedido", qErr);
+      let existing: { id: string; number: number } | null = null;
+      if (meta.app_order_id) {
+        const { data: linked, error: qErr } = await supabase
+          .from("app_orders" as never)
+          .select("id, number")
+          .eq("id", meta.app_order_id)
+          .maybeSingle();
+        if (qErr) fail("consultar pedido", qErr);
+        existing = (linked as unknown as { id: string; number: number } | null) ?? null;
+      }
 
       let newOrder: { id: string; number: number };
       if (existing) {
@@ -355,8 +363,6 @@ function StatusSelect({ order }: { order: OrderRow }) {
             shipping_total: shipping,
             total: totalVal,
             customer_note: meta.note || null,
-            is_quote: false,
-            approved_at: new Date().toISOString(),
           } as never)
           .eq("id", prev.id);
         if (uErr) fail("atualizar pedido", uErr);
@@ -370,7 +376,6 @@ function StatusSelect({ order }: { order: OrderRow }) {
         const { data: created, error: oErr } = await supabase
           .from("app_orders" as never)
           .insert({
-            quote_order_id: order.id,
             customer_id: customerId,
             status: "pending",
             currency: "BRL",
@@ -378,8 +383,6 @@ function StatusSelect({ order }: { order: OrderRow }) {
             shipping_total: shipping,
             total: totalVal,
             customer_note: meta.note || null,
-            is_quote: false,
-            approved_at: new Date().toISOString(),
           } as never)
           .select("id, number")
           .single();
