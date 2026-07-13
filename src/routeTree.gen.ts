@@ -28,6 +28,7 @@ import { Route as DashboardDesempenhoRouteImport } from './routes/dashboard.dese
 import { Route as DashboardDebugRouteImport } from './routes/dashboard.debug'
 import { Route as DashboardCrmRouteImport } from './routes/dashboard.crm'
 import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.configuracoes'
+import { Route as DashboardCategoriasRouteImport } from './routes/dashboard.categorias'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 
 const SupabaseCheckRoute = SupabaseCheckRouteImport.update({
@@ -125,6 +126,11 @@ const DashboardConfiguracoesRoute = DashboardConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardCategoriasRoute = DashboardCategoriasRouteImport.update({
+  id: '/categorias',
+  path: '/categorias',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const CategoriaSlugRoute = CategoriaSlugRouteImport.update({
   id: '/categoria/$slug',
   path: '/categoria/$slug',
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
+  '/dashboard/categorias': typeof DashboardCategoriasRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/crm': typeof DashboardCrmRoute
   '/dashboard/debug': typeof DashboardDebugRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
+  '/dashboard/categorias': typeof DashboardCategoriasRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/crm': typeof DashboardCrmRoute
   '/dashboard/debug': typeof DashboardDebugRoute
@@ -186,6 +194,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
+  '/dashboard/categorias': typeof DashboardCategoriasRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/crm': typeof DashboardCrmRoute
   '/dashboard/debug': typeof DashboardDebugRoute
@@ -210,6 +219,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/supabase-check'
     | '/categoria/$slug'
+    | '/dashboard/categorias'
     | '/dashboard/configuracoes'
     | '/dashboard/crm'
     | '/dashboard/debug'
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/supabase-check'
     | '/categoria/$slug'
+    | '/dashboard/categorias'
     | '/dashboard/configuracoes'
     | '/dashboard/crm'
     | '/dashboard/debug'
@@ -253,6 +264,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/supabase-check'
     | '/categoria/$slug'
+    | '/dashboard/categorias'
     | '/dashboard/configuracoes'
     | '/dashboard/crm'
     | '/dashboard/debug'
@@ -414,6 +426,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardConfiguracoesRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/categorias': {
+      id: '/dashboard/categorias'
+      path: '/categorias'
+      fullPath: '/dashboard/categorias'
+      preLoaderRoute: typeof DashboardCategoriasRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/categoria/$slug': {
       id: '/categoria/$slug'
       path: '/categoria/$slug'
@@ -425,6 +444,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface DashboardRouteChildren {
+  DashboardCategoriasRoute: typeof DashboardCategoriasRoute
   DashboardConfiguracoesRoute: typeof DashboardConfiguracoesRoute
   DashboardCrmRoute: typeof DashboardCrmRoute
   DashboardDebugRoute: typeof DashboardDebugRoute
@@ -437,6 +457,7 @@ interface DashboardRouteChildren {
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardCategoriasRoute: DashboardCategoriasRoute,
   DashboardConfiguracoesRoute: DashboardConfiguracoesRoute,
   DashboardCrmRoute: DashboardCrmRoute,
   DashboardDebugRoute: DashboardDebugRoute,
