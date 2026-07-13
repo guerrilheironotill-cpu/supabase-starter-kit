@@ -908,6 +908,7 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
   const [notes, setNotes] = useState("");
   const [freight, setFreight] = useState<number>(0);
   const [freightNote, setFreightNote] = useState("");
+  const [deliveryMode, setDeliveryMode] = useState<"pickup" | "shipping">("pickup");
   const [deadline, setDeadline] = useState("");
   const [payment, setPayment] = useState("");
   const [pix, setPix] = useState("");
@@ -1132,13 +1133,68 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
           )}
         </div>
 
-        <div>
-          <Label>Endereço de entrega</Label>
-          <Textarea
-            placeholder="Rua, número, complemento, bairro, cidade/UF, CEP"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-          />
+        <div className="rounded-lg border border-border p-3">
+          <Label className="mb-2 block text-xs uppercase tracking-widest text-muted-foreground">
+            Entrega
+          </Label>
+          <div className="flex gap-4 text-sm">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="np-deliveryMode"
+                checked={deliveryMode === "pickup"}
+                onChange={() => {
+                  setDeliveryMode("pickup");
+                  setFreight(0);
+                  setFreightNote("");
+                  setAddress("");
+                }}
+              />
+              Retirar na fábrica
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="np-deliveryMode"
+                checked={deliveryMode === "shipping"}
+                onChange={() => setDeliveryMode("shipping")}
+              />
+              Frete
+            </label>
+          </div>
+
+          {deliveryMode === "shipping" && (
+            <div className="mt-3 space-y-3">
+              <div>
+                <Label>Endereço de entrega</Label>
+                <Textarea
+                  placeholder="Rua, número, complemento, bairro, cidade/UF, CEP"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div>
+                  <Label className="text-xs">Valor do frete (R$)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={freight}
+                    onChange={(e) => setFreight(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Observação do frete</Label>
+                  <Input
+                    placeholder="Ex: carga e descarga inclusos"
+                    value={freightNote}
+                    onChange={(e) => setFreightNote(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div>
@@ -1323,30 +1379,6 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
         <div>
           <Label>Observações</Label>
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
-        </div>
-
-        <div className="rounded-lg border border-border p-3">
-          <Label className="mb-2 block text-xs uppercase tracking-widest text-muted-foreground">Frete</Label>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div>
-              <Label className="text-xs">Valor do frete (R$)</Label>
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
-                value={freight}
-                onChange={(e) => setFreight(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <Label className="text-xs">Observação do frete</Label>
-              <Input
-                placeholder="Ex: carga e descarga inclusos"
-                value={freightNote}
-                onChange={(e) => setFreightNote(e.target.value)}
-              />
-            </div>
-          </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
