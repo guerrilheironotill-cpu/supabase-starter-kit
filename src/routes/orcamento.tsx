@@ -857,7 +857,9 @@ function StepCustomer({
           <Field
             label="Telefone / WhatsApp"
             value={customer.phone}
-            onChange={(v) => setCustomer((c) => ({ ...c, phone: v }))}
+            onChange={(v) => setCustomer((c) => ({ ...c, phone: maskPhoneBR(v) }))}
+            placeholder="(00) 00000-0000"
+            maxLength={16}
           />
         </div>
       </section>
