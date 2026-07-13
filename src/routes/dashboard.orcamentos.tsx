@@ -237,14 +237,7 @@ function DashboardQuotesPage() {
                     {new Date(o.created_at).toLocaleDateString("pt-BR")}
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-                        STATUS_STYLES[o.status] ?? "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      <FileText className="h-3 w-3" />
-                      {STATUS_LABEL[o.status] ?? o.status}
-                    </span>
+                    <StatusSelect order={o} />
                   </td>
                   <td className="px-4 py-3 text-right">
                     <ShareMenu order={o} />
