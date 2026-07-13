@@ -304,6 +304,58 @@ function OrcamentoPage() {
     }
 
     doc.save("orcamento.pdf");
+    void persistOrder();
+  };
+
+  const persistOrder = async () => {
+    if (submitted) return;
+    setSubmitted(true);
+    const cleanItems = items.map((i) => ({
+      kind: "catalog" as const,
+      product_id: null,
+      name: i.name,
+      description: null,
+      quantity: i.quantity,
+      price: i.unitPrice ?? 0,
+      size_id: null,
+      size_name: i.sizeLabel ?? null,
+      finish: i.finish ?? null,
+      color: i.color ?? null,
+    }));
+    const a = finalDeliveryAddress;
+    const meta = {
+      __meta: 1,
+      freight: 0,
+      freightNote: "",
+      deadline: "",
+      payment: "",
+      pix: "",
+      note: "",
+      address:
+        effectiveDelivery === "shipping"
+          ? `${a.street}, ${a.number}${a.complement ? ` (${a.complement})` : ""} — ${a.neighborhood}, ${a.city}/${a.state} — CEP ${a.cep}`
+          : "Retirar na fábrica",
+      personType: customer.personType,
+      cpf: customer.personType === "fisica" ? customer.cpf : null,
+      cnpj: customer.personType === "juridica" ? customer.cnpj : null,
+      companyName:
+        customer.personType === "juridica" ? customer.companyName : null,
+    };
+    try {
+      await publicSupabase.from("orders" as never).insert({
+        status: "em_aberto",
+        origin: "site",
+        customer_name: customer.name,
+        customer_phone: customer.phone,
+        customer_email: customer.email,
+        items: cleanItems,
+        total: subtotal,
+        notes: JSON.stringify(meta),
+      } as never);
+    } catch (err) {
+      console.warn("[orcamento] persist failed", err);
+      setSubmitted(false);
+    }
   };
 
   const sendWhatsApp = () => {
