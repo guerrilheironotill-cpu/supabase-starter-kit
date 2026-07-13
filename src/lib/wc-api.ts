@@ -21,10 +21,33 @@ export type WcOrder = {
     last_name?: string;
     email?: string;
     phone?: string;
+    address_1?: string;
     city?: string;
     state?: string;
   };
-  line_items: Array<{ id: number; name: string; quantity: number; total: string }>;
+  shipping?: WcOrder["billing"];
+  customer_note?: string;
+  line_items: Array<{
+    id: number;
+    product_id?: number;
+    variation_id?: number;
+    name: string;
+    quantity: number;
+    subtotal?: string;
+    total: string;
+    price?: number;
+  }>;
+  shipping_lines?: Array<{
+    id: number;
+    method_id?: string;
+    method_title?: string;
+    total: string;
+  }>;
+  fee_lines?: Array<{
+    id: number;
+    name: string;
+    total: string;
+  }>;
 };
 
 export type WcCustomer = {
