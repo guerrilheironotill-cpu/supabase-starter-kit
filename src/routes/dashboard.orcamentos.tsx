@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FileText, Plus, Trash2, Share2, Link as LinkIcon, FileDown, MessageCircle, Mail } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardSection } from "@/components/dashboard-layout";
+import { maskPhoneBR } from "@/lib/masks";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -1130,7 +1131,13 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
           </div>
           <div>
             <Label>Telefone</Label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(maskPhoneBR(e.target.value))}
+              placeholder="(00) 00000-0000"
+              inputMode="tel"
+              maxLength={16}
+            />
           </div>
           <div>
             <Label>E-mail</Label>

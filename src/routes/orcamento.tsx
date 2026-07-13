@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import { useQuoteStore, type QuoteItem } from "@/lib/quote-store";
 import { useWhatsAppNumber, whatsappLinkFrom } from "@/lib/site-settings";
+import { maskPhoneBR } from "@/lib/masks";
 import { publicSupabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/orcamento")({
@@ -857,7 +858,9 @@ function StepCustomer({
           <Field
             label="Telefone / WhatsApp"
             value={customer.phone}
-            onChange={(v) => setCustomer((c) => ({ ...c, phone: v }))}
+            onChange={(v) => setCustomer((c) => ({ ...c, phone: maskPhoneBR(v) }))}
+            placeholder="(00) 00000-0000"
+            maxLength={16}
           />
         </div>
       </section>
