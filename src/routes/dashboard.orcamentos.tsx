@@ -258,15 +258,27 @@ function StatusSelect({ order }: { order: OrderRow }) {
     try {
       const patch: Record<string, unknown> = { status: next };
       if (extraNotes) patch.notes = extraNotes;
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("orders" as never)
         .update(patch as never)
-        .eq("id", order.id);
-      if (error) throw error;
+        .eq("id", order.id)
+        .select("id, status");
+      if (error) {
+        console.error("[orders.update]", error);
+        throw error;
+      }
+      if (!data || (data as unknown[]).length === 0) {
+        throw new Error(
+          "Nenhuma linha atualizada — verifique se você está logado como admin (RLS pode estar bloqueando).",
+        );
+      }
       setValue(next);
       qc.invalidateQueries({ queryKey: ["orders"] });
     } catch (e) {
-      toast.error("Erro ao atualizar status: " + (e as Error).message);
+      toast.error("Erro ao atualizar status: " + (e as Error).message, {
+        duration: 8000,
+      });
+      throw e;
     } finally {
       setSaving(false);
     }
@@ -430,7 +442,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
         if (v === "aprovado" && order.status !== "aprovado") {
           void approveAndPush();
         } else {
-          void persist(v);
+          persist(v).catch(() => {});
         }
       }}
       disabled={saving}
