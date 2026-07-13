@@ -399,19 +399,35 @@ function StatusSelect({ order }: { order: OrderRow }) {
       };
       const withExtras = { ...basePayload, tag, list_name: listName };
       let insertErr: { message: string } | null = null;
-      let res = await supabase.from("leads" as never).insert(withExtras as never);
+      let res = await supabase
+        .from("leads" as never)
+        .insert(withExtras as never)
+        .select("id")
+        .maybeSingle();
       if (res.error) {
+        console.warn("[lead insert withExtras failed]", res.error);
         insertErr = res.error;
-        // retry without extras (older schema)
-        res = await supabase.from("leads" as never).insert(basePayload as never);
-        if (!res.error) insertErr = null;
+        res = await supabase
+          .from("leads" as never)
+          .insert(basePayload as never)
+          .select("id")
+          .maybeSingle();
+        if (res.error) {
+          console.warn("[lead insert base failed]", res.error);
+          insertErr = res.error;
+        } else {
+          insertErr = null;
+        }
       }
       if (insertErr) {
-        toast.error("Erro ao cadastrar lead: " + insertErr.message);
+        toast.error("Erro ao cadastrar lead: " + insertErr.message, {
+          duration: 10000,
+        });
       } else {
-        toast.success(`Lead cadastrado (${tag})`);
+        toast.success(`Lead cadastrado: ${order.customer_name} — ${tag}`);
       }
       qc.invalidateQueries({ queryKey: ["crm-leads"] });
+      qc.refetchQueries({ queryKey: ["crm-leads"] });
 
       // now persist the quote status
       await persist("nao_aprovado");
