@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -88,13 +88,40 @@ const PRIORITY_STYLE: Record<Priority, string> = {
   baixa: "bg-slate-100 text-slate-700 border-slate-200",
 };
 
+const STORAGE_KEY = "dashboard.pendencias.done.v1";
+
+function loadDoneIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 function PendenciasPage() {
   const [items, setItems] = useState<Item[]>(INITIAL);
 
+  useEffect(() => {
+    const doneIds = new Set(loadDoneIds());
+    setItems((prev) => prev.map((it) => ({ ...it, done: doneIds.has(it.id) })));
+  }, []);
+
   const toggle = (id: string) =>
-    setItems((prev) =>
-      prev.map((it) => (it.id === id ? { ...it, done: !it.done } : it)),
-    );
+    setItems((prev) => {
+      const next = prev.map((it) => (it.id === id ? { ...it, done: !it.done } : it));
+      try {
+        window.localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify(next.filter((it) => it.done).map((it) => it.id)),
+        );
+      } catch {
+        /* ignore quota errors */
+      }
+      return next;
+    });
 
   const open = items.filter((i) => !i.done);
   const done = items.filter((i) => i.done);
