@@ -309,6 +309,19 @@ function StatusSelect({ order }: { order: OrderRow }) {
   const qc = useQueryClient();
   const [value, setValue] = useState<QuoteStatus>(() => normalizeQuoteStatus(order.status));
   const [saving, setSaving] = useState(false);
+  const [tagOpen, setTagOpen] = useState(false);
+  const [tagInput, setTagInput] = useState("");
+  const [listInput, setListInput] = useState("Leads – Orçamentos não aprovados");
+
+  const suggestedTags = useMemo(() => {
+    const items = Array.isArray(order.items) ? (order.items as Array<{ name?: string }>) : [];
+    const set = new Set<string>();
+    for (const i of items) {
+      const n = String(i?.name ?? "").trim();
+      if (n) set.add(`Interesse em ${n.split(/\s+/).slice(0, 2).join(" ")}`);
+    }
+    return Array.from(set).slice(0, 6);
+  }, [order.items]);
 
   useEffect(() => {
     setValue(normalizeQuoteStatus(order.status));
