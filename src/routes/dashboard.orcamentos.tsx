@@ -321,30 +321,63 @@ function StatusSelect({ order }: { order: OrderRow }) {
         customerId = (created as { id: string }).id;
       }
 
-      // 2) create app_order
+      // 2) upsert app_order linked to this quote
       const subtotal = items.reduce(
         (s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 0),
         0,
       );
       const shipping = Number(meta.freight) || 0;
       const totalVal = subtotal + shipping;
-      const { data: createdOrder, error: oErr } = await supabase
+
+      const { data: existing } = await supabase
         .from("app_orders" as never)
-        .insert({
-          customer_id: customerId,
-          status: "pending",
-          currency: "BRL",
-          subtotal,
-          shipping_total: shipping,
-          total: totalVal,
-          customer_note: meta.note || null,
-          is_quote: false,
-          approved_at: new Date().toISOString(),
-        } as never)
         .select("id, number")
-        .single();
-      if (oErr) throw oErr;
-      const newOrder = createdOrder as { id: string; number: number };
+        .eq("quote_order_id", order.id)
+        .maybeSingle();
+
+      let newOrder: { id: string; number: number };
+      if (existing) {
+        const prev = existing as { id: string; number: number };
+        const { error: uErr } = await supabase
+          .from("app_orders" as never)
+          .update({
+            customer_id: customerId,
+            status: "pending",
+            subtotal,
+            shipping_total: shipping,
+            total: totalVal,
+            customer_note: meta.note || null,
+            is_quote: false,
+            approved_at: new Date().toISOString(),
+          } as never)
+          .eq("id", prev.id);
+        if (uErr) throw uErr;
+        // replace items
+        await supabase
+          .from("app_order_items" as never)
+          .delete()
+          .eq("order_id", prev.id);
+        newOrder = prev;
+      } else {
+        const { data: created, error: oErr } = await supabase
+          .from("app_orders" as never)
+          .insert({
+            quote_order_id: order.id,
+            customer_id: customerId,
+            status: "pending",
+            currency: "BRL",
+            subtotal,
+            shipping_total: shipping,
+            total: totalVal,
+            customer_note: meta.note || null,
+            is_quote: false,
+            approved_at: new Date().toISOString(),
+          } as never)
+          .select("id, number")
+          .single();
+        if (oErr) throw oErr;
+        newOrder = created as { id: string; number: number };
+      }
 
       // 3) items
       if (items.length > 0) {
