@@ -1056,12 +1056,18 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
       toast.success("Orçamento criado");
       onCreated();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg =
+        e instanceof Error
+          ? e.message
+          : e && typeof e === "object" && "message" in e
+            ? String((e as { message: unknown }).message)
+            : JSON.stringify(e);
       console.error("[new order]", e);
-      toast.error("Erro ao criar orçamento: " + msg);
-    } finally {
+      toast.error("Erro ao criar orçamento: " + msg, { duration: 8000 });
       setSaving(false);
+      return;
     }
+    setSaving(false);
   };
 
   return (
