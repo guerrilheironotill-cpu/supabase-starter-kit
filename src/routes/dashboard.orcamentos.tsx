@@ -296,14 +296,14 @@ function StatusSelect({ order }: { order: OrderRow }) {
         const patch: Record<string, unknown> = { status };
         if (extraNotes) patch.notes = extraNotes;
 
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("orders" as never)
           .update(patch as never)
           .eq("id", order.id)
           .select("id")
           .maybeSingle();
 
-        if (!error) {
+        if (!error && data) {
           setValue(next);
           qc.setQueryData<OrderRow[]>(["orders"], (current) =>
             current?.map((row) =>
@@ -316,8 +316,8 @@ function StatusSelect({ order }: { order: OrderRow }) {
           return true;
         }
 
-        lastError = error;
-        console.warn(`[orders.update:${status}]`, error.message);
+        lastError = error ?? new Error("Nenhuma linha foi atualizada.");
+        console.warn(`[orders.update:${status}]`, error?.message ?? "nenhuma linha atualizada");
       }
 
       throw lastError instanceof Error ? lastError : new Error("Não foi possível atualizar o status.");
