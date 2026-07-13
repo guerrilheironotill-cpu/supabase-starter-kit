@@ -878,9 +878,7 @@ ${meta.note ? module("Observações", `<div style="font-size:13px;line-height:1.
   );
 }
 
-function NewQuoteDialog({ onCreated }: { onCreated: () => void }) {
-  return NewQuoteDialogImpl({ onCreated });
-}
+const NewQuoteDialog = NewQuoteDialogImpl;
 
 function OriginBadge({ origin }: { origin: string }) {
   const map: Record<string, { label: string; cls: string }> = {
@@ -1059,6 +1057,7 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
       onCreated();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
+      console.error("[new order]", e);
       toast.error("Erro ao criar orçamento: " + msg);
     } finally {
       setSaving(false);
