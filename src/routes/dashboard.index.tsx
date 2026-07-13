@@ -49,6 +49,19 @@ async function fetchStats(): Promise<Stats> {
   };
 }
 
+type OrdersSummary = { configured: boolean; open: number; done: number };
+
+async function fetchOrdersSummary(): Promise<OrdersSummary> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return { configured: false, open: 0, done: 0 };
+  const res = await fetch("/api/wc/orders-summary", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return { configured: false, open: 0, done: 0 };
+  return (await res.json()) as OrdersSummary;
+}
+
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 const trafficData = MONTHS.map((m, i) => ({
@@ -125,6 +138,11 @@ function DashboardOverview() {
     queryFn: fetchStats,
     staleTime: 60_000,
   });
+  const { data: orders } = useQuery({
+    queryKey: ["dashboard", "wc-orders"],
+    queryFn: fetchOrdersSummary,
+    staleTime: 60_000,
+  });
 
   const maxViews = Math.max(...TOP_PRODUCTS.map((p) => p.views));
 
@@ -142,8 +160,8 @@ function DashboardOverview() {
       <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-6">
         <Kpi label="Visitas (mês)" value="14.328" delta="+12,4%" icon={Eye} />
         <Kpi label="Orçamentos" value="238" delta="+8,1%" icon={FileText} />
-        <Kpi label="Pedidos em aberto" value="17" delta="+4" icon={Clock} />
-        <Kpi label="Pedidos finalizados" value="126" delta="+9,2%" icon={CheckCircle2} />
+        <Kpi label="Pedidos em aberto" value={orders?.open ?? "—"} delta={orders?.configured ? "WC" : "—"} icon={Clock} />
+        <Kpi label="Pedidos finalizados" value={orders?.done ?? "—"} delta={orders?.configured ? "WC" : "—"} icon={CheckCircle2} />
         <Kpi label="Produtos ativos" value={stats?.products ?? "—"} delta="+3" icon={Package} />
         <Kpi label="Categorias" value={stats?.categories ?? "—"} delta="+1" icon={Users} />
       </div>
