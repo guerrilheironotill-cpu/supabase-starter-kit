@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSection } from "@/components/dashboard-layout";
+import { ProductEditorDialog } from "@/components/product-editor-dialog";
 
 export const Route = createFileRoute("/dashboard/produtos")({
   head: () => ({
@@ -24,6 +27,8 @@ async function fetchProducts() {
 }
 
 function DashboardProductsPage() {
+  const qc = useQueryClient();
+  const [editingId, setEditingId] = useState<string | null>(null);
   const { data = [], isLoading } = useQuery({
     queryKey: ["dashboard", "produtos"],
     queryFn: fetchProducts,
@@ -49,18 +54,19 @@ function DashboardProductsPage() {
                 <th className="px-4 py-3">Produto</th>
                 <th className="px-4 py-3">Categoria</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
                     Carregando…
                   </td>
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
                     Nenhum produto cadastrado.
                   </td>
                 </tr>
@@ -101,6 +107,15 @@ function DashboardProductsPage() {
                           {row.active ? "Ativo" : "Inativo"}
                         </span>
                       </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setEditingId(row.id)}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted"
+                        >
+                          <Pencil className="h-3.5 w-3.5" /> Editar
+                        </button>
+                      </td>
                     </tr>
                   );
                 })
@@ -109,6 +124,12 @@ function DashboardProductsPage() {
           </table>
         </div>
       </DashboardSection>
+
+      <ProductEditorDialog
+        productId={editingId}
+        onClose={() => setEditingId(null)}
+        onSaved={() => qc.invalidateQueries({ queryKey: ["dashboard", "produtos"] })}
+      />
     </>
   );
 }
