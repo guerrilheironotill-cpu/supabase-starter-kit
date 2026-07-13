@@ -660,33 +660,8 @@ function AppOrdersRows() {
   }
 
   return (
-    <div className="mb-8">
-      <h2 className="mb-3 text-lg font-semibold text-foreground">Pedidos aprovados (sistema)</h2>
-      <div className="rounded-2xl border border-border bg-card">
-        {isLoading ? (
-          <div className="flex items-center justify-center p-8 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="p-6 text-sm text-muted-foreground">
-            Nenhum pedido aprovado ainda. Aprove um orçamento em <em>Orçamentos</em> para criar um pedido aqui.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-border bg-muted/30 text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3">Pedido</th>
-                  <th className="px-4 py-3">Cliente</th>
-                  <th className="px-4 py-3">Data</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Itens</th>
-                  <th className="px-4 py-3 text-right">Total</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {orders.map((o) => (
+    <>
+      {orders.map((o) => (
                   <tr key={o.id} className="hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">#{o.number}</td>
                     <td className="px-4 py-3">
@@ -724,24 +699,21 @@ function AppOrdersRows() {
                       </button>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {editing && (
-        <AppOrderEditDialog
-          order={editing}
-          onClose={() => setEditing(null)}
-          onSaved={() => {
-            setEditing(null);
-            qc.invalidateQueries({ queryKey: ["app-orders"] });
-          }}
-        />
-      )}
-    </div>
+      ))}
+      {editing && typeof document !== "undefined"
+        ? createPortal(
+            <AppOrderEditDialog
+              order={editing}
+              onClose={() => setEditing(null)}
+              onSaved={() => {
+                setEditing(null);
+                qc.invalidateQueries({ queryKey: ["app-orders"] });
+              }}
+            />,
+            document.body,
+          )
+        : null}
+    </>
   );
 }
 
