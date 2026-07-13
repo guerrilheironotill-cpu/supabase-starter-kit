@@ -26,6 +26,7 @@ import { Route as DashboardPendenciasRouteImport } from './routes/dashboard.pend
 import { Route as DashboardPedidosRouteImport } from './routes/dashboard.pedidos'
 import { Route as DashboardOrcamentosRouteImport } from './routes/dashboard.orcamentos'
 import { Route as DashboardMidiaRouteImport } from './routes/dashboard.midia'
+import { Route as DashboardIntegracoesRouteImport } from './routes/dashboard.integracoes'
 import { Route as DashboardDesempenhoRouteImport } from './routes/dashboard.desempenho'
 import { Route as DashboardDebugRouteImport } from './routes/dashboard.debug'
 import { Route as DashboardCrmRouteImport } from './routes/dashboard.crm'
@@ -125,6 +126,11 @@ const DashboardMidiaRoute = DashboardMidiaRouteImport.update({
   path: '/midia',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardIntegracoesRoute = DashboardIntegracoesRouteImport.update({
+  id: '/integracoes',
+  path: '/integracoes',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardDesempenhoRoute = DashboardDesempenhoRouteImport.update({
   id: '/desempenho',
   path: '/desempenho',
@@ -210,6 +216,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/crm': typeof DashboardCrmRoute
   '/dashboard/debug': typeof DashboardDebugRoute
   '/dashboard/desempenho': typeof DashboardDesempenhoRoute
+  '/dashboard/integracoes': typeof DashboardIntegracoesRoute
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/pedidos': typeof DashboardPedidosRoute
@@ -241,6 +248,7 @@ export interface FileRoutesByTo {
   '/dashboard/crm': typeof DashboardCrmRoute
   '/dashboard/debug': typeof DashboardDebugRoute
   '/dashboard/desempenho': typeof DashboardDesempenhoRoute
+  '/dashboard/integracoes': typeof DashboardIntegracoesRoute
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/pedidos': typeof DashboardPedidosRoute
@@ -274,6 +282,7 @@ export interface FileRoutesById {
   '/dashboard/crm': typeof DashboardCrmRoute
   '/dashboard/debug': typeof DashboardDebugRoute
   '/dashboard/desempenho': typeof DashboardDesempenhoRoute
+  '/dashboard/integracoes': typeof DashboardIntegracoesRoute
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
   '/dashboard/pedidos': typeof DashboardPedidosRoute
@@ -308,6 +317,7 @@ export interface FileRouteTypes {
     | '/dashboard/crm'
     | '/dashboard/debug'
     | '/dashboard/desempenho'
+    | '/dashboard/integracoes'
     | '/dashboard/midia'
     | '/dashboard/orcamentos'
     | '/dashboard/pedidos'
@@ -339,6 +349,7 @@ export interface FileRouteTypes {
     | '/dashboard/crm'
     | '/dashboard/debug'
     | '/dashboard/desempenho'
+    | '/dashboard/integracoes'
     | '/dashboard/midia'
     | '/dashboard/orcamentos'
     | '/dashboard/pedidos'
@@ -371,6 +382,7 @@ export interface FileRouteTypes {
     | '/dashboard/crm'
     | '/dashboard/debug'
     | '/dashboard/desempenho'
+    | '/dashboard/integracoes'
     | '/dashboard/midia'
     | '/dashboard/orcamentos'
     | '/dashboard/pedidos'
@@ -524,6 +536,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardMidiaRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/integracoes': {
+      id: '/dashboard/integracoes'
+      path: '/integracoes'
+      fullPath: '/dashboard/integracoes'
+      preLoaderRoute: typeof DashboardIntegracoesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/desempenho': {
       id: '/dashboard/desempenho'
       path: '/desempenho'
@@ -627,6 +646,7 @@ interface DashboardRouteChildren {
   DashboardCrmRoute: typeof DashboardCrmRoute
   DashboardDebugRoute: typeof DashboardDebugRoute
   DashboardDesempenhoRoute: typeof DashboardDesempenhoRoute
+  DashboardIntegracoesRoute: typeof DashboardIntegracoesRoute
   DashboardMidiaRoute: typeof DashboardMidiaRoute
   DashboardOrcamentosRoute: typeof DashboardOrcamentosRoute
   DashboardPedidosRoute: typeof DashboardPedidosRoute
@@ -645,6 +665,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardCrmRoute: DashboardCrmRoute,
   DashboardDebugRoute: DashboardDebugRoute,
   DashboardDesempenhoRoute: DashboardDesempenhoRoute,
+  DashboardIntegracoesRoute: DashboardIntegracoesRoute,
   DashboardMidiaRoute: DashboardMidiaRoute,
   DashboardOrcamentosRoute: DashboardOrcamentosRoute,
   DashboardPedidosRoute: DashboardPedidosRoute,
