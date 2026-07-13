@@ -320,7 +320,10 @@ function StatusSelect({ order }: { order: OrderRow }) {
         console.warn(`[orders.update:${status}]`, error?.message ?? "nenhuma linha atualizada");
       }
 
-      throw lastError instanceof Error ? lastError : new Error("Não foi possível atualizar o status.");
+      throw new Error(
+        (lastError as { message?: string } | null)?.message ??
+          "Não foi possível atualizar o status.",
+      );
     } catch (e) {
       toast.error("Erro ao atualizar status: " + (e as Error).message, {
         duration: 8000,
