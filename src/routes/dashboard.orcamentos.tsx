@@ -278,6 +278,12 @@ function StatusSelect({ order }: { order: OrderRow }) {
 
   const approveAndPush = async () => {
     setSaving(true);
+    const fail = (step: string, err: unknown): never => {
+      const msg = (err as { message?: string })?.message ?? String(err);
+      console.error(`[approve:${step}]`, err);
+      toast.error(`Falha ao aprovar (${step}): ${msg}`, { duration: 10000 });
+      throw err;
+    };
     try {
       const meta = parseMeta(order.notes);
       const items = Array.isArray(order.items)
@@ -298,11 +304,12 @@ function StatusSelect({ order }: { order: OrderRow }) {
       // 1) find/create customer
       let customerId: string | null = null;
       if (email) {
-        const { data: existing } = await supabase
+        const { data: existing, error: findErr } = await supabase
           .from("customers" as never)
           .select("id")
           .eq("email", email)
           .maybeSingle();
+        if (findErr) fail("buscar cliente", findErr);
         customerId = (existing as { id: string } | null)?.id ?? null;
       }
       if (!customerId) {
@@ -317,8 +324,8 @@ function StatusSelect({ order }: { order: OrderRow }) {
           } as never)
           .select("id")
           .single();
-        if (cErr) throw cErr;
-        customerId = (created as { id: string }).id;
+        if (cErr) fail("criar cliente", cErr);
+        customerId = (created as unknown as { id: string }).id;
       }
 
       // 2) upsert app_order linked to this quote
@@ -329,11 +336,12 @@ function StatusSelect({ order }: { order: OrderRow }) {
       const shipping = Number(meta.freight) || 0;
       const totalVal = subtotal + shipping;
 
-      const { data: existing } = await supabase
+      const { data: existing, error: qErr } = await supabase
         .from("app_orders" as never)
         .select("id, number")
         .eq("quote_order_id", order.id)
         .maybeSingle();
+      if (qErr) fail("consultar pedido", qErr);
 
       let newOrder: { id: string; number: number };
       if (existing) {
@@ -351,7 +359,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
             approved_at: new Date().toISOString(),
           } as never)
           .eq("id", prev.id);
-        if (uErr) throw uErr;
+        if (uErr) fail("atualizar pedido", uErr);
         // replace items
         await supabase
           .from("app_order_items" as never)
@@ -375,8 +383,8 @@ function StatusSelect({ order }: { order: OrderRow }) {
           } as never)
           .select("id, number")
           .single();
-        if (oErr) throw oErr;
-        newOrder = created as { id: string; number: number };
+        if (oErr) fail("criar pedido", oErr);
+        newOrder = created as unknown as { id: string; number: number };
       }
 
       // 3) items
@@ -397,7 +405,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
         const { error: iErr } = await supabase
           .from("app_order_items" as never)
           .insert(rows as never);
-        if (iErr) throw iErr;
+        if (iErr) fail("inserir itens", iErr);
       }
 
       const nextNotes = JSON.stringify({
@@ -406,11 +414,15 @@ function StatusSelect({ order }: { order: OrderRow }) {
         app_order_id: newOrder.id,
         app_order_number: newOrder.number,
       });
-      await persist("aprovado", nextNotes);
+      try {
+        await persist("aprovado", nextNotes);
+      } catch (e) {
+        fail("atualizar status", e);
+      }
       toast.success(`Pedido #${newOrder.number} criado`);
       qc.invalidateQueries({ queryKey: ["app-orders"] });
     } catch (e) {
-      toast.error((e as Error).message);
+      console.error("[approve:catch]", e);
     } finally {
       setSaving(false);
     }
