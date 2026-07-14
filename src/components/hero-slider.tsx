@@ -1,60 +1,26 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { Marquee } from "./marquee";
-
-type Slide = {
-  image: string;
-  eyebrow: string;
-  title: string;
-  description: string;
-  ctaLabel: string;
-  ctaHref: string;
-};
-
-const SLIDES: Slide[] = [
-  {
-    image:
-      "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=1920&q=80",
-    eyebrow: "Coleção 2026",
-    title: "Vasos que transformam ambientes",
-    description:
-      "Peças exclusivas em cimento e fibra, feitas à mão para o seu jardim.",
-    ctaLabel: "Ver vasos",
-    ctaHref: "/",
-  },
-  {
-    image:
-      "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=1920&q=80",
-    eyebrow: "Novidade",
-    title: "Jardineiras sob medida",
-    description:
-      "Design contemporâneo e acabamento premium para varandas e áreas externas.",
-    ctaLabel: "Explorar jardineiras",
-    ctaHref: "/",
-  },
-  {
-    image:
-      "https://images.unsplash.com/photo-1523712999610-f77fbcfc3843?auto=format&fit=crop&w=1920&q=80",
-    eyebrow: "Casa & Jardim",
-    title: "Mesas, bancos e fontes",
-    description:
-      "Mobiliário externo que combina natureza, conforto e sofisticação.",
-    ctaLabel: "Outros produtos",
-    ctaHref: "/",
-  },
-];
+import { DEFAULT_SLIDES, fetchHeroSlides } from "@/lib/hero-slides";
 
 export function HeroSlider() {
   const [index, setIndex] = useState(0);
+  const { data: SLIDES = DEFAULT_SLIDES } = useQuery({
+    queryKey: ["home", "hero-slides"],
+    queryFn: fetchHeroSlides,
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
+    if (!SLIDES.length) return;
     const id = setInterval(
       () => setIndex((i) => (i + 1) % SLIDES.length),
       6000,
     );
     return () => clearInterval(id);
-  }, []);
+  }, [SLIDES.length]);
 
   const go = (dir: number) =>
     setIndex((i) => (i + dir + SLIDES.length) % SLIDES.length);
