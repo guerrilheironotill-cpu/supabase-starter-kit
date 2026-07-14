@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Check, ImageIcon, Search, Loader2, Download } from "lucide-react";
+import { Copy, Check, ImageIcon, Search, Loader2, Download, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSection } from "@/components/dashboard-layout";
 
@@ -39,6 +39,56 @@ function MidiaPage() {
   const [copied, setCopied] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<string | null>(null);
+  const [cleaning, setCleaning] = useState(false);
+
+  async function cleanupExternal() {
+    if (!confirm("Remover das produtos todas as imagens que são apenas links externos (não estão no Storage)?")) return;
+    setCleaning(true);
+    setImportResult(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setImportResult("Você precisa estar logado.");
+        return;
+      }
+      const r = await fetch("/api/cleanup-external-images", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const j = await r.json();
+      if (!j.ok) {
+        setImportResult(`Erro: ${j.error}`);
+        return;
+      }
+      setImportResult(
+        `✔ ${j.updated} produtos atualizados · ${j.removed} imagens removidas · ${j.emptied} sem imagens`,
+      );
+      await reload();
+    } catch (e) {
+      setImportResult(`Erro: ${(e as Error).message}`);
+    } finally {
+      setCleaning(false);
+    }
+  }
+
+  async function reload() {
+    const { data } = await supabase
+      .from("products")
+      .select("name, images")
+      .eq("active", true);
+    const fromProducts: MediaItem[] = [];
+    for (const row of (data ?? []) as { name: string; images: string[] | null }[]) {
+      for (const url of row.images ?? []) {
+        if (url) fromProducts.push({ url, source: "Produto", productName: row.name });
+      }
+    }
+    const seen = new Set<string>();
+    setItems([...STATIC_MEDIA, ...fromProducts].filter((m) => {
+      if (seen.has(m.url)) return false;
+      seen.add(m.url);
+      return true;
+    }));
+  }
 
   async function importFromWP() {
     setImporting(true);
@@ -61,23 +111,7 @@ function MidiaPage() {
       setImportResult(
         `✔ ${j.updated} produtos atualizados · ${j.imagesUploaded} imagens · ${j.matched}/${j.wpTotal} match · ${j.skipped} pulados${j.errors?.length ? ` · erros: ${j.errors.length}` : ""}`,
       );
-      // recarrega lista
-      const { data } = await supabase
-        .from("products")
-        .select("name, images")
-        .eq("active", true);
-      const fromProducts: MediaItem[] = [];
-      for (const row of (data ?? []) as { name: string; images: string[] | null }[]) {
-        for (const url of row.images ?? []) {
-          if (url) fromProducts.push({ url, source: "Produto", productName: row.name });
-        }
-      }
-      const seen = new Set<string>();
-      setItems([...STATIC_MEDIA, ...fromProducts].filter((m) => {
-        if (seen.has(m.url)) return false;
-        seen.add(m.url);
-        return true;
-      }));
+      await reload();
     } catch (e) {
       setImportResult(`Erro: ${(e as Error).message}`);
     } finally {
@@ -167,6 +201,22 @@ function MidiaPage() {
           ) : (
             <>
               <Download className="h-3 w-3" /> Importar imagens do WordPress
+            </>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={cleanupExternal}
+          disabled={cleaning}
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
+        >
+          {cleaning ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" /> Limpando…
+            </>
+          ) : (
+            <>
+              <Trash2 className="h-3 w-3" /> Remover links externos
             </>
           )}
         </button>

@@ -40,6 +40,7 @@ import { Route as DashboardAcabamentosRouteImport } from './routes/dashboard.aca
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 import { Route as ApiImportProductImagesRouteImport } from './routes/api/import-product-images'
 import { Route as ApiHealthEnvRouteImport } from './routes/api/health-env'
+import { Route as ApiCleanupExternalImagesRouteImport } from './routes/api/cleanup-external-images'
 import { Route as DashboardCrmLeadsRouteImport } from './routes/dashboard.crm.leads'
 import { Route as ApiWcUpdateOrderRouteImport } from './routes/api/wc.update-order'
 import { Route as ApiWcOrdersSummaryRouteImport } from './routes/api/wc.orders-summary'
@@ -203,6 +204,12 @@ const ApiHealthEnvRoute = ApiHealthEnvRouteImport.update({
   path: '/api/health-env',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCleanupExternalImagesRoute =
+  ApiCleanupExternalImagesRouteImport.update({
+    id: '/api/cleanup-external-images',
+    path: '/api/cleanup-external-images',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const DashboardCrmLeadsRoute = DashboardCrmLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
@@ -244,6 +251,7 @@ export interface FileRoutesByFullPath {
   '/orcamento': typeof OrcamentoRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
+  '/api/cleanup-external-images': typeof ApiCleanupExternalImagesRoute
   '/api/health-env': typeof ApiHealthEnvRoute
   '/api/import-product-images': typeof ApiImportProductImagesRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
@@ -282,6 +290,7 @@ export interface FileRoutesByTo {
   '/orcamento': typeof OrcamentoRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
+  '/api/cleanup-external-images': typeof ApiCleanupExternalImagesRoute
   '/api/health-env': typeof ApiHealthEnvRoute
   '/api/import-product-images': typeof ApiImportProductImagesRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
@@ -322,6 +331,7 @@ export interface FileRoutesById {
   '/orcamento': typeof OrcamentoRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
+  '/api/cleanup-external-images': typeof ApiCleanupExternalImagesRoute
   '/api/health-env': typeof ApiHealthEnvRoute
   '/api/import-product-images': typeof ApiImportProductImagesRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
@@ -363,6 +373,7 @@ export interface FileRouteTypes {
     | '/orcamento'
     | '/sitemap.xml'
     | '/supabase-check'
+    | '/api/cleanup-external-images'
     | '/api/health-env'
     | '/api/import-product-images'
     | '/categoria/$slug'
@@ -401,6 +412,7 @@ export interface FileRouteTypes {
     | '/orcamento'
     | '/sitemap.xml'
     | '/supabase-check'
+    | '/api/cleanup-external-images'
     | '/api/health-env'
     | '/api/import-product-images'
     | '/categoria/$slug'
@@ -440,6 +452,7 @@ export interface FileRouteTypes {
     | '/orcamento'
     | '/sitemap.xml'
     | '/supabase-check'
+    | '/api/cleanup-external-images'
     | '/api/health-env'
     | '/api/import-product-images'
     | '/categoria/$slug'
@@ -480,6 +493,7 @@ export interface RootRouteChildren {
   OrcamentoRoute: typeof OrcamentoRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SupabaseCheckRoute: typeof SupabaseCheckRoute
+  ApiCleanupExternalImagesRoute: typeof ApiCleanupExternalImagesRoute
   ApiHealthEnvRoute: typeof ApiHealthEnvRoute
   ApiImportProductImagesRoute: typeof ApiImportProductImagesRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
@@ -711,6 +725,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthEnvRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cleanup-external-images': {
+      id: '/api/cleanup-external-images'
+      path: '/api/cleanup-external-images'
+      fullPath: '/api/cleanup-external-images'
+      preLoaderRoute: typeof ApiCleanupExternalImagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/crm/leads': {
       id: '/dashboard/crm/leads'
       path: '/leads'
@@ -822,6 +843,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrcamentoRoute: OrcamentoRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SupabaseCheckRoute: SupabaseCheckRoute,
+  ApiCleanupExternalImagesRoute: ApiCleanupExternalImagesRoute,
   ApiHealthEnvRoute: ApiHealthEnvRoute,
   ApiImportProductImagesRoute: ApiImportProductImagesRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
