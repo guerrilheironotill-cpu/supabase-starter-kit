@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/dashboard/paginas/home")({
   head: () => ({
     meta: [
-      { title: "Páginas — Dashboard" },
+      { title: "Home — Páginas — Dashboard" },
       { name: "robots", content: "noindex" },
     ],
   }),
