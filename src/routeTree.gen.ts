@@ -45,6 +45,7 @@ import { Route as ApiProductImageSourcesRouteImport } from './routes/api/product
 import { Route as ApiImportProductImagesRouteImport } from './routes/api/import-product-images'
 import { Route as ApiHealthEnvRouteImport } from './routes/api/health-env'
 import { Route as ApiCleanupExternalImagesRouteImport } from './routes/api/cleanup-external-images'
+import { Route as DashboardPaginasHomeRouteImport } from './routes/dashboard.paginas.home'
 import { Route as DashboardCrmLeadsRouteImport } from './routes/dashboard.crm.leads'
 import { Route as ApiWcUpdateOrderRouteImport } from './routes/api/wc.update-order'
 import { Route as ApiWcOrdersSummaryRouteImport } from './routes/api/wc.orders-summary'
@@ -234,6 +235,11 @@ const ApiCleanupExternalImagesRoute =
     path: '/api/cleanup-external-images',
     getParentRoute: () => rootRouteImport,
   } as any)
+const DashboardPaginasHomeRoute = DashboardPaginasHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => DashboardPaginasRoute,
+} as any)
 const DashboardCrmLeadsRoute = DashboardCrmLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
@@ -293,7 +299,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/integracoes': typeof DashboardIntegracoesRoute
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
-  '/dashboard/paginas': typeof DashboardPaginasRoute
+  '/dashboard/paginas': typeof DashboardPaginasRouteWithChildren
   '/dashboard/pedidos': typeof DashboardPedidosRoute
   '/dashboard/pendencias': typeof DashboardPendenciasRoute
   '/dashboard/perfil': typeof DashboardPerfilRoute
@@ -308,6 +314,7 @@ export interface FileRoutesByFullPath {
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
   '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
   '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
+  '/dashboard/paginas/home': typeof DashboardPaginasHomeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -336,7 +343,7 @@ export interface FileRoutesByTo {
   '/dashboard/integracoes': typeof DashboardIntegracoesRoute
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
-  '/dashboard/paginas': typeof DashboardPaginasRoute
+  '/dashboard/paginas': typeof DashboardPaginasRouteWithChildren
   '/dashboard/pedidos': typeof DashboardPedidosRoute
   '/dashboard/pendencias': typeof DashboardPendenciasRoute
   '/dashboard/perfil': typeof DashboardPerfilRoute
@@ -351,6 +358,7 @@ export interface FileRoutesByTo {
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
   '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
   '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
+  '/dashboard/paginas/home': typeof DashboardPaginasHomeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -381,7 +389,7 @@ export interface FileRoutesById {
   '/dashboard/integracoes': typeof DashboardIntegracoesRoute
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
-  '/dashboard/paginas': typeof DashboardPaginasRoute
+  '/dashboard/paginas': typeof DashboardPaginasRouteWithChildren
   '/dashboard/pedidos': typeof DashboardPedidosRoute
   '/dashboard/pendencias': typeof DashboardPendenciasRoute
   '/dashboard/perfil': typeof DashboardPerfilRoute
@@ -396,6 +404,7 @@ export interface FileRoutesById {
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
   '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
   '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
+  '/dashboard/paginas/home': typeof DashboardPaginasHomeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -442,6 +451,7 @@ export interface FileRouteTypes {
     | '/api/wc/orders-summary'
     | '/api/wc/update-order'
     | '/dashboard/crm/leads'
+    | '/dashboard/paginas/home'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -485,6 +495,7 @@ export interface FileRouteTypes {
     | '/api/wc/orders-summary'
     | '/api/wc/update-order'
     | '/dashboard/crm/leads'
+    | '/dashboard/paginas/home'
   id:
     | '__root__'
     | '/'
@@ -529,6 +540,7 @@ export interface FileRouteTypes {
     | '/api/wc/orders-summary'
     | '/api/wc/update-order'
     | '/dashboard/crm/leads'
+    | '/dashboard/paginas/home'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -811,6 +823,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCleanupExternalImagesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/paginas/home': {
+      id: '/dashboard/paginas/home'
+      path: '/home'
+      fullPath: '/dashboard/paginas/home'
+      preLoaderRoute: typeof DashboardPaginasHomeRouteImport
+      parentRoute: typeof DashboardPaginasRoute
+    }
     '/dashboard/crm/leads': {
       id: '/dashboard/crm/leads'
       path: '/leads'
@@ -868,6 +887,17 @@ const DashboardCrmRouteWithChildren = DashboardCrmRoute._addFileChildren(
   DashboardCrmRouteChildren,
 )
 
+interface DashboardPaginasRouteChildren {
+  DashboardPaginasHomeRoute: typeof DashboardPaginasHomeRoute
+}
+
+const DashboardPaginasRouteChildren: DashboardPaginasRouteChildren = {
+  DashboardPaginasHomeRoute: DashboardPaginasHomeRoute,
+}
+
+const DashboardPaginasRouteWithChildren =
+  DashboardPaginasRoute._addFileChildren(DashboardPaginasRouteChildren)
+
 interface DashboardRouteChildren {
   DashboardAcabamentosRoute: typeof DashboardAcabamentosRoute
   DashboardCategoriasRoute: typeof DashboardCategoriasRoute
@@ -880,7 +910,7 @@ interface DashboardRouteChildren {
   DashboardIntegracoesRoute: typeof DashboardIntegracoesRoute
   DashboardMidiaRoute: typeof DashboardMidiaRoute
   DashboardOrcamentosRoute: typeof DashboardOrcamentosRoute
-  DashboardPaginasRoute: typeof DashboardPaginasRoute
+  DashboardPaginasRoute: typeof DashboardPaginasRouteWithChildren
   DashboardPedidosRoute: typeof DashboardPedidosRoute
   DashboardPendenciasRoute: typeof DashboardPendenciasRoute
   DashboardPerfilRoute: typeof DashboardPerfilRoute
@@ -901,7 +931,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardIntegracoesRoute: DashboardIntegracoesRoute,
   DashboardMidiaRoute: DashboardMidiaRoute,
   DashboardOrcamentosRoute: DashboardOrcamentosRoute,
-  DashboardPaginasRoute: DashboardPaginasRoute,
+  DashboardPaginasRoute: DashboardPaginasRouteWithChildren,
   DashboardPedidosRoute: DashboardPedidosRoute,
   DashboardPendenciasRoute: DashboardPendenciasRoute,
   DashboardPerfilRoute: DashboardPerfilRoute,
