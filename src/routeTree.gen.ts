@@ -38,6 +38,7 @@ import { Route as DashboardClientesRouteImport } from './routes/dashboard.client
 import { Route as DashboardCategoriasRouteImport } from './routes/dashboard.categorias'
 import { Route as DashboardAcabamentosRouteImport } from './routes/dashboard.acabamentos'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
+import { Route as ApiImportProductImagesRouteImport } from './routes/api/import-product-images'
 import { Route as DashboardCrmLeadsRouteImport } from './routes/dashboard.crm.leads'
 import { Route as ApiWcUpdateOrderRouteImport } from './routes/api/wc.update-order'
 import { Route as ApiWcOrdersSummaryRouteImport } from './routes/api/wc.orders-summary'
@@ -191,6 +192,11 @@ const CategoriaSlugRoute = CategoriaSlugRouteImport.update({
   path: '/categoria/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiImportProductImagesRoute = ApiImportProductImagesRouteImport.update({
+  id: '/api/import-product-images',
+  path: '/api/import-product-images',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardCrmLeadsRoute = DashboardCrmLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
@@ -232,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/orcamento': typeof OrcamentoRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
+  '/api/import-product-images': typeof ApiImportProductImagesRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
@@ -268,6 +275,7 @@ export interface FileRoutesByTo {
   '/orcamento': typeof OrcamentoRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
+  '/api/import-product-images': typeof ApiImportProductImagesRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
@@ -306,6 +314,7 @@ export interface FileRoutesById {
   '/orcamento': typeof OrcamentoRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
+  '/api/import-product-images': typeof ApiImportProductImagesRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
@@ -345,6 +354,7 @@ export interface FileRouteTypes {
     | '/orcamento'
     | '/sitemap.xml'
     | '/supabase-check'
+    | '/api/import-product-images'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
     | '/dashboard/categorias'
@@ -381,6 +391,7 @@ export interface FileRouteTypes {
     | '/orcamento'
     | '/sitemap.xml'
     | '/supabase-check'
+    | '/api/import-product-images'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
     | '/dashboard/categorias'
@@ -418,6 +429,7 @@ export interface FileRouteTypes {
     | '/orcamento'
     | '/sitemap.xml'
     | '/supabase-check'
+    | '/api/import-product-images'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
     | '/dashboard/categorias'
@@ -456,6 +468,7 @@ export interface RootRouteChildren {
   OrcamentoRoute: typeof OrcamentoRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SupabaseCheckRoute: typeof SupabaseCheckRoute
+  ApiImportProductImagesRoute: typeof ApiImportProductImagesRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
   FeedsGoogleMerchantDotxmlRoute: typeof FeedsGoogleMerchantDotxmlRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
@@ -671,6 +684,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriaSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/import-product-images': {
+      id: '/api/import-product-images'
+      path: '/api/import-product-images'
+      fullPath: '/api/import-product-images'
+      preLoaderRoute: typeof ApiImportProductImagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/crm/leads': {
       id: '/dashboard/crm/leads'
       path: '/leads'
@@ -782,6 +802,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrcamentoRoute: OrcamentoRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SupabaseCheckRoute: SupabaseCheckRoute,
+  ApiImportProductImagesRoute: ApiImportProductImagesRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
   FeedsGoogleMerchantDotxmlRoute: FeedsGoogleMerchantDotxmlRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
