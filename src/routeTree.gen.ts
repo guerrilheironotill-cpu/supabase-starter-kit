@@ -39,6 +39,7 @@ import { Route as DashboardCategoriasRouteImport } from './routes/dashboard.cate
 import { Route as DashboardAcabamentosRouteImport } from './routes/dashboard.acabamentos'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 import { Route as ApiImportProductImagesRouteImport } from './routes/api/import-product-images'
+import { Route as ApiHealthEnvRouteImport } from './routes/api/health-env'
 import { Route as DashboardCrmLeadsRouteImport } from './routes/dashboard.crm.leads'
 import { Route as ApiWcUpdateOrderRouteImport } from './routes/api/wc.update-order'
 import { Route as ApiWcOrdersSummaryRouteImport } from './routes/api/wc.orders-summary'
@@ -197,6 +198,11 @@ const ApiImportProductImagesRoute = ApiImportProductImagesRouteImport.update({
   path: '/api/import-product-images',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiHealthEnvRoute = ApiHealthEnvRouteImport.update({
+  id: '/api/health-env',
+  path: '/api/health-env',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardCrmLeadsRoute = DashboardCrmLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
@@ -238,6 +244,7 @@ export interface FileRoutesByFullPath {
   '/orcamento': typeof OrcamentoRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
+  '/api/health-env': typeof ApiHealthEnvRoute
   '/api/import-product-images': typeof ApiImportProductImagesRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
@@ -275,6 +282,7 @@ export interface FileRoutesByTo {
   '/orcamento': typeof OrcamentoRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
+  '/api/health-env': typeof ApiHealthEnvRoute
   '/api/import-product-images': typeof ApiImportProductImagesRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
@@ -314,6 +322,7 @@ export interface FileRoutesById {
   '/orcamento': typeof OrcamentoRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
+  '/api/health-env': typeof ApiHealthEnvRoute
   '/api/import-product-images': typeof ApiImportProductImagesRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
@@ -354,6 +363,7 @@ export interface FileRouteTypes {
     | '/orcamento'
     | '/sitemap.xml'
     | '/supabase-check'
+    | '/api/health-env'
     | '/api/import-product-images'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
@@ -391,6 +401,7 @@ export interface FileRouteTypes {
     | '/orcamento'
     | '/sitemap.xml'
     | '/supabase-check'
+    | '/api/health-env'
     | '/api/import-product-images'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
@@ -429,6 +440,7 @@ export interface FileRouteTypes {
     | '/orcamento'
     | '/sitemap.xml'
     | '/supabase-check'
+    | '/api/health-env'
     | '/api/import-product-images'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
@@ -468,6 +480,7 @@ export interface RootRouteChildren {
   OrcamentoRoute: typeof OrcamentoRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SupabaseCheckRoute: typeof SupabaseCheckRoute
+  ApiHealthEnvRoute: typeof ApiHealthEnvRoute
   ApiImportProductImagesRoute: typeof ApiImportProductImagesRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
   FeedsGoogleMerchantDotxmlRoute: typeof FeedsGoogleMerchantDotxmlRoute
@@ -691,6 +704,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiImportProductImagesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/health-env': {
+      id: '/api/health-env'
+      path: '/api/health-env'
+      fullPath: '/api/health-env'
+      preLoaderRoute: typeof ApiHealthEnvRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/crm/leads': {
       id: '/dashboard/crm/leads'
       path: '/leads'
@@ -802,6 +822,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrcamentoRoute: OrcamentoRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SupabaseCheckRoute: SupabaseCheckRoute,
+  ApiHealthEnvRoute: ApiHealthEnvRoute,
   ApiImportProductImagesRoute: ApiImportProductImagesRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
   FeedsGoogleMerchantDotxmlRoute: FeedsGoogleMerchantDotxmlRoute,
