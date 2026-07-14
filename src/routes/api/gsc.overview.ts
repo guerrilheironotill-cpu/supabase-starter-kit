@@ -102,10 +102,11 @@ export const Route = createFileRoute("/api/gsc/overview")({
             return r.json();
           };
 
-          const [current, previous, topPages] = await Promise.all([
+          const [current, previous, topPages, topQueries] = await Promise.all([
             query(start, end),
             query(prevStart, prevEnd),
             query(start, end, ["page"]),
+            query(start, end, ["query"]),
           ]);
 
           const curRow = current.rows?.[0] ?? { clicks: 0, impressions: 0, ctr: 0, position: 0 };
@@ -130,6 +131,14 @@ export const Route = createFileRoute("/api/gsc/overview")({
                 url: r.keys[0],
                 clicks: Math.round(r.clicks),
                 impressions: Math.round(r.impressions),
+              })) ?? [],
+            topQueries:
+              topQueries.rows?.slice(0, 10).map((r: { keys: string[]; clicks: number; impressions: number; ctr: number; position: number }) => ({
+                query: r.keys[0],
+                clicks: Math.round(r.clicks),
+                impressions: Math.round(r.impressions),
+                ctr: Number(((r.ctr || 0) * 100).toFixed(2)),
+                position: Number((r.position || 0).toFixed(1)),
               })) ?? [],
           });
         } catch (e) {
