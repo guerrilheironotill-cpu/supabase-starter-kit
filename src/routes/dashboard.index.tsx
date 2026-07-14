@@ -99,6 +99,112 @@ type StorageUsage = {
   error?: string;
 };
 
+type ProductImageSources = {
+  configured: boolean;
+  ok: boolean;
+  totalProducts: number;
+  productsWithoutImages: number;
+  productsAllExternal: number;
+  productsMixed: number;
+  productsAllHosted: number;
+  externalUrls: number;
+  hostedUrls: number;
+  error?: string;
+};
+
+async function fetchProductImageSources(): Promise<ProductImageSources> {
+  const empty: ProductImageSources = {
+    configured: false,
+    ok: false,
+    totalProducts: 0,
+    productsWithoutImages: 0,
+    productsAllExternal: 0,
+    productsMixed: 0,
+    productsAllHosted: 0,
+    externalUrls: 0,
+    hostedUrls: 0,
+  };
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return { ...empty, error: "Sessão não encontrada." };
+    const res = await fetch("/api/product-image-sources", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return { ...empty, error: `HTTP ${res.status}` };
+    const json = (await res.json()) as Partial<ProductImageSources> & { ok?: boolean; error?: string };
+    if (!json.ok) return { ...empty, error: json.error };
+    return { ...empty, ...json, ok: true, configured: true };
+  } catch (e) {
+    return { ...empty, error: e instanceof Error ? e.message : "erro" };
+  }
+}
+
+function ProductImageSourcesCard({ s }: { s?: ProductImageSources }) {
+  if (!s) return null;
+  if (!s.ok) {
+    return (
+      <div className="mb-8 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-5">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-500" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">
+              Origem das imagens dos produtos — indisponível
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {s.error ?? "Não foi possível ler a tabela de produtos agora."}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  const totalUrls = s.externalUrls + s.hostedUrls;
+  const extPct = totalUrls > 0 ? (s.externalUrls / totalUrls) * 100 : 0;
+  return (
+    <div className="mb-8 rounded-2xl border border-border bg-card p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <HardDrive className="h-4 w-4 text-primary" />
+          <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            Origem das imagens dos produtos
+          </span>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {s.totalProducts.toLocaleString("pt-BR")} produtos
+        </span>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-lg border border-border/60 bg-background/60 p-3">
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">No Supabase</div>
+          <div className="mt-1 text-lg font-semibold text-foreground">{s.productsAllHosted}</div>
+          <div className="text-[11px] text-muted-foreground">{s.hostedUrls} URLs</div>
+        </div>
+        <div className="rounded-lg border border-border/60 bg-background/60 p-3">
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Só externas</div>
+          <div className="mt-1 text-lg font-semibold text-foreground">{s.productsAllExternal}</div>
+          <div className="text-[11px] text-muted-foreground">{s.externalUrls} URLs externas</div>
+        </div>
+        <div className="rounded-lg border border-border/60 bg-background/60 p-3">
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Mistas</div>
+          <div className="mt-1 text-lg font-semibold text-foreground">{s.productsMixed}</div>
+          <div className="text-[11px] text-muted-foreground">host + externo</div>
+        </div>
+        <div className="rounded-lg border border-border/60 bg-background/60 p-3">
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Sem imagem</div>
+          <div className="mt-1 text-lg font-semibold text-foreground">{s.productsWithoutImages}</div>
+          <div className="text-[11px] text-muted-foreground">0 URLs</div>
+        </div>
+      </div>
+      {totalUrls > 0 && (
+        <p className="mt-3 text-xs text-muted-foreground">
+          {extPct.toFixed(1)}% das URLs de imagem apontam para fora do Supabase — esses arquivos não contam no uso do Storage.
+        </p>
+      )}
+    </div>
+  );
+}
+
 async function fetchStorageUsage(): Promise<StorageUsage> {
   try {
     const { data } = await supabase.auth.getSession();
