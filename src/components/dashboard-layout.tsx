@@ -20,6 +20,7 @@ import {
   ListTodo,
   Plug,
   UserCog,
+  FileEdit,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -43,7 +44,8 @@ type NavItem = {
     | "/dashboard/configuracoes"
     | "/dashboard/integracoes"
     | "/dashboard/perfil"
-    | "/dashboard/pendencias";
+    | "/dashboard/pendencias"
+    | "/dashboard/paginas";
   label: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
@@ -56,6 +58,7 @@ const NAV: NavItem[] = [
   { to: "/dashboard/pedidos", label: "Pedidos", icon: ShoppingCart },
   { to: "/dashboard/clientes", label: "Clientes", icon: UserRound },
   { to: "/dashboard/produtos", label: "Produtos", icon: Package },
+  { to: "/dashboard/paginas", label: "Páginas", icon: FileEdit },
   { to: "/dashboard/categorias", label: "Categorias", icon: Layers, child: true },
   { to: "/dashboard/acabamentos", label: "Acabamentos", icon: Sparkles, child: true },
   { to: "/dashboard/cores", label: "Cores", icon: Palette, child: true },
