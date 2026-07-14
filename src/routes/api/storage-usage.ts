@@ -11,10 +11,17 @@ export const Route = createFileRoute("/api/storage-usage")({
           process.env.SUPABASE_PUBLISHABLE_KEY ??
           process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+        const noStore = { "cache-control": "no-store" };
+
         if (!SUPABASE_URL || !SERVICE_KEY || !ANON_KEY) {
           return Response.json(
-            { ok: false, error: "env ausente" },
-            { status: 500 },
+            {
+              ok: false,
+              configured: false,
+              error:
+                "Configure SUPABASE_SERVICE_ROLE_KEY no Vercel/local para medir o Storage do Supabase.",
+            },
+            { headers: noStore },
           );
         }
 
@@ -23,14 +30,20 @@ export const Route = createFileRoute("/api/storage-usage")({
           "",
         );
         if (!token) {
-          return Response.json({ ok: false, error: "sem token" }, { status: 401 });
+          return Response.json(
+            { ok: false, configured: false, error: "sem token" },
+            { status: 401, headers: noStore },
+          );
         }
         const anon = createClient(SUPABASE_URL, ANON_KEY, {
           auth: { persistSession: false },
         });
         const { data: u, error: uErr } = await anon.auth.getUser(token);
         if (uErr || !u.user) {
-          return Response.json({ ok: false, error: "sessão inválida" }, { status: 401 });
+          return Response.json(
+            { ok: false, configured: false, error: "sessão inválida" },
+            { status: 401, headers: noStore },
+          );
         }
 
         const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
@@ -41,12 +54,21 @@ export const Route = createFileRoute("/api/storage-usage")({
           const { data: buckets, error: bErr } = await admin.storage.listBuckets();
           if (bErr) {
             return Response.json(
-              { ok: false, error: `listBuckets: ${bErr.message}` },
-              { status: 500 },
+              { ok: false, configured: false, error: `listBuckets: ${bErr.message}` },
+              { headers: noStore },
             );
           }
 
-          async function sumBucket(bucket: string, prefix = ""): Promise<number> {
+          async function sumBucket(
+            bucket: string,
+            prefix = "",
+            visited = new Set<string>(),
+            depth = 0,
+          ): Promise<number> {
+            const visitKey = `${bucket}:${prefix}`;
+            if (visited.has(visitKey) || depth > 24) return 0;
+            visited.add(visitKey);
+
             let total = 0;
             let offset = 0;
             const pageSize = 100;
@@ -64,10 +86,10 @@ export const Route = createFileRoute("/api/storage-usage")({
                 };
                 const hasSize = typeof it.metadata?.size === "number";
                 if (it.id === null && !hasSize) {
-                  total += await sumBucket(
-                    bucket,
-                    prefix ? `${prefix}/${it.name}` : it.name,
-                  );
+                  const childPrefix = prefix ? `${prefix}/${it.name}` : it.name;
+                  if (childPrefix && childPrefix !== prefix) {
+                    total += await sumBucket(bucket, childPrefix, visited, depth + 1);
+                  }
                 } else {
                   total += Number(it.metadata?.size ?? 0) || 0;
                 }
@@ -90,17 +112,18 @@ export const Route = createFileRoute("/api/storage-usage")({
           return Response.json(
             {
               ok: true,
+              configured: true,
               sizeBytes: total,
               limitBytes,
               buckets: perBucket.sort((a, b) => b.bytes - a.bytes),
             },
-            { headers: { "cache-control": "no-store" } },
+            { headers: noStore },
           );
         } catch (e) {
           console.error("[storage-usage]", e);
           return Response.json(
-            { ok: false, error: (e as Error).message ?? String(e) },
-            { status: 500 },
+            { ok: false, configured: false, error: (e as Error).message ?? String(e) },
+            { headers: noStore },
           );
         }
       },
