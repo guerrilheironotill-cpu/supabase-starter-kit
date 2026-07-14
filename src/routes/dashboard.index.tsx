@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowUpRight, ArrowDownRight, Clock, Eye, FileText, Package, Database, AlertTriangle, MousePointerClick, Search } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Clock, Eye, FileText, Package, Database, AlertTriangle, MousePointerClick, Search, HardDrive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSection } from "@/components/dashboard-layout";
 
@@ -93,6 +93,96 @@ async function fetchDbSize(): Promise<DbSize> {
 
 function formatMB(bytes: number) {
   return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+type StorageUsage = {
+  configured: boolean;
+  sizeBytes: number;
+  limitBytes: number;
+  buckets: Array<{ name: string; bytes: number }>;
+  error?: string;
+};
+
+async function fetchStorageUsage(): Promise<StorageUsage> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return { configured: false, sizeBytes: 0, limitBytes: 0, buckets: [] };
+  const res = await fetch("/api/storage-usage", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = (await res.json()) as {
+    ok: boolean;
+    sizeBytes?: number;
+    limitBytes?: number;
+    buckets?: Array<{ name: string; bytes: number }>;
+    error?: string;
+  };
+  if (!json.ok) {
+    return { configured: false, sizeBytes: 0, limitBytes: 0, buckets: [], error: json.error };
+  }
+  return {
+    configured: true,
+    sizeBytes: json.sizeBytes ?? 0,
+    limitBytes: json.limitBytes ?? 1024 * 1024 * 1024,
+    buckets: json.buckets ?? [],
+  };
+}
+
+function StorageUsageCard({ s }: { s?: StorageUsage }) {
+  if (!s || !s.configured) return null;
+  const pct = s.limitBytes > 0 ? (s.sizeBytes / s.limitBytes) * 100 : 0;
+  const warn = pct >= 80;
+  const critical = pct >= 95;
+  const barColor = critical ? "bg-destructive" : warn ? "bg-amber-500" : "bg-primary";
+  const borderColor = critical
+    ? "border-destructive/50 bg-destructive/5"
+    : warn
+      ? "border-amber-500/50 bg-amber-500/5"
+      : "border-border bg-card";
+  return (
+    <div className={`mb-8 rounded-2xl border p-5 ${borderColor}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <HardDrive className="h-4 w-4 text-primary" />
+          <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            Uso do espaço do servidor
+          </span>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {formatMB(s.sizeBytes)} / {formatMB(s.limitBytes)}
+        </span>
+      </div>
+      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className={`h-full ${barColor}`}
+          style={{ width: `${Math.min(pct, 100).toFixed(1)}%` }}
+        />
+      </div>
+      <div className="mt-2 flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">{pct.toFixed(1)}% utilizado</span>
+        {warn && (
+          <span
+            className={`inline-flex items-center gap-1 text-xs font-medium ${
+              critical ? "text-destructive" : "text-amber-600"
+            }`}
+          >
+            <AlertTriangle className="h-3.5 w-3.5" />
+            {critical ? "Perto do limite — faça upgrade." : "Considere upgrade em breve."}
+          </span>
+        )}
+      </div>
+      {s.buckets.length > 0 && (
+        <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground">
+          {s.buckets.map((b) => (
+            <li key={b.name} className="flex items-center justify-between">
+              <span className="truncate">{b.name}</span>
+              <span>{formatMB(b.bytes)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 function DbUsageCard({ db }: { db?: DbSize }) {
@@ -292,6 +382,11 @@ function DashboardOverview() {
     queryFn: fetchDbSize,
     staleTime: 5 * 60_000,
   });
+  const { data: storageUsage } = useQuery({
+    queryKey: ["dashboard", "storage-usage"],
+    queryFn: fetchStorageUsage,
+    staleTime: 5 * 60_000,
+  });
   const { data: gsc } = useQuery({
     queryKey: ["dashboard", "gsc"],
     queryFn: fetchGsc,
@@ -364,6 +459,7 @@ function DashboardOverview() {
       )}
 
       <DbUsageCard db={dbSize} />
+      <StorageUsageCard s={storageUsage} />
 
       <DashboardSection
         title="Tráfego e orçamentos"
