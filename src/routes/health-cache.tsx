@@ -73,38 +73,28 @@ function HealthCache() {
   };
 
   return (
-    <div style={{ padding: 24, fontFamily: "monospace", maxWidth: 900 }}>
-      <h1 style={{ fontFamily: "sans-serif" }}>/health-cache</h1>
-      <p style={{ fontFamily: "sans-serif" }}>
+    <div className="mx-auto max-w-3xl px-6 py-10">
+      <h1 className="text-2xl font-semibold text-foreground">/health-cache</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
         Diagnóstico de cache e service worker do site.
       </p>
       <button
         onClick={unregisterAll}
-        style={{
-          padding: "8px 12px",
-          marginBottom: 16,
-          cursor: "pointer",
-          fontFamily: "sans-serif",
-        }}
+        className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
       >
         Limpar service workers + caches e recarregar
       </button>
-      {error && <pre style={{ color: "red" }}>{error}</pre>}
+      {error && (
+        <pre className="mt-4 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
+        </pre>
+      )}
       {data ? (
-        <pre
-          style={{
-            background: "#111",
-            color: "#0f0",
-            padding: 16,
-            borderRadius: 8,
-            overflow: "auto",
-            whiteSpace: "pre-wrap",
-          }}
-        >
+        <pre className="mt-4 overflow-auto rounded-md border border-border bg-muted p-4 text-xs whitespace-pre-wrap text-foreground">
           {JSON.stringify(data, null, 2)}
         </pre>
       ) : (
-        !error && <p>Carregando…</p>
+        !error && <p className="mt-4 text-sm text-muted-foreground">Carregando…</p>
       )}
     </div>
   );
