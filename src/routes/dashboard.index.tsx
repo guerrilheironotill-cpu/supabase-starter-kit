@@ -508,6 +508,11 @@ function DashboardOverview() {
     queryFn: fetchStorageUsage,
     staleTime: 5 * 60_000,
   });
+  const { data: imageSources } = useQuery({
+    queryKey: ["dashboard", "product-image-sources"],
+    queryFn: fetchProductImageSources,
+    staleTime: 5 * 60_000,
+  });
   const { data: gsc } = useQuery({
     queryKey: ["dashboard", "gsc"],
     queryFn: fetchGsc,
@@ -581,6 +586,7 @@ function DashboardOverview() {
 
       <DbUsageCard db={dbSize} />
       <StorageUsageCard s={storageUsage} />
+      <ProductImageSourcesCard s={imageSources} />
 
       <DashboardSection
         title="Tráfego e orçamentos"
