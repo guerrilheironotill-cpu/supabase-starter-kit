@@ -7,6 +7,9 @@ type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
 
+const HTML_NO_STORE =
+  "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0";
+
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 
 async function getServerEntry(): Promise<ServerEntry> {
@@ -31,7 +34,26 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   console.error(consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`));
   return new Response(renderErrorPage(), {
     status: 500,
-    headers: { "content-type": "text/html; charset=utf-8" },
+    headers: noStoreHtmlHeaders({ "content-type": "text/html; charset=utf-8" }),
+  });
+}
+
+function noStoreHtmlHeaders(init?: HeadersInit): Headers {
+  const headers = new Headers(init);
+  headers.set("cache-control", HTML_NO_STORE);
+  headers.set("cdn-cache-control", "no-store");
+  headers.set("vercel-cdn-cache-control", "no-store");
+  return headers;
+}
+
+function withNoStoreForHtml(response: Response): Response {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("text/html")) return response;
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: noStoreHtmlHeaders(response.headers),
   });
 }
 
@@ -49,12 +71,12 @@ export default {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return withNoStoreForHtml(await normalizeCatastrophicSsrResponse(response));
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {
         status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
+        headers: noStoreHtmlHeaders({ "content-type": "text/html; charset=utf-8" }),
       });
     }
   },
