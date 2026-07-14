@@ -3,12 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -60,6 +55,7 @@ type GscOverview = {
   deltaClicks?: number;
   deltaImpressions?: number;
   topPages?: Array<{ url: string; clicks: number; impressions: number }>;
+  topQueries?: Array<{ query: string; clicks: number; impressions: number; ctr: number; position: number }>;
 };
 
 async function fetchGsc(): Promise<GscOverview> {
@@ -297,26 +293,6 @@ const trafficData = MONTHS.map((m, i) => ({
   views: Math.round(1200 + Math.sin(i / 1.6) * 380 + i * 90),
   quotes: Math.round(40 + Math.cos(i / 1.4) * 18 + i * 3),
 }));
-
-const categoryData = [
-  { name: "Vasos", value: 42 },
-  { name: "Jardineiras", value: 28 },
-  { name: "Mesas", value: 12 },
-  { name: "Bancos", value: 10 },
-  { name: "Fontes", value: 8 },
-];
-
-const conversionData = [
-  { day: "Seg", visitas: 320, orc: 12 },
-  { day: "Ter", visitas: 410, orc: 18 },
-  { day: "Qua", visitas: 380, orc: 14 },
-  { day: "Qui", visitas: 520, orc: 24 },
-  { day: "Sex", visitas: 610, orc: 31 },
-  { day: "Sáb", visitas: 480, orc: 22 },
-  { day: "Dom", visitas: 300, orc: 9 },
-];
-
-const PIE_COLORS = ["#2a4a2f", "#5a8c3a", "#a8c97a", "#c9e0a5", "#e6f2c7"];
 
 function Kpi({
   label,
