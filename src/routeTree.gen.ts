@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SupabaseCheckRouteImport } from './routes/supabase-check'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as OrcamentoRouteImport } from './routes/orcamento'
+import { Route as HealthCacheRouteImport } from './routes/health-cache'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CatalogoRouteImport } from './routes/catalogo'
@@ -63,6 +64,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const OrcamentoRoute = OrcamentoRouteImport.update({
   id: '/orcamento',
   path: '/orcamento',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HealthCacheRoute = HealthCacheRouteImport.update({
+  id: '/health-cache',
+  path: '/health-cache',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthRoute = HealthRouteImport.update({
@@ -260,6 +266,7 @@ export interface FileRoutesByFullPath {
   '/catalogo': typeof CatalogoRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/health': typeof HealthRoute
+  '/health-cache': typeof HealthCacheRoute
   '/orcamento': typeof OrcamentoRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
@@ -301,6 +308,7 @@ export interface FileRoutesByTo {
   '/busca': typeof BuscaRoute
   '/catalogo': typeof CatalogoRoute
   '/health': typeof HealthRoute
+  '/health-cache': typeof HealthCacheRoute
   '/orcamento': typeof OrcamentoRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
@@ -344,6 +352,7 @@ export interface FileRoutesById {
   '/catalogo': typeof CatalogoRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/health': typeof HealthRoute
+  '/health-cache': typeof HealthCacheRoute
   '/orcamento': typeof OrcamentoRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
@@ -388,6 +397,7 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/dashboard'
     | '/health'
+    | '/health-cache'
     | '/orcamento'
     | '/sitemap.xml'
     | '/supabase-check'
@@ -429,6 +439,7 @@ export interface FileRouteTypes {
     | '/busca'
     | '/catalogo'
     | '/health'
+    | '/health-cache'
     | '/orcamento'
     | '/sitemap.xml'
     | '/supabase-check'
@@ -471,6 +482,7 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/dashboard'
     | '/health'
+    | '/health-cache'
     | '/orcamento'
     | '/sitemap.xml'
     | '/supabase-check'
@@ -514,6 +526,7 @@ export interface RootRouteChildren {
   CatalogoRoute: typeof CatalogoRoute
   DashboardRoute: typeof DashboardRouteWithChildren
   HealthRoute: typeof HealthRoute
+  HealthCacheRoute: typeof HealthCacheRoute
   OrcamentoRoute: typeof OrcamentoRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SupabaseCheckRoute: typeof SupabaseCheckRoute
@@ -553,6 +566,13 @@ declare module '@tanstack/react-router' {
       path: '/orcamento'
       fullPath: '/orcamento'
       preLoaderRoute: typeof OrcamentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/health-cache': {
+      id: '/health-cache'
+      path: '/health-cache'
+      fullPath: '/health-cache'
+      preLoaderRoute: typeof HealthCacheRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/health': {
@@ -880,6 +900,7 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogoRoute: CatalogoRoute,
   DashboardRoute: DashboardRouteWithChildren,
   HealthRoute: HealthRoute,
+  HealthCacheRoute: HealthCacheRoute,
   OrcamentoRoute: OrcamentoRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SupabaseCheckRoute: SupabaseCheckRoute,
