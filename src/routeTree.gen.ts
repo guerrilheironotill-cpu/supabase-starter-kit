@@ -27,6 +27,7 @@ import { Route as DashboardProdutosRouteImport } from './routes/dashboard.produt
 import { Route as DashboardPerfilRouteImport } from './routes/dashboard.perfil'
 import { Route as DashboardPendenciasRouteImport } from './routes/dashboard.pendencias'
 import { Route as DashboardPedidosRouteImport } from './routes/dashboard.pedidos'
+import { Route as DashboardPaginasRouteImport } from './routes/dashboard.paginas'
 import { Route as DashboardOrcamentosRouteImport } from './routes/dashboard.orcamentos'
 import { Route as DashboardMidiaRouteImport } from './routes/dashboard.midia'
 import { Route as DashboardIntegracoesRouteImport } from './routes/dashboard.integracoes'
@@ -144,6 +145,11 @@ const DashboardPedidosRoute = DashboardPedidosRouteImport.update({
   path: '/pedidos',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardPaginasRoute = DashboardPaginasRouteImport.update({
+  id: '/paginas',
+  path: '/paginas',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardOrcamentosRoute = DashboardOrcamentosRouteImport.update({
   id: '/orcamentos',
   path: '/orcamentos',
@@ -231,14 +237,14 @@ const ApiCleanupExternalImagesRoute =
     getParentRoute: () => rootRouteImport,
   } as any)
 const DashboardPaginasIndexRoute = DashboardPaginasIndexRouteImport.update({
-  id: '/paginas/',
-  path: '/paginas/',
-  getParentRoute: () => DashboardRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardPaginasRoute,
 } as any)
 const DashboardPaginasHomeRoute = DashboardPaginasHomeRouteImport.update({
-  id: '/paginas/home',
-  path: '/paginas/home',
-  getParentRoute: () => DashboardRoute,
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => DashboardPaginasRoute,
 } as any)
 const DashboardCrmLeadsRoute = DashboardCrmLeadsRouteImport.update({
   id: '/leads',
@@ -299,6 +305,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/integracoes': typeof DashboardIntegracoesRoute
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
+  '/dashboard/paginas': typeof DashboardPaginasRouteWithChildren
   '/dashboard/pedidos': typeof DashboardPedidosRoute
   '/dashboard/pendencias': typeof DashboardPendenciasRoute
   '/dashboard/perfil': typeof DashboardPerfilRoute
@@ -389,6 +396,7 @@ export interface FileRoutesById {
   '/dashboard/integracoes': typeof DashboardIntegracoesRoute
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
+  '/dashboard/paginas': typeof DashboardPaginasRouteWithChildren
   '/dashboard/pedidos': typeof DashboardPedidosRoute
   '/dashboard/pendencias': typeof DashboardPendenciasRoute
   '/dashboard/perfil': typeof DashboardPerfilRoute
@@ -436,6 +444,7 @@ export interface FileRouteTypes {
     | '/dashboard/integracoes'
     | '/dashboard/midia'
     | '/dashboard/orcamentos'
+    | '/dashboard/paginas'
     | '/dashboard/pedidos'
     | '/dashboard/pendencias'
     | '/dashboard/perfil'
@@ -525,6 +534,7 @@ export interface FileRouteTypes {
     | '/dashboard/integracoes'
     | '/dashboard/midia'
     | '/dashboard/orcamentos'
+    | '/dashboard/paginas'
     | '/dashboard/pedidos'
     | '/dashboard/pendencias'
     | '/dashboard/perfil'
@@ -697,6 +707,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardPedidosRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/paginas': {
+      id: '/dashboard/paginas'
+      path: '/paginas'
+      fullPath: '/dashboard/paginas'
+      preLoaderRoute: typeof DashboardPaginasRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/orcamentos': {
       id: '/dashboard/orcamentos'
       path: '/orcamentos'
@@ -818,17 +835,17 @@ declare module '@tanstack/react-router' {
     }
     '/dashboard/paginas/': {
       id: '/dashboard/paginas/'
-      path: '/paginas'
+      path: '/'
       fullPath: '/dashboard/paginas/'
       preLoaderRoute: typeof DashboardPaginasIndexRouteImport
-      parentRoute: typeof DashboardRoute
+      parentRoute: typeof DashboardPaginasRoute
     }
     '/dashboard/paginas/home': {
       id: '/dashboard/paginas/home'
-      path: '/paginas/home'
+      path: '/home'
       fullPath: '/dashboard/paginas/home'
       preLoaderRoute: typeof DashboardPaginasHomeRouteImport
-      parentRoute: typeof DashboardRoute
+      parentRoute: typeof DashboardPaginasRoute
     }
     '/dashboard/crm/leads': {
       id: '/dashboard/crm/leads'
@@ -887,6 +904,19 @@ const DashboardCrmRouteWithChildren = DashboardCrmRoute._addFileChildren(
   DashboardCrmRouteChildren,
 )
 
+interface DashboardPaginasRouteChildren {
+  DashboardPaginasHomeRoute: typeof DashboardPaginasHomeRoute
+  DashboardPaginasIndexRoute: typeof DashboardPaginasIndexRoute
+}
+
+const DashboardPaginasRouteChildren: DashboardPaginasRouteChildren = {
+  DashboardPaginasHomeRoute: DashboardPaginasHomeRoute,
+  DashboardPaginasIndexRoute: DashboardPaginasIndexRoute,
+}
+
+const DashboardPaginasRouteWithChildren =
+  DashboardPaginasRoute._addFileChildren(DashboardPaginasRouteChildren)
+
 interface DashboardRouteChildren {
   DashboardAcabamentosRoute: typeof DashboardAcabamentosRoute
   DashboardCategoriasRoute: typeof DashboardCategoriasRoute
@@ -899,14 +929,13 @@ interface DashboardRouteChildren {
   DashboardIntegracoesRoute: typeof DashboardIntegracoesRoute
   DashboardMidiaRoute: typeof DashboardMidiaRoute
   DashboardOrcamentosRoute: typeof DashboardOrcamentosRoute
+  DashboardPaginasRoute: typeof DashboardPaginasRouteWithChildren
   DashboardPedidosRoute: typeof DashboardPedidosRoute
   DashboardPendenciasRoute: typeof DashboardPendenciasRoute
   DashboardPerfilRoute: typeof DashboardPerfilRoute
   DashboardProdutosRoute: typeof DashboardProdutosRoute
   DashboardSeoRoute: typeof DashboardSeoRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
-  DashboardPaginasHomeRoute: typeof DashboardPaginasHomeRoute
-  DashboardPaginasIndexRoute: typeof DashboardPaginasIndexRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
@@ -921,14 +950,13 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardIntegracoesRoute: DashboardIntegracoesRoute,
   DashboardMidiaRoute: DashboardMidiaRoute,
   DashboardOrcamentosRoute: DashboardOrcamentosRoute,
+  DashboardPaginasRoute: DashboardPaginasRouteWithChildren,
   DashboardPedidosRoute: DashboardPedidosRoute,
   DashboardPendenciasRoute: DashboardPendenciasRoute,
   DashboardPerfilRoute: DashboardPerfilRoute,
   DashboardProdutosRoute: DashboardProdutosRoute,
   DashboardSeoRoute: DashboardSeoRoute,
   DashboardIndexRoute: DashboardIndexRoute,
-  DashboardPaginasHomeRoute: DashboardPaginasHomeRoute,
-  DashboardPaginasIndexRoute: DashboardPaginasIndexRoute,
 }
 
 const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
