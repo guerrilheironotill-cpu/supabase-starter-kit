@@ -11,6 +11,7 @@ type Check = { name: string; ok: boolean | null; detail?: string };
 function HealthPage() {
   const [checks, setChecks] = useState<Check[]>([
     { name: "ENV variables", ok: null },
+    { name: "Server ENV", ok: null },
     { name: "Auth session", ok: null },
     { name: "SELECT profiles", ok: null },
     { name: "RPC has_role(admin)", ok: null },
@@ -28,6 +29,27 @@ function HealthPage() {
         ok: Boolean(url && key),
         detail: url ? `URL: ${url}` : "missing VITE_SUPABASE_URL",
       });
+
+      // 1b. Server ENV presence (no values leaked)
+      try {
+        const res = await fetch("/api/health-env", { cache: "no-store" });
+        const j = (await res.json()) as Record<string, boolean>;
+        const missing = Object.entries(j).filter(([, v]) => !v).map(([k]) => k);
+        next.push({
+          name: "Server ENV",
+          ok: missing.length === 0,
+          detail:
+            missing.length === 0
+              ? "SUPABASE_URL ✔  VITE_SUPABASE_PUBLISHABLE_KEY ✔  SUPABASE_SERVICE_ROLE_KEY ✔"
+              : `missing: ${missing.join(", ")}`,
+        });
+      } catch (e) {
+        next.push({
+          name: "Server ENV",
+          ok: false,
+          detail: e instanceof Error ? e.message : "fetch failed",
+        });
+      }
 
       // 2. Session
       const { data: userData, error: userErr } = await supabase.auth.getUser();
