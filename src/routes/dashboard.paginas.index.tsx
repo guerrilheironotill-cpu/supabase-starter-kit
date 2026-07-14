@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Home, ChevronRight } from "lucide-react";
 import { DashboardSection } from "@/components/dashboard-layout";
 
-export const Route = createFileRoute("/dashboard/paginas")({
+export const Route = createFileRoute("/dashboard/paginas/")({
   head: () => ({
     meta: [
       { title: "Páginas — Dashboard" },
