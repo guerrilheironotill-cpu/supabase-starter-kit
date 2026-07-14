@@ -283,14 +283,14 @@ function SlideEditor({
             <input
               value={slide.eyebrow}
               onChange={(e) => onChange({ eyebrow: e.target.value })}
-              className="input"
+              className={inputCls}
             />
           </Field>
           <Field label="Título">
             <input
               value={slide.title}
               onChange={(e) => onChange({ title: e.target.value })}
-              className="input"
+              className={inputCls}
             />
           </Field>
           <Field label="Subtítulo / descrição">
@@ -298,7 +298,7 @@ function SlideEditor({
               value={slide.description}
               onChange={(e) => onChange({ description: e.target.value })}
               rows={2}
-              className="input resize-none"
+              className={`${inputCls} resize-none`}
             />
           </Field>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -306,7 +306,7 @@ function SlideEditor({
               <input
                 value={slide.ctaLabel}
                 onChange={(e) => onChange({ ctaLabel: e.target.value })}
-                className="input"
+                className={inputCls}
               />
             </Field>
             <Field label="Link do banner">
@@ -314,7 +314,7 @@ function SlideEditor({
                 value={slide.ctaHref}
                 onChange={(e) => onChange({ ctaHref: e.target.value })}
                 placeholder="/categoria/vasos"
-                className="input"
+                className={inputCls}
               />
             </Field>
           </div>
@@ -323,28 +323,17 @@ function SlideEditor({
               value={slide.image}
               onChange={(e) => onChange({ image: e.target.value })}
               placeholder="https://…"
-              className="input"
+              className={inputCls}
             />
           </Field>
         </div>
       </div>
-
-      <style>{`
-        .input {
-          width: 100%;
-          border-radius: 0.5rem;
-          border: 1px solid hsl(var(--border));
-          background: hsl(var(--background));
-          padding: 0.375rem 0.625rem;
-          font-size: 0.8125rem;
-          color: hsl(var(--foreground));
-          outline: none;
-        }
-        .input:focus { box-shadow: 0 0 0 2px hsl(var(--primary) / 0.4); }
-      `}</style>
     </div>
   );
 }
+
+const inputCls =
+  "w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
