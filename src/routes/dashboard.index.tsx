@@ -3,12 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -60,6 +55,7 @@ type GscOverview = {
   deltaClicks?: number;
   deltaImpressions?: number;
   topPages?: Array<{ url: string; clicks: number; impressions: number }>;
+  topQueries?: Array<{ query: string; clicks: number; impressions: number; ctr: number; position: number }>;
 };
 
 async function fetchGsc(): Promise<GscOverview> {
@@ -298,26 +294,6 @@ const trafficData = MONTHS.map((m, i) => ({
   quotes: Math.round(40 + Math.cos(i / 1.4) * 18 + i * 3),
 }));
 
-const categoryData = [
-  { name: "Vasos", value: 42 },
-  { name: "Jardineiras", value: 28 },
-  { name: "Mesas", value: 12 },
-  { name: "Bancos", value: 10 },
-  { name: "Fontes", value: 8 },
-];
-
-const conversionData = [
-  { day: "Seg", visitas: 320, orc: 12 },
-  { day: "Ter", visitas: 410, orc: 18 },
-  { day: "Qua", visitas: 380, orc: 14 },
-  { day: "Qui", visitas: 520, orc: 24 },
-  { day: "Sex", visitas: 610, orc: 31 },
-  { day: "Sáb", visitas: 480, orc: 22 },
-  { day: "Dom", visitas: 300, orc: 9 },
-];
-
-const PIE_COLORS = ["#2a4a2f", "#5a8c3a", "#a8c97a", "#c9e0a5", "#e6f2c7"];
-
 function Kpi({
   label,
   value,
@@ -499,76 +475,41 @@ function DashboardOverview() {
       </DashboardSection>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <DashboardSection title="Categorias mais vistas">
-          <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
-            <div className="h-[280px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={2}
-                  >
-                    {categoryData.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: 12,
-                      fontSize: 12,
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <ul className="mt-4 space-y-2 text-sm">
-              {categoryData.map((c, i) => (
-                <li key={c.name} className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-2">
-                    <span
-                      className="inline-block h-2.5 w-2.5 rounded-full"
-                      style={{ background: PIE_COLORS[i % PIE_COLORS.length] }}
-                    />
-                    {c.name}
-                  </span>
-                  <span className="font-medium text-foreground">{c.value}%</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </DashboardSection>
-
-        <div className="lg:col-span-2">
-          <DashboardSection title="Conversão da semana" description="Visitas vs orçamentos">
-            <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
-              <div className="h-[280px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={conversionData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                    <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                    <Tooltip
-                      contentStyle={{
-                        background: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: 12,
-                        fontSize: 12,
-                      }}
-                    />
-                    <Bar dataKey="visitas" name="Visitas" fill="#2a4a2f" radius={[6, 6, 0, 0]} />
-                    <Bar dataKey="orc" name="Orçamentos" fill="#a8c97a" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+        {gsc?.configured && gsc.topQueries && gsc.topQueries.length > 0 && (
+          <div className="lg:col-span-3">
+            <DashboardSection
+              title="Top palavras-chave no Google (30d)"
+              description="Termos pelos quais o site aparece nas buscas"
+            >
+              <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-[11px] uppercase tracking-widest text-muted-foreground">
+                        <th className="pb-2 font-medium">Termo</th>
+                        <th className="pb-2 text-right font-medium">Cliques</th>
+                        <th className="pb-2 text-right font-medium">Impressões</th>
+                        <th className="pb-2 text-right font-medium">CTR</th>
+                        <th className="pb-2 text-right font-medium">Posição</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {gsc.topQueries.map((q) => (
+                        <tr key={q.query} className="border-t border-border/60">
+                          <td className="py-2 text-foreground">{q.query}</td>
+                          <td className="py-2 text-right">{q.clicks.toLocaleString("pt-BR")}</td>
+                          <td className="py-2 text-right">{q.impressions.toLocaleString("pt-BR")}</td>
+                          <td className="py-2 text-right">{q.ctr.toFixed(1)}%</td>
+                          <td className="py-2 text-right">{q.position.toFixed(1)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          </DashboardSection>
-        </div>
+            </DashboardSection>
+          </div>
+        )}
       </div>
 
     </>
