@@ -37,58 +37,72 @@ export const Route = createFileRoute("/api/storage-usage")({
           auth: { persistSession: false },
         });
 
-        const { data: buckets, error: bErr } = await admin.storage.listBuckets();
-        if (bErr) {
-          return Response.json({ ok: false, error: bErr.message }, { status: 500 });
-        }
-
-        async function sumBucket(bucket: string, prefix = ""): Promise<number> {
-          let total = 0;
-          let offset = 0;
-          const pageSize = 100;
-          for (;;) {
-            const { data, error } = await admin.storage
-              .from(bucket)
-              .list(prefix, { limit: pageSize, offset });
-            if (error) throw new Error(error.message);
-            if (!data || data.length === 0) break;
-            for (const item of data) {
-              // pastas têm id === null
-              if ((item as { id: string | null }).id === null) {
-                total += await sumBucket(bucket, prefix ? `${prefix}/${item.name}` : item.name);
-              } else {
-                const size = Number(
-                  (item as { metadata?: { size?: number } }).metadata?.size ?? 0,
-                ) || 0;
-                total += size;
-              }
-            }
-            if (data.length < pageSize) break;
-            offset += pageSize;
+        try {
+          const { data: buckets, error: bErr } = await admin.storage.listBuckets();
+          if (bErr) {
+            return Response.json(
+              { ok: false, error: `listBuckets: ${bErr.message}` },
+              { status: 500 },
+            );
           }
-          return total;
+
+          async function sumBucket(bucket: string, prefix = ""): Promise<number> {
+            let total = 0;
+            let offset = 0;
+            const pageSize = 100;
+            for (;;) {
+              const { data, error } = await admin.storage
+                .from(bucket)
+                .list(prefix, { limit: pageSize, offset });
+              if (error) throw new Error(`list ${bucket}/${prefix}: ${error.message}`);
+              if (!data || data.length === 0) break;
+              for (const item of data) {
+                const it = item as {
+                  id: string | null;
+                  name: string;
+                  metadata?: { size?: number } | null;
+                };
+                const hasSize = typeof it.metadata?.size === "number";
+                if (it.id === null && !hasSize) {
+                  total += await sumBucket(
+                    bucket,
+                    prefix ? `${prefix}/${it.name}` : it.name,
+                  );
+                } else {
+                  total += Number(it.metadata?.size ?? 0) || 0;
+                }
+              }
+              if (data.length < pageSize) break;
+              offset += pageSize;
+            }
+            return total;
+          }
+
+          const perBucket: Array<{ name: string; bytes: number }> = [];
+          let total = 0;
+          for (const b of buckets ?? []) {
+            const bytes = await sumBucket(b.name);
+            perBucket.push({ name: b.name, bytes });
+            total += bytes;
+          }
+
+          const limitBytes = 1024 * 1024 * 1024;
+          return Response.json(
+            {
+              ok: true,
+              sizeBytes: total,
+              limitBytes,
+              buckets: perBucket.sort((a, b) => b.bytes - a.bytes),
+            },
+            { headers: { "cache-control": "no-store" } },
+          );
+        } catch (e) {
+          console.error("[storage-usage]", e);
+          return Response.json(
+            { ok: false, error: (e as Error).message ?? String(e) },
+            { status: 500 },
+          );
         }
-
-        const perBucket: Array<{ name: string; bytes: number }> = [];
-        let total = 0;
-        for (const b of buckets ?? []) {
-          const bytes = await sumBucket(b.name);
-          perBucket.push({ name: b.name, bytes });
-          total += bytes;
-        }
-
-        // limite padrão do plano free do Supabase: 1 GB
-        const limitBytes = 1024 * 1024 * 1024;
-
-        return Response.json(
-          {
-            ok: true,
-            sizeBytes: total,
-            limitBytes,
-            buckets: perBucket.sort((a, b) => b.bytes - a.bytes),
-          },
-          { headers: { "cache-control": "no-store" } },
-        );
       },
     },
   },
