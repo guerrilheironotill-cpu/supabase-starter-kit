@@ -45,6 +45,7 @@ import { Route as ApiProductImageSourcesRouteImport } from './routes/api/product
 import { Route as ApiImportProductImagesRouteImport } from './routes/api/import-product-images'
 import { Route as ApiHealthEnvRouteImport } from './routes/api/health-env'
 import { Route as ApiCleanupExternalImagesRouteImport } from './routes/api/cleanup-external-images'
+import { Route as DashboardPaginasIndexRouteImport } from './routes/dashboard.paginas.index'
 import { Route as DashboardPaginasHomeRouteImport } from './routes/dashboard.paginas.home'
 import { Route as DashboardCrmLeadsRouteImport } from './routes/dashboard.crm.leads'
 import { Route as ApiWcUpdateOrderRouteImport } from './routes/api/wc.update-order'
@@ -235,6 +236,11 @@ const ApiCleanupExternalImagesRoute =
     path: '/api/cleanup-external-images',
     getParentRoute: () => rootRouteImport,
   } as any)
+const DashboardPaginasIndexRoute = DashboardPaginasIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardPaginasRoute,
+} as any)
 const DashboardPaginasHomeRoute = DashboardPaginasHomeRouteImport.update({
   id: '/home',
   path: '/home',
@@ -315,6 +321,7 @@ export interface FileRoutesByFullPath {
   '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
   '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
   '/dashboard/paginas/home': typeof DashboardPaginasHomeRoute
+  '/dashboard/paginas/': typeof DashboardPaginasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -343,7 +350,6 @@ export interface FileRoutesByTo {
   '/dashboard/integracoes': typeof DashboardIntegracoesRoute
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
-  '/dashboard/paginas': typeof DashboardPaginasRouteWithChildren
   '/dashboard/pedidos': typeof DashboardPedidosRoute
   '/dashboard/pendencias': typeof DashboardPendenciasRoute
   '/dashboard/perfil': typeof DashboardPerfilRoute
@@ -359,6 +365,7 @@ export interface FileRoutesByTo {
   '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
   '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
   '/dashboard/paginas/home': typeof DashboardPaginasHomeRoute
+  '/dashboard/paginas': typeof DashboardPaginasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -405,6 +412,7 @@ export interface FileRoutesById {
   '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
   '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
   '/dashboard/paginas/home': typeof DashboardPaginasHomeRoute
+  '/dashboard/paginas/': typeof DashboardPaginasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -452,6 +460,7 @@ export interface FileRouteTypes {
     | '/api/wc/update-order'
     | '/dashboard/crm/leads'
     | '/dashboard/paginas/home'
+    | '/dashboard/paginas/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -480,7 +489,6 @@ export interface FileRouteTypes {
     | '/dashboard/integracoes'
     | '/dashboard/midia'
     | '/dashboard/orcamentos'
-    | '/dashboard/paginas'
     | '/dashboard/pedidos'
     | '/dashboard/pendencias'
     | '/dashboard/perfil'
@@ -496,6 +504,7 @@ export interface FileRouteTypes {
     | '/api/wc/update-order'
     | '/dashboard/crm/leads'
     | '/dashboard/paginas/home'
+    | '/dashboard/paginas'
   id:
     | '__root__'
     | '/'
@@ -541,6 +550,7 @@ export interface FileRouteTypes {
     | '/api/wc/update-order'
     | '/dashboard/crm/leads'
     | '/dashboard/paginas/home'
+    | '/dashboard/paginas/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -823,6 +833,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCleanupExternalImagesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/paginas/': {
+      id: '/dashboard/paginas/'
+      path: '/'
+      fullPath: '/dashboard/paginas/'
+      preLoaderRoute: typeof DashboardPaginasIndexRouteImport
+      parentRoute: typeof DashboardPaginasRoute
+    }
     '/dashboard/paginas/home': {
       id: '/dashboard/paginas/home'
       path: '/home'
@@ -889,10 +906,12 @@ const DashboardCrmRouteWithChildren = DashboardCrmRoute._addFileChildren(
 
 interface DashboardPaginasRouteChildren {
   DashboardPaginasHomeRoute: typeof DashboardPaginasHomeRoute
+  DashboardPaginasIndexRoute: typeof DashboardPaginasIndexRoute
 }
 
 const DashboardPaginasRouteChildren: DashboardPaginasRouteChildren = {
   DashboardPaginasHomeRoute: DashboardPaginasHomeRoute,
+  DashboardPaginasIndexRoute: DashboardPaginasIndexRoute,
 }
 
 const DashboardPaginasRouteWithChildren =
