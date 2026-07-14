@@ -32,8 +32,8 @@ export function HeroSlider() {
         <div
           key={i}
           className={cn(
-            "absolute inset-0 transition-opacity duration-1000 ease-out",
-            i === index ? "opacity-100" : "opacity-0",
+            "absolute inset-0 transition-all duration-[1400ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+            i === index ? "opacity-100 scale-100" : "opacity-0 scale-[1.03]",
           )}
           aria-hidden={i !== index}
         >
@@ -41,8 +41,8 @@ export function HeroSlider() {
             src={s.image}
             alt={s.title}
             className={cn(
-              "absolute inset-0 h-full w-full object-cover transition-transform duration-[8000ms] ease-out",
-              i === index ? "scale-105" : "scale-100",
+              "absolute inset-0 h-full w-full object-cover transition-transform duration-[9000ms] ease-out",
+              i === index ? "scale-110" : "scale-100",
             )}
           />
           <div className="absolute inset-0 bg-black/45" />
@@ -51,10 +51,10 @@ export function HeroSlider() {
           <div className="relative z-10 flex h-full items-center justify-center px-4 pb-16 sm:px-8">
             <div
               className={cn(
-                "w-[90%] sm:w-[75%] lg:w-[60%] text-center text-white transition-all duration-700",
+                "w-[90%] sm:w-[75%] lg:w-[60%] text-center text-white transition-all duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] delay-200",
                 i === index
                   ? "translate-y-0 opacity-100"
-                  : "translate-y-6 opacity-0",
+                  : "translate-y-8 opacity-0",
               )}
             >
               <span className="inline-block text-[10px] font-semibold uppercase tracking-[0.35em] text-white/80">
