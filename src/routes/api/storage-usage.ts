@@ -35,26 +35,46 @@ export const Route = createFileRoute("/api/storage-usage")({
 
         const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
           auth: { persistSession: false },
-          db: { schema: "storage" },
         });
 
-        // soma tamanho via metadata->>'size' em storage.objects
-        const { data, error } = await admin
-          .from("objects")
-          .select("bucket_id, metadata");
-        if (error) {
-          return Response.json({ ok: false, error: error.message }, { status: 500 });
+        const { data: buckets, error: bErr } = await admin.storage.listBuckets();
+        if (bErr) {
+          return Response.json({ ok: false, error: bErr.message }, { status: 500 });
         }
 
-        const perBucket = new Map<string, number>();
+        async function sumBucket(bucket: string, prefix = ""): Promise<number> {
+          let total = 0;
+          let offset = 0;
+          const pageSize = 100;
+          for (;;) {
+            const { data, error } = await admin.storage
+              .from(bucket)
+              .list(prefix, { limit: pageSize, offset });
+            if (error) throw new Error(error.message);
+            if (!data || data.length === 0) break;
+            for (const item of data) {
+              // pastas têm id === null
+              if ((item as { id: string | null }).id === null) {
+                total += await sumBucket(bucket, prefix ? `${prefix}/${item.name}` : item.name);
+              } else {
+                const size = Number(
+                  (item as { metadata?: { size?: number } }).metadata?.size ?? 0,
+                ) || 0;
+                total += size;
+              }
+            }
+            if (data.length < pageSize) break;
+            offset += pageSize;
+          }
+          return total;
+        }
+
+        const perBucket: Array<{ name: string; bytes: number }> = [];
         let total = 0;
-        for (const row of (data ?? []) as {
-          bucket_id: string;
-          metadata: { size?: number } | null;
-        }[]) {
-          const s = Number(row.metadata?.size ?? 0) || 0;
-          total += s;
-          perBucket.set(row.bucket_id, (perBucket.get(row.bucket_id) ?? 0) + s);
+        for (const b of buckets ?? []) {
+          const bytes = await sumBucket(b.name);
+          perBucket.push({ name: b.name, bytes });
+          total += bytes;
         }
 
         // limite padrão do plano free do Supabase: 1 GB
@@ -65,9 +85,7 @@ export const Route = createFileRoute("/api/storage-usage")({
             ok: true,
             sizeBytes: total,
             limitBytes,
-            buckets: Array.from(perBucket.entries())
-              .map(([name, bytes]) => ({ name, bytes }))
-              .sort((a, b) => b.bytes - a.bytes),
+            buckets: perBucket.sort((a, b) => b.bytes - a.bytes),
           },
           { headers: { "cache-control": "no-store" } },
         );
