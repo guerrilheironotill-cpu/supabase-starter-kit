@@ -12,7 +12,7 @@ import {
 } from "@/lib/hero-slides";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/dashboard/paginas")({
+export const Route = createFileRoute("/dashboard/paginas/home")({
   head: () => ({
     meta: [
       { title: "Páginas — Dashboard" },
