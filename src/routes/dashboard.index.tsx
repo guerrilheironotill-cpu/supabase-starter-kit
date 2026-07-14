@@ -100,32 +100,71 @@ type StorageUsage = {
 };
 
 async function fetchStorageUsage(): Promise<StorageUsage> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) return { configured: false, sizeBytes: 0, limitBytes: 0, buckets: [] };
-  const res = await fetch("/api/storage-usage", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const json = (await res.json()) as {
-    ok: boolean;
-    sizeBytes?: number;
-    limitBytes?: number;
-    buckets?: Array<{ name: string; bytes: number }>;
-    error?: string;
-  };
-  if (!json.ok) {
-    return { configured: false, sizeBytes: 0, limitBytes: 0, buckets: [], error: json.error };
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      return { configured: false, sizeBytes: 0, limitBytes: 0, buckets: [], error: "Sessão não encontrada." };
+    }
+    const res = await fetch("/api/storage-usage", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      return {
+        configured: false,
+        sizeBytes: 0,
+        limitBytes: 0,
+        buckets: [],
+        error: `Falha ao consultar Storage (HTTP ${res.status}).`,
+      };
+    }
+    const json = (await res.json()) as {
+      ok: boolean;
+      sizeBytes?: number;
+      limitBytes?: number;
+      buckets?: Array<{ name: string; bytes: number }>;
+      error?: string;
+    };
+    if (!json.ok) {
+      return { configured: false, sizeBytes: 0, limitBytes: 0, buckets: [], error: json.error };
+    }
+    return {
+      configured: true,
+      sizeBytes: json.sizeBytes ?? 0,
+      limitBytes: json.limitBytes ?? 1024 * 1024 * 1024,
+      buckets: json.buckets ?? [],
+    };
+  } catch (e) {
+    return {
+      configured: false,
+      sizeBytes: 0,
+      limitBytes: 0,
+      buckets: [],
+      error: e instanceof Error ? e.message : "Erro desconhecido ao consultar Storage.",
+    };
   }
-  return {
-    configured: true,
-    sizeBytes: json.sizeBytes ?? 0,
-    limitBytes: json.limitBytes ?? 1024 * 1024 * 1024,
-    buckets: json.buckets ?? [],
-  };
 }
 
 function StorageUsageCard({ s }: { s?: StorageUsage }) {
-  if (!s || !s.configured) return null;
+  if (!s) return null;
+  if (!s.configured) {
+    return (
+      <div className="mb-8 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-5">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-500" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">
+              Uso do espaço do servidor — indisponível
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {s.error ??
+                "Não foi possível medir o Storage do Supabase agora. Configure SUPABASE_SERVICE_ROLE_KEY no Vercel/local e tente novamente."}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const pct = s.limitBytes > 0 ? (s.sizeBytes / s.limitBytes) * 100 : 0;
   const warn = pct >= 80;
   const critical = pct >= 95;
