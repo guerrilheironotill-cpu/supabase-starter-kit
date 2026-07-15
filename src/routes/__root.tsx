@@ -15,6 +15,7 @@ import { SiteHeader } from "../components/site-header";
 import { SiteFooter } from "../components/site-footer";
 import { DashboardHeader } from "../components/dashboard-header";
 import { useRouterState } from "@tanstack/react-router";
+import { useApplySiteSeo } from "../lib/site-seo-store";
 
 function NotFoundComponent() {
   return (
@@ -81,20 +82,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Casa & Jardim — Vasos, jardineiras e mobiliário externo" },
+      { title: "Arteno - Vasos de concreto e mobiliário estilo industrial" },
       {
         name: "description",
         content:
-          "Peças artesanais de design contemporâneo para jardins, varandas e áreas externas.",
+          "Peças artesanais em concreto e mobiliário estilo industrial com design autoral.",
       },
-      { property: "og:title", content: "Casa & Jardim" },
+      { property: "og:title", content: "Arteno - Vasos de concreto e mobiliário estilo industrial" },
       {
         property: "og:description",
         content:
-          "Vasos, jardineiras e mobiliário externo com design autoral.",
+          "Peças artesanais em concreto e mobiliário estilo industrial com design autoral.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:site_name", content: "Casa & Jardim" },
+      { property: "og:site_name", content: "Arteno" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
@@ -120,7 +121,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Organization",
-          name: "Casa & Jardim",
+          name: "Arteno",
           url: "/",
         }),
       },
@@ -150,6 +151,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isDashboard = pathname.startsWith("/dashboard");
+  useApplySiteSeo();
 
   return (
     <QueryClientProvider client={queryClient}>
