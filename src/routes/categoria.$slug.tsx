@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { PageHero } from "@/components/page-hero";
 import { ProductCard } from "@/components/product-card";
+import { AdminEditBar } from "@/components/admin-edit-bar";
 import {
   ProductFilters,
   applyFilters,
@@ -84,6 +85,7 @@ function CategoryPage() {
 
   return (
     <>
+      <AdminEditBar label="Editar categorias" to="/dashboard/categorias" />
       <PageHero
         title={category}
         eyebrow="Categoria"

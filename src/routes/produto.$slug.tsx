@@ -9,6 +9,7 @@ import {
 import { ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useQuoteStore } from "@/lib/quote-store";
+import { AdminEditBar } from "@/components/admin-edit-bar";
 import {
   Dialog,
   DialogContent,
@@ -225,6 +226,7 @@ function ProductPage() {
 
   return (
     <>
+      <AdminEditBar label="Editar produto" to="/dashboard/produtos" />
       <section className="bg-background py-8 sm:py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-8">
           <nav aria-label="Breadcrumb" className="text-xs text-primary/60">
