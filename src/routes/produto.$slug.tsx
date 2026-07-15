@@ -251,8 +251,10 @@ function ProductPage() {
         </div>
         <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-8 lg:grid-cols-2 lg:items-start">
           {/* Gallery — carousel on mobile, stacked on desktop */}
-          <MobileGallery images={images} name={p.name} />
-          <div className="hidden flex-col gap-4 lg:flex">
+          <div className="min-w-0 lg:hidden">
+            <MobileGallery images={images} name={p.name} />
+          </div>
+          <div className="hidden min-w-0 flex-col gap-4 lg:flex">
             {images.length > 0 ? (
               images.map((src: string, i: number) => (
                 <GalleryImage
@@ -268,7 +270,7 @@ function ProductPage() {
           </div>
 
           {/* Info — sticky until last image passes */}
-          <div className="lg:sticky lg:top-24">
+          <div className="min-w-0 lg:sticky lg:top-24">
             <h1 className="font-display text-3xl text-primary sm:text-4xl">
               {p.name}
             </h1>
@@ -493,7 +495,7 @@ function MobileGallery({ images, name }: { images: string[]; name: string }) {
   }
 
   return (
-    <div className="relative lg:hidden">
+    <div className="relative w-full min-w-0">
       <div
         ref={scrollerRef}
         onScroll={onScroll}
