@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { PageHero } from "@/components/page-hero";
 import { ProductCard } from "@/components/product-card";
+import { AdminEditBar } from "@/components/admin-edit-bar";
 import {
   ProductFilters,
   applyFilters,
