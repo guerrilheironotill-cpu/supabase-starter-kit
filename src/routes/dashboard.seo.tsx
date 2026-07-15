@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, ExternalLink, Info } from "lucide-react";
 import { DashboardSection } from "@/components/dashboard-layout";
+import { useSiteSeoStore, DEFAULT_SITE_TITLE, DEFAULT_SITE_DESCRIPTION } from "@/lib/site-seo-store";
 
 export const Route = createFileRoute("/dashboard/seo")({
   head: () => ({
@@ -42,6 +43,10 @@ const CHECKS = [
 ];
 
 function DashboardSeoPage() {
+  const title = useSiteSeoStore((s) => s.title);
+  const description = useSiteSeoStore((s) => s.description);
+  const setTitle = useSiteSeoStore((s) => s.setTitle);
+  const setDescription = useSiteSeoStore((s) => s.setDescription);
   return (
     <>
       <div className="mb-8">
@@ -52,6 +57,53 @@ function DashboardSeoPage() {
           Status do SEO técnico do site.
         </p>
       </div>
+
+      <DashboardSection
+        title="Título e descrição do site"
+        description="Aplicados em todas as páginas (title, meta description, og:title, og:description)."
+      >
+        <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">
+              Título do site
+            </span>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={80}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">
+              Meta description
+            </span>
+            <textarea
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={200}
+              className="w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+          </label>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              Alterações salvam automaticamente.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setTitle(DEFAULT_SITE_TITLE);
+                setDescription(DEFAULT_SITE_DESCRIPTION);
+              }}
+              className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+            >
+              Restaurar padrão
+            </button>
+          </div>
+        </div>
+      </DashboardSection>
 
       <DashboardSection title="Checklist técnico">
         <ul className="grid gap-3 sm:grid-cols-2">
