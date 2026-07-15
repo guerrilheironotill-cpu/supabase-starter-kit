@@ -1,12 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pencil } from "lucide-react";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSection } from "@/components/dashboard-layout";
 import { ProductEditorDialog } from "@/components/product-editor-dialog";
 
 export const Route = createFileRoute("/dashboard/produtos")({
+  validateSearch: (search) =>
+    z.object({ edit: z.string().optional() }).parse(search),
   head: () => ({
     meta: [
       { title: "Produtos — Dashboard" },
@@ -28,7 +31,11 @@ async function fetchProducts() {
 
 function DashboardProductsPage() {
   const qc = useQueryClient();
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const { edit } = Route.useSearch();
+  const [editingId, setEditingId] = useState<string | null>(edit ?? null);
+  useEffect(() => {
+    if (edit) setEditingId(edit);
+  }, [edit]);
   const { data = [], isLoading } = useQuery({
     queryKey: ["dashboard", "produtos"],
     queryFn: fetchProducts,

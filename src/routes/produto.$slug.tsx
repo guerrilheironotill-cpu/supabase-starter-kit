@@ -226,7 +226,7 @@ function ProductPage() {
 
   return (
     <>
-      <AdminEditBar label="Editar produto" to="/dashboard/produtos" />
+      <AdminEditBar label="Editar produto" to="/dashboard/produtos" search={{ edit: p.id }} />
       <section className="bg-background py-8 sm:py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-8">
           <nav aria-label="Breadcrumb" className="text-xs text-primary/60">
