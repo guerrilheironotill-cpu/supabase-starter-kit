@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { ArrowRight } from "lucide-react";
+import { WhatsAppQuoteDrawer } from "./whatsapp-quote-drawer";
 
 export function AboutSection() {
+  const [waOpen, setWaOpen] = useState(false);
   return (
     <section className="relative overflow-hidden bg-[#eaf3dd]">
       {/* Decorative palm shadow */}
@@ -44,10 +47,9 @@ export function AboutSection() {
               Explorar Modelos
               <ArrowRight className="h-4 w-4" />
             </a>
-            <a
-              href={`https://wa.me/5548988486279`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => setWaOpen(true)}
               className="inline-flex items-center gap-3 rounded-full border border-primary/25 bg-transparent px-7 py-3.5 text-sm font-semibold text-primary transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:bg-primary hover:text-white"
             >
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-primary/40">
@@ -56,10 +58,11 @@ export function AboutSection() {
                 </svg>
               </span>
               Fale no WhatsApp
-            </a>
+            </button>
           </div>
         </div>
       </div>
+      <WhatsAppQuoteDrawer open={waOpen} onClose={() => setWaOpen(false)} />
     </section>
   );
 }
