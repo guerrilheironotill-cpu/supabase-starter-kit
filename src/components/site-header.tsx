@@ -105,7 +105,7 @@ export function SiteHeader() {
                   to={hasChildren ? "/" : "/categoria/$slug"}
                   params={hasChildren ? undefined : { slug: cat.slug }}
                   className={cn(
-                    "group/nav relative inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[15px] font-medium transition-all duration-300 hover:-translate-y-0.5",
+                    "group/nav relative inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-semibold uppercase tracking-[0.14em] transition-all duration-300 hover:-translate-y-0.5",
                     scrolled
                       ? "text-white/85 hover:text-white"
                       : "text-primary/80 hover:text-primary",
@@ -312,7 +312,7 @@ export function SiteHeader() {
             <img
               src="https://arteno.com.br/wp-content/uploads/2025/03/Ativo-8-e1782929111841.png"
               alt="Casa & Jardim"
-              className="h-8 w-auto object-contain"
+              className="h-14 w-auto object-contain"
             />
             <button
               type="button"
@@ -344,7 +344,7 @@ export function SiteHeader() {
                   <Link
                     to={cat.children ? "/" : "/categoria/$slug"}
                     params={cat.children ? undefined : { slug: cat.slug }}
-                    className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/20 hover:text-primary"
+                    className="block rounded-lg px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition-colors hover:bg-secondary/20 hover:text-primary"
                     onClick={() => setMobileOpen(false)}
                   >
                     {cat.name}
