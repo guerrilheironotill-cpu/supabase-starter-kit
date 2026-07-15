@@ -48,8 +48,11 @@ export function AdminEditBar({ label, to, search }: AdminEditBarProps) {
     if (!isAdmin) return;
     const root = document.documentElement;
     root.style.setProperty("--admin-bar-h", "40px");
+    const prevPadding = document.body.style.paddingTop;
+    document.body.style.paddingTop = "40px";
     return () => {
       root.style.removeProperty("--admin-bar-h");
+      document.body.style.paddingTop = prevPadding;
     };
   }, [isAdmin]);
 
