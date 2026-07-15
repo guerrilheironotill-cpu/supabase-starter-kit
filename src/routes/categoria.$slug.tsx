@@ -85,6 +85,7 @@ function CategoryPage() {
 
   return (
     <>
+      <AdminEditBar label="Editar categorias" to="/dashboard/categorias" />
       <PageHero
         title={category}
         eyebrow="Categoria"
