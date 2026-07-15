@@ -28,7 +28,7 @@ export function HeroSlider() {
   return (
     <section className="relative w-full px-4 sm:px-8 lg:px-[50px] animate-[heroIn_1600ms_cubic-bezier(0.22,1,0.36,1)_both]">
       <style>{`@keyframes heroIn{0%{opacity:0;transform:translateY(24px) scale(.98)}100%{opacity:1;transform:translateY(0) scale(1)}}`}</style>
-      <div className="relative h-[56vh] min-h-[420px] w-full overflow-hidden rounded-3xl bg-primary">
+      <div className="relative h-[62vh] min-h-[462px] w-full overflow-hidden rounded-3xl bg-primary">
       {SLIDES.map((s, i) => (
         <div
           key={i}
