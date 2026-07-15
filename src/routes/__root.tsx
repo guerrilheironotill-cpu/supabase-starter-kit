@@ -15,6 +15,7 @@ import { SiteHeader } from "../components/site-header";
 import { SiteFooter } from "../components/site-footer";
 import { DashboardHeader } from "../components/dashboard-header";
 import { useRouterState } from "@tanstack/react-router";
+import { useApplySiteSeo } from "../lib/site-seo-store";
 
 function NotFoundComponent() {
   return (
@@ -150,6 +151,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isDashboard = pathname.startsWith("/dashboard");
+  useApplySiteSeo();
 
   return (
     <QueryClientProvider client={queryClient}>
