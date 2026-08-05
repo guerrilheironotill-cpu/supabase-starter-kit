@@ -5,36 +5,66 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   label: string;
+  editableLabel?: boolean;
   sublabel?: string;
   mainImage: string | null;
   gallery?: string[];
   description?: string | null;
+  videoUrl?: string | null;
+  extraPrice?: number;
+  showExtraPrice?: boolean;
+  showVideo?: boolean;
   showDescription?: boolean;
   showGallery?: boolean;
   maxGallery?: number;
   bucketFolder: string;
   onSave: (values: {
+    name: string;
     image_url: string | null;
     gallery?: string[];
     description?: string | null;
+    video_url?: string | null;
+    extra_price?: number;
   }) => Promise<void>;
 };
 
+function getSaveErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    const details = error as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown };
+    const parts = [details.message, details.details, details.hint]
+      .filter((part): part is string => typeof part === "string" && part.trim().length > 0);
+    if (parts.length > 0) {
+      const code = typeof details.code === "string" ? ` [${details.code}]` : "";
+      return `${parts.join(" — ")}${code}`;
+    }
+  }
+  return "Falha ao salvar";
+}
+
 export function DashboardGalleryEditor({
   label,
+  editableLabel = false,
   sublabel,
   mainImage,
   gallery = [],
   description,
+  videoUrl,
+  extraPrice = 0,
+  showExtraPrice = false,
+  showVideo = false,
   showDescription = true,
   showGallery = false,
   maxGallery = 10,
   bucketFolder,
   onSave,
 }: Props) {
+  const [editName, setEditName] = useState(label);
   const [main, setMain] = useState<string | null>(mainImage);
   const [gal, setGal] = useState<string[]>(gallery);
   const [desc, setDesc] = useState<string>(description ?? "");
+  const [video, setVideo] = useState<string>(videoUrl ?? "");
+  const [priceExtra, setPriceExtra] = useState<number>(extraPrice);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -112,14 +142,19 @@ export function DashboardGalleryEditor({
     setBusy(true);
     setError(null);
     try {
+      const normalizedName = editName.trim();
+      if (!normalizedName) throw new Error("Informe o nome.");
       await onSave({
+        name: normalizedName,
         image_url: main,
         gallery: showGallery ? gal : undefined,
         description: showDescription ? desc.trim() || null : undefined,
+        video_url: showVideo ? video.trim() || null : undefined,
+        extra_price: showExtraPrice ? Math.max(0, Number(priceExtra) || 0) : undefined,
       });
       setDirty(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Falha ao salvar");
+      setError(getSaveErrorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -152,7 +187,16 @@ export function DashboardGalleryEditor({
         </div>
         <div className="min-w-0 flex-1 space-y-2">
           <div>
-            <p className="font-medium text-foreground">{label}</p>
+            {editableLabel ? (
+              <input
+                value={editName}
+                onChange={(event) => { setEditName(event.target.value); setDirty(true); }}
+                aria-label="Nome"
+                className="w-full max-w-md rounded-lg border border-border bg-background px-3 py-2 pr-12 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            ) : (
+              <p className="font-medium text-foreground">{label}</p>
+            )}
             {sublabel && <p className="text-xs text-muted-foreground">{sublabel}</p>}
           </div>
           {showDescription && (
@@ -166,6 +210,47 @@ export function DashboardGalleryEditor({
               rows={2}
               className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
+          )}
+          {showExtraPrice && (
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Acréscimo no preço (R$)
+              </label>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={priceExtra}
+                onChange={(event) => {
+                  setPriceExtra(Math.max(0, Number(event.target.value) || 0));
+                  setDirty(true);
+                }}
+                className="w-full max-w-48 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Use zero quando o acabamento não alterar o valor.
+              </p>
+            </div>
+          )}
+          {showVideo && (
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Vídeo do acabamento
+              </label>
+              <input
+                type="url"
+                value={video}
+                onChange={(event) => {
+                  setVideo(event.target.value);
+                  setDirty(true);
+                }}
+                placeholder="Cole o link do Vimeo ou Google Drive"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                No Google Drive, compartilhe o arquivo como “Qualquer pessoa com o link”.
+              </p>
+            </div>
           )}
           <div className="flex flex-wrap items-center gap-2">
             <input
@@ -188,20 +273,6 @@ export function DashboardGalleryEditor({
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
               Imagem principal
             </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={busy || !dirty}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-                dirty
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "bg-muted text-muted-foreground",
-              )}
-            >
-              Salvar
-            </button>
-            {error && <span className="text-xs text-destructive">{error}</span>}
           </div>
         </div>
       </div>
@@ -287,6 +358,24 @@ export function DashboardGalleryEditor({
           )}
         </div>
       )}
+
+      <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4">
+        {error && <span className="mr-auto text-xs text-destructive">{error}</span>}
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={busy || !dirty}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-medium transition-colors",
+            dirty
+              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+              : "bg-muted text-muted-foreground",
+          )}
+        >
+          {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          Salvar
+        </button>
+      </div>
     </div>
   );
 }

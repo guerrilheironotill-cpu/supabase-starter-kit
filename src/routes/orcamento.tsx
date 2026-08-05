@@ -344,7 +344,7 @@ function OrcamentoPage() {
     };
     try {
       await publicSupabase.from("orders" as never).insert({
-        status: "em_aberto",
+        status: "orcamento",
         origin: "site",
         customer_name: customer.name,
         customer_phone: customer.phone,
@@ -400,7 +400,8 @@ function OrcamentoPage() {
 
   if (items.length === 0) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
+      <section className="min-h-[calc(100vh-96px)] bg-white">
+        <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
         <h1 className="text-2xl font-semibold tracking-tight text-primary">
           Seu orçamento
         </h1>
@@ -415,12 +416,14 @@ function OrcamentoPage() {
             Ver produtos
           </Link>
         </div>
-      </div>
+        </div>
+      </section>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <section className="min-h-[calc(100vh-96px)] bg-white">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       {/* Stepper */}
       <Stepper
         step={step}
@@ -592,7 +595,8 @@ function OrcamentoPage() {
           </div>
         </aside>
       </div>
-    </div>
+      </div>
+    </section>
   );
 }
 

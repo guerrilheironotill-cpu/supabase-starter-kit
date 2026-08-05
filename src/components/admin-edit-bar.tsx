@@ -7,6 +7,7 @@ type AdminEditBarProps = {
   label: string;
   to:
     | "/dashboard/produtos"
+    | "/dashboard/editar-produto/$productId"
     | "/dashboard/categorias"
     | "/dashboard/acabamentos"
     | "/dashboard/cores"
@@ -16,9 +17,10 @@ type AdminEditBarProps = {
     | "/dashboard/seo"
     | "/dashboard/configuracoes";
   search?: Record<string, string>;
+  params?: Record<string, string>;
 };
 
-export function AdminEditBar({ label, to, search }: AdminEditBarProps) {
+export function AdminEditBar({ label, to, search, params }: AdminEditBarProps) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [ready, setReady] = useState(false);
 
@@ -67,6 +69,7 @@ export function AdminEditBar({ label, to, search }: AdminEditBarProps) {
         <Link
           to={to}
           search={search as never}
+          params={params as never}
           className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-white"
         >
           <Pencil className="h-3.5 w-3.5" />

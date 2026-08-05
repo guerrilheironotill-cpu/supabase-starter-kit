@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
+import { SITE_URL } from "@/lib/site-config";
 
-// TODO: replace with your project URL once a project name or custom domain is set.
-const BASE_URL = "";
 
 type Entry = { path: string; changefreq?: string; priority?: string; lastmod?: string };
 
@@ -14,7 +13,10 @@ export const Route = createFileRoute("/sitemap.xml")({
         const entries: Entry[] = [
           { path: "/", changefreq: "weekly", priority: "1.0" },
           { path: "/catalogo", changefreq: "weekly", priority: "0.9" },
-          { path: "/orcamento", changefreq: "monthly", priority: "0.6" },
+          { path: "/pias-e-cubas-de-concreto", changefreq: "monthly", priority: "0.8" },
+          { path: "/vasos-para-empresas", changefreq: "monthly", priority: "0.8" },
+          { path: "/mobiliario-urbano", changefreq: "monthly", priority: "0.8" },
+          { path: "/projetos-personalizados", changefreq: "monthly", priority: "0.8" },
         ];
 
         try {
@@ -40,7 +42,7 @@ export const Route = createFileRoute("/sitemap.xml")({
             }
             for (const c of cats) {
               entries.push({
-                path: `/categoria/${slugify(c)}`,
+                path: `/categoria/${categorySlug(c)}`,
                 changefreq: "weekly",
                 priority: "0.8",
               });
@@ -54,7 +56,7 @@ export const Route = createFileRoute("/sitemap.xml")({
           .map((e) =>
             [
               `  <url>`,
-              `    <loc>${BASE_URL}${e.path}</loc>`,
+              `    <loc>${SITE_URL}${e.path}</loc>`,
               e.lastmod ? `    <lastmod>${e.lastmod}</lastmod>` : null,
               e.changefreq ? `    <changefreq>${e.changefreq}</changefreq>` : null,
               e.priority ? `    <priority>${e.priority}</priority>` : null,
@@ -78,11 +80,12 @@ export const Route = createFileRoute("/sitemap.xml")({
   },
 });
 
-function slugify(s: string): string {
-  return s
+function categorySlug(s: string): string {
+  const slug = s
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+  return slug === "vasos" ? "vasos-de-concreto" : slug;
 }

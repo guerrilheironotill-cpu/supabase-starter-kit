@@ -13,11 +13,15 @@ export function DashboardHeader() {
   return (
     <header className="dark dashboard-scope sticky top-0 z-40 w-full border-b border-white/10 bg-background text-foreground">
       <div className="mx-auto flex h-[72px] w-full items-center justify-between gap-6 px-4 sm:px-8 lg:px-[50px]">
-        <Link to="/" className="flex items-center gap-2">
+        <Link
+          to="/"
+          className="block h-11 w-[181px] shrink-0"
+          aria-label="Casa & Jardim — página inicial"
+        >
           <img
-            src="https://arteno.com.br/wp-content/uploads/2025/03/Ativo-8-e1782929111841.png"
+            src="/images/logo-header-scroll.svg"
             alt="Casa & Jardim"
-            className="h-9 w-auto object-contain"
+            className="h-full w-full object-contain object-left"
           />
         </Link>
         <button

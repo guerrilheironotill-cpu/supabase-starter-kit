@@ -5,3 +5,5 @@ Disallow: /dashboard
 Disallow: /auth
 Disallow: /supabase-check
 Disallow: /health
+
+Sitemap: https://arteno.com.br/sitemap.xml

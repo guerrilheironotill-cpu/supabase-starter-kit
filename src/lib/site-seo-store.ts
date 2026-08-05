@@ -26,11 +26,11 @@ export const useSiteSeoStore = create<SiteSeoState>()(
   ),
 );
 
-export function useApplySiteSeo() {
+export function useApplySiteSeo(enabled = true) {
   const title = useSiteSeoStore((s) => s.title);
   const description = useSiteSeoStore((s) => s.description);
   useEffect(() => {
-    if (typeof document === "undefined") return;
+    if (!enabled || typeof document === "undefined") return;
     if (title) document.title = title;
     const setMeta = (selector: string, content: string) => {
       const el = document.head.querySelector<HTMLMetaElement>(selector);
@@ -42,5 +42,5 @@ export function useApplySiteSeo() {
       setMeta('meta[property="og:site_name"]', title.split(" - ")[0] || title);
     }
     if (description) setMeta('meta[property="og:description"]', description);
-  }, [title, description]);
+  }, [description, enabled, title]);
 }

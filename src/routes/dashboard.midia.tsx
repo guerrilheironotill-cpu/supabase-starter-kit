@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Copy, Check, ImageIcon, Search, Loader2, Download, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSection } from "@/components/dashboard-layout";
+import { schedulePreparedCatalogRefresh } from "@/lib/catalog-refresh";
 
 export const Route = createFileRoute("/dashboard/midia")({
   head: () => ({
@@ -64,6 +65,7 @@ function MidiaPage() {
         `✔ ${j.updated} produtos atualizados · ${j.removed} imagens removidas · ${j.emptied} sem imagens`,
       );
       await reload();
+      schedulePreparedCatalogRefresh();
     } catch (e) {
       setImportResult(`Erro: ${(e as Error).message}`);
     } finally {
@@ -112,6 +114,7 @@ function MidiaPage() {
         `✔ ${j.updated} produtos atualizados · ${j.imagesUploaded} imagens · ${j.matched}/${j.wpTotal} match · ${j.skipped} pulados${j.errors?.length ? ` · erros: ${j.errors.length}` : ""}`,
       );
       await reload();
+      schedulePreparedCatalogRefresh();
     } catch (e) {
       setImportResult(`Erro: ${(e as Error).message}`);
     } finally {

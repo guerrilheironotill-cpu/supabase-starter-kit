@@ -1,19 +1,50 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { fetchProductsByCategory, type Product } from "@/lib/products";
+import { useEffect, useState } from "react";
+import { ArrowRight } from "lucide-react";
+import { categorySlug, fetchProductsByCategory, fetchProductsBySlugs } from "@/lib/products";
+import { ProductCard } from "@/components/product-card";
+import {
+  type CarouselApi,
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 type ProductGridProps = {
   title: string;
   category: string;
   limit?: number;
+  slugs?: string[];
+  carousel?: boolean;
 };
 
-export function ProductGrid({ title, category, limit = 8 }: ProductGridProps) {
+export function ProductGrid({ title, category, limit = 8, slugs, carousel = false }: ProductGridProps) {
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
+  const [selectedSlide, setSelectedSlide] = useState(0);
+  const [slideCount, setSlideCount] = useState(0);
   const { data: products = [], isLoading } = useQuery({
-    queryKey: ["products", "by-category", category, limit],
-    queryFn: () => fetchProductsByCategory(category, limit),
+    queryKey: ["products", "home-grid", category, limit, slugs],
+    queryFn: () => slugs ? fetchProductsBySlugs(slugs) : fetchProductsByCategory(category, limit),
     staleTime: 60_000,
   });
+
+  useEffect(() => {
+    if (!carouselApi) return;
+    const update = () => {
+      setSelectedSlide(carouselApi.selectedScrollSnap());
+      setSlideCount(carouselApi.scrollSnapList().length);
+    };
+    update();
+    carouselApi.on("select", update);
+    carouselApi.on("reInit", update);
+    return () => {
+      carouselApi.off("select", update);
+      carouselApi.off("reInit", update);
+    };
+  }, [carouselApi]);
 
   return (
     <section className="bg-white py-10 sm:py-12">
@@ -22,7 +53,7 @@ export function ProductGrid({ title, category, limit = 8 }: ProductGridProps) {
           {title}
         </h2>
         {isLoading ? (
-          <div className="mt-10 grid grid-cols-2 gap-5 sm:mt-12 sm:gap-6 lg:grid-cols-3">
+          <div className="mt-10 grid grid-cols-2 gap-5 sm:mt-12 sm:gap-6 lg:grid-cols-4">
             {Array.from({ length: limit }).map((_, i) => (
               <div
                 key={i}
@@ -34,37 +65,60 @@ export function ProductGrid({ title, category, limit = 8 }: ProductGridProps) {
           <p className="mt-10 text-center text-primary/70">
             Nenhum produto encontrado.
           </p>
-        ) : (
-          <div className="mt-10 grid grid-cols-2 gap-5 sm:mt-12 sm:gap-6 lg:grid-cols-3">
-            {products.map((p: Product, i: number) => (
-            <Link
-              key={p.id}
-              to="/produto/$slug"
-              params={{ slug: p.slug }}
-              className="group block"
+        ) : carousel ? (
+          <>
+            <Carousel
+              className="mt-10 sm:mt-12"
+              opts={{ align: "start", containScroll: "trimSnaps", duration: 28 }}
+              setApi={setCarouselApi}
+              aria-label={`Carrossel de ${title}`}
             >
-              <div className="relative aspect-square overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-primary/10 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg">
-                {p.images?.[0] ? (
-                  <img
-                    src={p.images[0]}
-                    alt={p.name}
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              <CarouselContent className="-ml-3 sm:-ml-5">
+                {products.map((product) => (
+                  <CarouselItem key={product.id} className="basis-1/2 pl-3 sm:pl-5 lg:basis-1/4">
+                    <ProductCard product={product} variant="home" />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              {products.length > 4 && (
+                <>
+                  <CarouselPrevious className="left-2 h-10 w-10 border-primary/20 bg-white/95 text-primary shadow-sm hover:bg-white sm:-left-5" aria-label="Ver jardineiras anteriores" />
+                  <CarouselNext className="right-2 h-10 w-10 border-primary/20 bg-white/95 text-primary shadow-sm hover:bg-white sm:-right-5" aria-label="Ver próximas jardineiras" />
+                </>
+              )}
+            </Carousel>
+            {slideCount > 1 && (
+              <div className="mt-7 flex items-center justify-center gap-2" aria-label="Navegação do carrossel">
+                {Array.from({ length: slideCount }).map((_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => carouselApi?.scrollTo(index)}
+                    aria-label={`Ir para posição ${index + 1}`}
+                    aria-current={selectedSlide === index ? "true" : undefined}
+                    className={`h-2.5 rounded-full transition-all duration-300 ${selectedSlide === index ? "w-7 bg-primary" : "w-2.5 bg-primary/20 hover:bg-primary/40"}`}
                   />
-                ) : (
-                  <div className="h-full w-full bg-primary/5" />
-                )}
-                <div className="pointer-events-none absolute inset-0 flex items-end justify-center bg-gradient-to-t from-primary/70 via-primary/20 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100 sm:p-6">
-                  <span className="pointer-events-auto translate-y-2 rounded-full bg-white px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary shadow-lg transition-transform duration-300 group-hover:translate-y-0 sm:text-sm">
-                    Ver produto
-                  </span>
-                </div>
+                ))}
               </div>
-              <h3 className="mt-4 font-display text-lg font-semibold text-primary sm:text-xl">
-                {p.name}
-              </h3>
-            </Link>
+            )}
+          </>
+        ) : (
+          <div className="mt-10 grid grid-cols-2 gap-5 sm:mt-12 sm:gap-6 lg:grid-cols-4">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} variant="home" />
             ))}
+          </div>
+        )}
+        {!isLoading && products.length > 0 && (
+          <div className="mt-10 flex justify-center">
+            <Link
+              to="/categoria/$slug"
+              params={{ slug: categorySlug(category) }}
+              className="inline-flex items-center gap-2 rounded-full border border-primary/20 px-6 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-white"
+            >
+              Ver todos
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         )}
       </div>

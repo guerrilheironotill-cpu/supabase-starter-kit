@@ -14,13 +14,14 @@ import {
 import {
   fetchCategories,
   fetchProductsWithSizes,
-  slugify,
+  categorySlug,
 } from "@/lib/products";
+import { absoluteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/categoria/$slug")({
   loader: async ({ params }) => {
     const categories = await fetchCategories();
-    const category = categories.find((c) => slugify(c) === params.slug);
+    const category = categories.find((c) => categorySlug(c) === params.slug);
     if (!category) throw notFound();
     return { category };
   },
@@ -28,8 +29,8 @@ export const Route = createFileRoute("/categoria/$slug")({
     meta: [
       {
         title: loaderData
-          ? `${loaderData.category} — Casa & Jardim`
-          : "Categoria — Casa & Jardim",
+          ? `${loaderData.category} — Arteno`
+          : "Categoria — Arteno",
       },
       {
         name: "description",
@@ -39,9 +40,15 @@ export const Route = createFileRoute("/categoria/$slug")({
       },
       {
         property: "og:title",
-        content: loaderData ? loaderData.category : "Categoria",
+        content: loaderData ? `${loaderData.category} — Arteno` : "Categoria — Arteno",
       },
+      ...(loaderData
+        ? [{ property: "og:url", content: absoluteUrl(`/categoria/${categorySlug(loaderData.category)}`) }]
+        : []),
     ],
+    links: loaderData
+      ? [{ rel: "canonical", href: absoluteUrl(`/categoria/${categorySlug(loaderData.category)}`) }]
+      : [],
   }),
   notFoundComponent: () => (
     <div className="mx-auto max-w-4xl px-4 py-20 text-center">

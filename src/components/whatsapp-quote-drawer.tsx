@@ -234,7 +234,7 @@ export function WhatsAppQuoteDrawer({
           0,
         );
         await publicSupabase.from("orders" as never).insert({
-          status: "em_aberto",
+          status: "orcamento",
           origin: "whatsapp",
           customer_name: parsed.data.name,
           customer_phone: parsed.data.phone,

@@ -1,11 +1,9 @@
 const ITEMS = [
-  "Entrega para todo o Brasil",
   "Peças artesanais",
   "Design exclusivo",
-  "Acabamentos premium",
+  "Produção própria",
   "Atendimento personalizado",
   "Garantia de qualidade",
-  "Frete calculado no orçamento",
 ];
 
 export function Marquee() {

@@ -9,9 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as Api_rootRouteImport } from './routes/api/__root'
+import { Route as VasosParaEmpresasRouteImport } from './routes/vasos-para-empresas'
 import { Route as SupabaseCheckRouteImport } from './routes/supabase-check'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as ProjetosPersonalizadosRouteImport } from './routes/projetos-personalizados'
+import { Route as PoliticaDeCookiesRouteImport } from './routes/politica-de-cookies'
+import { Route as PiasECubasDeConcretoRouteImport } from './routes/pias-e-cubas-de-concreto'
 import { Route as OrcamentoRouteImport } from './routes/orcamento'
+import { Route as MobiliarioUrbanoRouteImport } from './routes/mobiliario-urbano'
 import { Route as HealthCacheRouteImport } from './routes/health-cache'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -45,8 +51,11 @@ import { Route as ApiProductImageSourcesRouteImport } from './routes/api/product
 import { Route as ApiImportProductImagesRouteImport } from './routes/api/import-product-images'
 import { Route as ApiHealthEnvRouteImport } from './routes/api/health-env'
 import { Route as ApiCleanupExternalImagesRouteImport } from './routes/api/cleanup-external-images'
+import { Route as ApiAdminLeadsBulkRouteImport } from './routes/api/admin-leads-bulk'
+import { Route as ApiAdminLeadsRouteImport } from './routes/api/admin-leads'
 import { Route as DashboardPaginasIndexRouteImport } from './routes/dashboard.paginas.index'
 import { Route as DashboardPaginasHomeRouteImport } from './routes/dashboard.paginas.home'
+import { Route as DashboardEditarProdutoProductIdRouteImport } from './routes/dashboard.editar-produto.$productId'
 import { Route as DashboardCrmLeadsRouteImport } from './routes/dashboard.crm.leads'
 import { Route as ApiWcUpdateOrderRouteImport } from './routes/api/wc.update-order'
 import { Route as ApiWcOrdersSummaryRouteImport } from './routes/api/wc.orders-summary'
@@ -54,6 +63,15 @@ import { Route as ApiWcListRouteImport } from './routes/api/wc.list'
 import { Route as ApiWcCreateOrderRouteImport } from './routes/api/wc.create-order'
 import { Route as ApiGscOverviewRouteImport } from './routes/api/gsc.overview'
 
+const Api_rootRoute = Api_rootRouteImport.update({
+  id: '/api/__root',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VasosParaEmpresasRoute = VasosParaEmpresasRouteImport.update({
+  id: '/vasos-para-empresas',
+  path: '/vasos-para-empresas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SupabaseCheckRoute = SupabaseCheckRouteImport.update({
   id: '/supabase-check',
   path: '/supabase-check',
@@ -64,9 +82,29 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjetosPersonalizadosRoute = ProjetosPersonalizadosRouteImport.update({
+  id: '/projetos-personalizados',
+  path: '/projetos-personalizados',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliticaDeCookiesRoute = PoliticaDeCookiesRouteImport.update({
+  id: '/politica-de-cookies',
+  path: '/politica-de-cookies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PiasECubasDeConcretoRoute = PiasECubasDeConcretoRouteImport.update({
+  id: '/pias-e-cubas-de-concreto',
+  path: '/pias-e-cubas-de-concreto',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrcamentoRoute = OrcamentoRouteImport.update({
   id: '/orcamento',
   path: '/orcamento',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MobiliarioUrbanoRoute = MobiliarioUrbanoRouteImport.update({
+  id: '/mobiliario-urbano',
+  path: '/mobiliario-urbano',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthCacheRoute = HealthCacheRouteImport.update({
@@ -236,6 +274,16 @@ const ApiCleanupExternalImagesRoute =
     path: '/api/cleanup-external-images',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAdminLeadsBulkRoute = ApiAdminLeadsBulkRouteImport.update({
+  id: '/api/admin-leads-bulk',
+  path: '/api/admin-leads-bulk',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminLeadsRoute = ApiAdminLeadsRouteImport.update({
+  id: '/api/admin-leads',
+  path: '/api/admin-leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardPaginasIndexRoute = DashboardPaginasIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -246,6 +294,12 @@ const DashboardPaginasHomeRoute = DashboardPaginasHomeRouteImport.update({
   path: '/home',
   getParentRoute: () => DashboardPaginasRoute,
 } as any)
+const DashboardEditarProdutoProductIdRoute =
+  DashboardEditarProdutoProductIdRouteImport.update({
+    id: '/editar-produto/$productId',
+    path: '/editar-produto/$productId',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 const DashboardCrmLeadsRoute = DashboardCrmLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
@@ -285,9 +339,17 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteWithChildren
   '/health': typeof HealthRoute
   '/health-cache': typeof HealthCacheRoute
+  '/mobiliario-urbano': typeof MobiliarioUrbanoRoute
   '/orcamento': typeof OrcamentoRoute
+  '/pias-e-cubas-de-concreto': typeof PiasECubasDeConcretoRoute
+  '/politica-de-cookies': typeof PoliticaDeCookiesRoute
+  '/projetos-personalizados': typeof ProjetosPersonalizadosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
+  '/vasos-para-empresas': typeof VasosParaEmpresasRoute
+  '/api': typeof Api_rootRoute
+  '/api/admin-leads': typeof ApiAdminLeadsRoute
+  '/api/admin-leads-bulk': typeof ApiAdminLeadsBulkRoute
   '/api/cleanup-external-images': typeof ApiCleanupExternalImagesRoute
   '/api/health-env': typeof ApiHealthEnvRoute
   '/api/import-product-images': typeof ApiImportProductImagesRoute
@@ -320,6 +382,7 @@ export interface FileRoutesByFullPath {
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
   '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
   '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
+  '/dashboard/editar-produto/$productId': typeof DashboardEditarProdutoProductIdRoute
   '/dashboard/paginas/home': typeof DashboardPaginasHomeRoute
   '/dashboard/paginas/': typeof DashboardPaginasIndexRoute
 }
@@ -330,9 +393,17 @@ export interface FileRoutesByTo {
   '/catalogo': typeof CatalogoRoute
   '/health': typeof HealthRoute
   '/health-cache': typeof HealthCacheRoute
+  '/mobiliario-urbano': typeof MobiliarioUrbanoRoute
   '/orcamento': typeof OrcamentoRoute
+  '/pias-e-cubas-de-concreto': typeof PiasECubasDeConcretoRoute
+  '/politica-de-cookies': typeof PoliticaDeCookiesRoute
+  '/projetos-personalizados': typeof ProjetosPersonalizadosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
+  '/vasos-para-empresas': typeof VasosParaEmpresasRoute
+  '/api': typeof Api_rootRoute
+  '/api/admin-leads': typeof ApiAdminLeadsRoute
+  '/api/admin-leads-bulk': typeof ApiAdminLeadsBulkRoute
   '/api/cleanup-external-images': typeof ApiCleanupExternalImagesRoute
   '/api/health-env': typeof ApiHealthEnvRoute
   '/api/import-product-images': typeof ApiImportProductImagesRoute
@@ -364,6 +435,7 @@ export interface FileRoutesByTo {
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
   '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
   '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
+  '/dashboard/editar-produto/$productId': typeof DashboardEditarProdutoProductIdRoute
   '/dashboard/paginas/home': typeof DashboardPaginasHomeRoute
   '/dashboard/paginas': typeof DashboardPaginasIndexRoute
 }
@@ -376,9 +448,17 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRouteWithChildren
   '/health': typeof HealthRoute
   '/health-cache': typeof HealthCacheRoute
+  '/mobiliario-urbano': typeof MobiliarioUrbanoRoute
   '/orcamento': typeof OrcamentoRoute
+  '/pias-e-cubas-de-concreto': typeof PiasECubasDeConcretoRoute
+  '/politica-de-cookies': typeof PoliticaDeCookiesRoute
+  '/projetos-personalizados': typeof ProjetosPersonalizadosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
+  '/vasos-para-empresas': typeof VasosParaEmpresasRoute
+  '/api/__root': typeof Api_rootRoute
+  '/api/admin-leads': typeof ApiAdminLeadsRoute
+  '/api/admin-leads-bulk': typeof ApiAdminLeadsBulkRoute
   '/api/cleanup-external-images': typeof ApiCleanupExternalImagesRoute
   '/api/health-env': typeof ApiHealthEnvRoute
   '/api/import-product-images': typeof ApiImportProductImagesRoute
@@ -411,6 +491,7 @@ export interface FileRoutesById {
   '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
   '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
   '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
+  '/dashboard/editar-produto/$productId': typeof DashboardEditarProdutoProductIdRoute
   '/dashboard/paginas/home': typeof DashboardPaginasHomeRoute
   '/dashboard/paginas/': typeof DashboardPaginasIndexRoute
 }
@@ -424,9 +505,17 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/health'
     | '/health-cache'
+    | '/mobiliario-urbano'
     | '/orcamento'
+    | '/pias-e-cubas-de-concreto'
+    | '/politica-de-cookies'
+    | '/projetos-personalizados'
     | '/sitemap.xml'
     | '/supabase-check'
+    | '/vasos-para-empresas'
+    | '/api'
+    | '/api/admin-leads'
+    | '/api/admin-leads-bulk'
     | '/api/cleanup-external-images'
     | '/api/health-env'
     | '/api/import-product-images'
@@ -459,6 +548,7 @@ export interface FileRouteTypes {
     | '/api/wc/orders-summary'
     | '/api/wc/update-order'
     | '/dashboard/crm/leads'
+    | '/dashboard/editar-produto/$productId'
     | '/dashboard/paginas/home'
     | '/dashboard/paginas/'
   fileRoutesByTo: FileRoutesByTo
@@ -469,9 +559,17 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/health'
     | '/health-cache'
+    | '/mobiliario-urbano'
     | '/orcamento'
+    | '/pias-e-cubas-de-concreto'
+    | '/politica-de-cookies'
+    | '/projetos-personalizados'
     | '/sitemap.xml'
     | '/supabase-check'
+    | '/vasos-para-empresas'
+    | '/api'
+    | '/api/admin-leads'
+    | '/api/admin-leads-bulk'
     | '/api/cleanup-external-images'
     | '/api/health-env'
     | '/api/import-product-images'
@@ -503,6 +601,7 @@ export interface FileRouteTypes {
     | '/api/wc/orders-summary'
     | '/api/wc/update-order'
     | '/dashboard/crm/leads'
+    | '/dashboard/editar-produto/$productId'
     | '/dashboard/paginas/home'
     | '/dashboard/paginas'
   id:
@@ -514,9 +613,17 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/health'
     | '/health-cache'
+    | '/mobiliario-urbano'
     | '/orcamento'
+    | '/pias-e-cubas-de-concreto'
+    | '/politica-de-cookies'
+    | '/projetos-personalizados'
     | '/sitemap.xml'
     | '/supabase-check'
+    | '/vasos-para-empresas'
+    | '/api/__root'
+    | '/api/admin-leads'
+    | '/api/admin-leads-bulk'
     | '/api/cleanup-external-images'
     | '/api/health-env'
     | '/api/import-product-images'
@@ -549,6 +656,7 @@ export interface FileRouteTypes {
     | '/api/wc/orders-summary'
     | '/api/wc/update-order'
     | '/dashboard/crm/leads'
+    | '/dashboard/editar-produto/$productId'
     | '/dashboard/paginas/home'
     | '/dashboard/paginas/'
   fileRoutesById: FileRoutesById
@@ -561,9 +669,17 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRouteWithChildren
   HealthRoute: typeof HealthRoute
   HealthCacheRoute: typeof HealthCacheRoute
+  MobiliarioUrbanoRoute: typeof MobiliarioUrbanoRoute
   OrcamentoRoute: typeof OrcamentoRoute
+  PiasECubasDeConcretoRoute: typeof PiasECubasDeConcretoRoute
+  PoliticaDeCookiesRoute: typeof PoliticaDeCookiesRoute
+  ProjetosPersonalizadosRoute: typeof ProjetosPersonalizadosRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SupabaseCheckRoute: typeof SupabaseCheckRoute
+  VasosParaEmpresasRoute: typeof VasosParaEmpresasRoute
+  Api_rootRoute: typeof Api_rootRoute
+  ApiAdminLeadsRoute: typeof ApiAdminLeadsRoute
+  ApiAdminLeadsBulkRoute: typeof ApiAdminLeadsBulkRoute
   ApiCleanupExternalImagesRoute: typeof ApiCleanupExternalImagesRoute
   ApiHealthEnvRoute: typeof ApiHealthEnvRoute
   ApiImportProductImagesRoute: typeof ApiImportProductImagesRoute
@@ -581,6 +697,20 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/api/__root': {
+      id: '/api/__root'
+      path: '/api'
+      fullPath: '/api'
+      preLoaderRoute: typeof Api_rootRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vasos-para-empresas': {
+      id: '/vasos-para-empresas'
+      path: '/vasos-para-empresas'
+      fullPath: '/vasos-para-empresas'
+      preLoaderRoute: typeof VasosParaEmpresasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/supabase-check': {
       id: '/supabase-check'
       path: '/supabase-check'
@@ -595,11 +725,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projetos-personalizados': {
+      id: '/projetos-personalizados'
+      path: '/projetos-personalizados'
+      fullPath: '/projetos-personalizados'
+      preLoaderRoute: typeof ProjetosPersonalizadosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/politica-de-cookies': {
+      id: '/politica-de-cookies'
+      path: '/politica-de-cookies'
+      fullPath: '/politica-de-cookies'
+      preLoaderRoute: typeof PoliticaDeCookiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pias-e-cubas-de-concreto': {
+      id: '/pias-e-cubas-de-concreto'
+      path: '/pias-e-cubas-de-concreto'
+      fullPath: '/pias-e-cubas-de-concreto'
+      preLoaderRoute: typeof PiasECubasDeConcretoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/orcamento': {
       id: '/orcamento'
       path: '/orcamento'
       fullPath: '/orcamento'
       preLoaderRoute: typeof OrcamentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mobiliario-urbano': {
+      id: '/mobiliario-urbano'
+      path: '/mobiliario-urbano'
+      fullPath: '/mobiliario-urbano'
+      preLoaderRoute: typeof MobiliarioUrbanoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/health-cache': {
@@ -833,6 +991,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCleanupExternalImagesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin-leads-bulk': {
+      id: '/api/admin-leads-bulk'
+      path: '/api/admin-leads-bulk'
+      fullPath: '/api/admin-leads-bulk'
+      preLoaderRoute: typeof ApiAdminLeadsBulkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin-leads': {
+      id: '/api/admin-leads'
+      path: '/api/admin-leads'
+      fullPath: '/api/admin-leads'
+      preLoaderRoute: typeof ApiAdminLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/paginas/': {
       id: '/dashboard/paginas/'
       path: '/'
@@ -846,6 +1018,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/paginas/home'
       preLoaderRoute: typeof DashboardPaginasHomeRouteImport
       parentRoute: typeof DashboardPaginasRoute
+    }
+    '/dashboard/editar-produto/$productId': {
+      id: '/dashboard/editar-produto/$productId'
+      path: '/editar-produto/$productId'
+      fullPath: '/dashboard/editar-produto/$productId'
+      preLoaderRoute: typeof DashboardEditarProdutoProductIdRouteImport
+      parentRoute: typeof DashboardRoute
     }
     '/dashboard/crm/leads': {
       id: '/dashboard/crm/leads'
@@ -936,6 +1115,7 @@ interface DashboardRouteChildren {
   DashboardProdutosRoute: typeof DashboardProdutosRoute
   DashboardSeoRoute: typeof DashboardSeoRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardEditarProdutoProductIdRoute: typeof DashboardEditarProdutoProductIdRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
@@ -957,6 +1137,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardProdutosRoute: DashboardProdutosRoute,
   DashboardSeoRoute: DashboardSeoRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  DashboardEditarProdutoProductIdRoute: DashboardEditarProdutoProductIdRoute,
 }
 
 const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
@@ -971,9 +1152,17 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRouteWithChildren,
   HealthRoute: HealthRoute,
   HealthCacheRoute: HealthCacheRoute,
+  MobiliarioUrbanoRoute: MobiliarioUrbanoRoute,
   OrcamentoRoute: OrcamentoRoute,
+  PiasECubasDeConcretoRoute: PiasECubasDeConcretoRoute,
+  PoliticaDeCookiesRoute: PoliticaDeCookiesRoute,
+  ProjetosPersonalizadosRoute: ProjetosPersonalizadosRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SupabaseCheckRoute: SupabaseCheckRoute,
+  VasosParaEmpresasRoute: VasosParaEmpresasRoute,
+  Api_rootRoute: Api_rootRoute,
+  ApiAdminLeadsRoute: ApiAdminLeadsRoute,
+  ApiAdminLeadsBulkRoute: ApiAdminLeadsBulkRoute,
   ApiCleanupExternalImagesRoute: ApiCleanupExternalImagesRoute,
   ApiHealthEnvRoute: ApiHealthEnvRoute,
   ApiImportProductImagesRoute: ApiImportProductImagesRoute,
@@ -991,3 +1180,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

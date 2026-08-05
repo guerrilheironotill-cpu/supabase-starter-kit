@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { FileText, Plus, Trash2, Share2, Link as LinkIcon, FileDown, MessageCircle, Mail } from "lucide-react";
+import { FileText, Plus, Trash2, Share2, Link as LinkIcon, FileDown, MessageCircle, Mail, Copy, Pencil, ChevronDown } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardSection } from "@/components/dashboard-layout";
 import { maskPhoneBR } from "@/lib/masks";
@@ -65,6 +65,10 @@ type QuoteMeta = {
   address: string;
   app_order_id?: string;
   app_order_number?: number;
+  personType?: "fisica" | "juridica";
+  cpf?: string | null;
+  cnpj?: string | null;
+  companyName?: string | null;
 };
 
 function parseMeta(raw: string | null | undefined): QuoteMeta {
@@ -83,6 +87,10 @@ function parseMeta(raw: string | null | undefined): QuoteMeta {
         address: String(p.address ?? ""),
         app_order_id: typeof p.app_order_id === "string" ? p.app_order_id : undefined,
         app_order_number: Number.isFinite(Number(p.app_order_number)) ? Number(p.app_order_number) : undefined,
+        personType: p.personType === "juridica" ? "juridica" : "fisica",
+        cpf: typeof p.cpf === "string" ? p.cpf : null,
+        cnpj: typeof p.cnpj === "string" ? p.cnpj : null,
+        companyName: typeof p.companyName === "string" ? p.companyName : null,
       };
     }
   } catch {
@@ -102,6 +110,10 @@ type ItemDraft = {
   size_name?: string;
   finish?: string;
   color?: string;
+  product_search?: string;
+  height?: string;
+  width?: string;
+  length?: string;
 };
 
 type QuoteStatus = "em_aberto" | "aprovado" | "nao_aprovado";
@@ -176,6 +188,8 @@ const currency = (n: number | null | undefined) =>
 function DashboardQuotesPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [duplicateSource, setDuplicateSource] = useState<OrderRow | null>(null);
+  const [editingSource, setEditingSource] = useState<OrderRow | null>(null);
 
   const { data: allOrders = [], isLoading, error } = useQuery({
     queryKey: ["orders"],
@@ -220,13 +234,28 @@ function DashboardQuotesPage() {
             Orçamentos e pedidos do site, WhatsApp, Instagram e manuais.
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog
+          open={open}
+          onOpenChange={(next) => {
+            setOpen(next);
+            if (!next) {
+              setDuplicateSource(null);
+              setEditingSource(null);
+            }
+          }}
+        >
           <DialogTrigger asChild>
-            <Button className="gap-2">
+            <Button className="gap-2" onClick={() => {
+              setDuplicateSource(null);
+              setEditingSource(null);
+            }}>
               <Plus className="h-4 w-4" /> Novo orçamento
             </Button>
           </DialogTrigger>
           <NewQuoteDialog
+            key={editingSource ? `edit-${editingSource.id}` : duplicateSource ? `duplicate-${duplicateSource.id}` : "new"}
+            duplicateSource={editingSource ?? duplicateSource}
+            editMode={Boolean(editingSource)}
             onCreated={() => {
               setOpen(false);
               qc.invalidateQueries({ queryKey: ["orders"] });
@@ -294,7 +323,19 @@ function DashboardQuotesPage() {
                     <StatusSelect order={o} />
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <ShareMenu order={o} />
+                    <ShareMenu
+                      order={o}
+                      onEdit={() => {
+                        setEditingSource(o);
+                        setDuplicateSource(null);
+                        setOpen(true);
+                      }}
+                      onDuplicate={() => {
+                        setEditingSource(null);
+                        setDuplicateSource(o);
+                        setOpen(true);
+                      }}
+                    />
                   </td>
                 </tr>
               ))}
@@ -457,6 +498,9 @@ function StatusSelect({ order }: { order: OrderRow }) {
             size_name?: string | null;
             finish?: string | null;
             color?: string | null;
+            height?: number | null;
+            width?: number | null;
+            length?: number | null;
           }>)
         : [];
       const [first, ...rest] = (order.customer_name ?? "").split(" ");
@@ -581,6 +625,9 @@ function StatusSelect({ order }: { order: OrderRow }) {
             size_name: i.size_name ?? null,
             finish: i.finish ?? null,
             color: i.color ?? null,
+            height: i.height ?? null,
+            width: i.width ?? null,
+            length: i.length ?? null,
           },
         }));
         const { error: iErr } = await supabase
@@ -701,7 +748,15 @@ function StatusSelect({ order }: { order: OrderRow }) {
   );
 }
 
-function ShareMenu({ order }: { order: OrderRow }) {
+function ShareMenu({
+  order,
+  onEdit,
+  onDuplicate,
+}: {
+  order: OrderRow;
+  onEdit: () => void;
+  onDuplicate: () => void;
+}) {
   const items = Array.isArray(order.items)
     ? (order.items as Array<{
         name: string;
@@ -711,6 +766,9 @@ function ShareMenu({ order }: { order: OrderRow }) {
         size_name?: string | null;
         finish?: string | null;
         color?: string | null;
+        height?: number | null;
+        width?: number | null;
+        length?: number | null;
       }>)
     : [];
   const meta = parseMeta(order.notes);
@@ -748,11 +806,14 @@ function ShareMenu({ order }: { order: OrderRow }) {
   };
 
   const generatePdf = () => {
-    const attrLine = (i: { size_name?: string | null; finish?: string | null; color?: string | null }) => {
+    const attrLine = (i: { size_name?: string | null; finish?: string | null; color?: string | null; height?: number | null; width?: number | null; length?: number | null }) => {
       const parts = [
         i.size_name ? `Tamanho: ${i.size_name}` : "",
         i.finish ? `Acabamento: ${i.finish}` : "",
         i.color ? `Cor: ${i.color}` : "",
+        i.height ? `Altura: ${i.height} cm` : "",
+        i.width ? `Largura: ${i.width} cm` : "",
+        i.length ? `Comprimento: ${i.length} cm` : "",
       ].filter(Boolean);
       return parts.length ? `<div class="muted">${parts.join(" · ")}</div>` : "";
     };
@@ -861,6 +922,12 @@ ${meta.note ? module("Observações", `<div style="font-size:13px;line-height:1.
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={onEdit}>
+          <Pencil className="mr-2 h-4 w-4" /> Editar orçamento
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onDuplicate}>
+          <Copy className="mr-2 h-4 w-4" /> Duplicar orçamento
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={copyLink}>
           <LinkIcon className="mr-2 h-4 w-4" /> Copiar link
         </DropdownMenuItem>
@@ -880,6 +947,65 @@ ${meta.note ? module("Observações", `<div style="font-size:13px;line-height:1.
 
 const NewQuoteDialog = NewQuoteDialogImpl;
 
+function DimensionFields({
+  item,
+  onChange,
+  catalogOverride = false,
+}: {
+  item: ItemDraft;
+  onChange: (patch: Partial<ItemDraft>) => void;
+  catalogOverride?: boolean;
+}) {
+  return (
+    <fieldset className="mt-3 rounded-md border border-border bg-background/70 p-3">
+      <legend className="px-1 text-xs font-medium text-muted-foreground">
+        {catalogOverride
+          ? "Medidas específicas deste orçamento (opcional)"
+          : "Tamanho do produto (opcional)"}
+      </legend>
+      {catalogOverride && (
+        <p className="mb-2 text-xs text-muted-foreground">
+          Estas medidas alteram somente este orçamento e não modificam o produto cadastrado.
+        </p>
+      )}
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <Label className="text-xs">Altura (cm)</Label>
+          <Input
+            type="number"
+            min={0}
+            step="0.1"
+            placeholder="0"
+            value={item.height ?? ""}
+            onChange={(event) => onChange({ height: event.target.value })}
+          />
+        </div>
+        <div>
+          <Label className="text-xs">Largura (cm)</Label>
+          <Input
+            type="number"
+            min={0}
+            step="0.1"
+            placeholder="0"
+            value={item.width ?? ""}
+            onChange={(event) => onChange({ width: event.target.value })}
+          />
+        </div>
+        <div>
+          <Label className="text-xs">Comprimento (cm)</Label>
+          <Input
+            type="number"
+            min={0}
+            step="0.1"
+            placeholder="0"
+            value={item.length ?? ""}
+            onChange={(event) => onChange({ length: event.target.value })}
+          />
+        </div>
+      </div>
+    </fieldset>
+  );
+}
 function OriginBadge({ origin }: { origin: string }) {
   const map: Record<string, { label: string; cls: string }> = {
     manual: { label: "Dashboard", cls: "bg-primary/15 text-primary" },
@@ -895,32 +1021,61 @@ function OriginBadge({ origin }: { origin: string }) {
   );
 }
 
-function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [personType, setPersonType] = useState<"fisica" | "juridica">("fisica");
-  const [cpf, setCpf] = useState("");
-  const [cnpj, setCnpj] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [address, setAddress] = useState("");
-  const [notes, setNotes] = useState("");
-  const [freight, setFreight] = useState<number>(0);
-  const [freightNote, setFreightNote] = useState("");
-  const [deliveryMode, setDeliveryMode] = useState<"pickup" | "shipping">("pickup");
-  const [deadline, setDeadline] = useState("");
-  const [payment, setPayment] = useState("");
-  const [pix, setPix] = useState("");
-  const [items, setItems] = useState<ItemDraft[]>([
-    { kind: "custom", name: "", quantity: 1, price: 0 },
-  ]);
+function NewQuoteDialogImpl({
+  onCreated,
+  duplicateSource,
+  editMode = false,
+}: {
+  onCreated: () => void;
+  duplicateSource?: OrderRow | null;
+  editMode?: boolean;
+}) {
+  const initialMeta = parseMeta(duplicateSource?.notes);
+  const initialItems: ItemDraft[] = Array.isArray(duplicateSource?.items)
+    ? (duplicateSource.items as Array<Record<string, unknown>>).map((item) => ({
+        kind: item.kind === "custom" ? "custom" : "catalog",
+        product_id: typeof item.product_id === "string" ? item.product_id : undefined,
+        name: String(item.name ?? ""),
+        description: typeof item.description === "string" ? item.description : undefined,
+        quantity: Number(item.quantity) || 1,
+        price: Number(item.price) || 0,
+        size_id: typeof item.size_id === "string" ? item.size_id : undefined,
+        size_name: typeof item.size_name === "string" ? item.size_name : undefined,
+        finish: typeof item.finish === "string" ? item.finish : undefined,
+        color: typeof item.color === "string" ? item.color : undefined,
+        height: item.height == null ? "" : String(item.height),
+        width: item.width == null ? "" : String(item.width),
+        length: item.length == null ? "" : String(item.length),
+      }))
+    : [];
+  const [name, setName] = useState(duplicateSource?.customer_name ?? "");
+  const [phone, setPhone] = useState(duplicateSource?.customer_phone ?? "");
+  const [email, setEmail] = useState(duplicateSource?.customer_email ?? "");
+  const [personType, setPersonType] = useState<"fisica" | "juridica">(initialMeta.personType ?? "fisica");
+  const [cpf, setCpf] = useState(initialMeta.cpf ?? "");
+  const [cnpj, setCnpj] = useState(initialMeta.cnpj ?? "");
+  const [companyName, setCompanyName] = useState(initialMeta.companyName ?? "");
+  const [address, setAddress] = useState(initialMeta.address);
+  const [notes, setNotes] = useState(initialMeta.note);
+  const [freight, setFreight] = useState<number>(initialMeta.freight);
+  const [freightNote, setFreightNote] = useState(initialMeta.freightNote);
+  const [deliveryMode, setDeliveryMode] = useState<"pickup" | "shipping">(initialMeta.freight > 0 || initialMeta.address ? "shipping" : "pickup");
+  const [deadline, setDeadline] = useState(initialMeta.deadline);
+  const [payment, setPayment] = useState(initialMeta.payment);
+  const [pix, setPix] = useState(initialMeta.pix);
+  const [items, setItems] = useState<ItemDraft[]>(
+    initialItems.length ? initialItems : [{ kind: "custom", name: "", quantity: 1, price: 0 }],
+  );
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(
+    () => new Set(initialItems.length ? [] : [0]),
+  );
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   type ProductFull = {
     id: string;
     name: string;
-    product_sizes: Array<{ id: string; name: string; base_price: number; sale_price: number | null; sort_order: number }>;
+    product_sizes: Array<{ id: string; name: string; size?: string; base_price: number; sale_price: number | null; sort_order: number }>;
     product_finishes: Array<{ id: string; name: string; sort_order: number }>;
     product_colors: Array<{ id: string; name: string; sort_order: number }>;
   };
@@ -929,8 +1084,8 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select(
-          "id, name, product_sizes(id, name, base_price, sale_price, sort_order), product_finishes(id, name, sort_order), product_colors(id, name, sort_order)",
+          .select(
+          "id, name, product_sizes(id, name, size, base_price, sale_price, sort_order), product_finishes(id, name, sort_order), product_colors(id, name, sort_order)",
         )
         .eq("active", true)
         .order("name")
@@ -950,11 +1105,27 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   };
 
-  const addItem = (kind: "catalog" | "custom") =>
-    setItems((prev) => [...prev, { kind, name: "", quantity: 1, price: 0 }]);
+  const addItem = (kind: "catalog" | "custom") => {
+    setItems((prev) => [{ kind, name: "", quantity: 1, price: 0 }, ...prev]);
+    setExpandedItems((current) => new Set([0, ...Array.from(current, (index) => index + 1)]));
+  };
 
-  const removeItem = (idx: number) =>
+  const removeItem = (idx: number) => {
     setItems((prev) => prev.filter((_, i) => i !== idx));
+    setExpandedItems((current) => new Set(
+      Array.from(current)
+        .filter((index) => index !== idx)
+        .map((index) => index > idx ? index - 1 : index),
+    ));
+  };
+
+  const toggleItem = (idx: number) =>
+    setExpandedItems((current) => {
+      const next = new Set(current);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
 
   const submit = async () => {
     if (!name.trim()) {
@@ -996,6 +1167,9 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
           size_name: i.size_name ?? null,
           finish: i.finish ?? null,
           color: i.color ?? null,
+          height: i.height?.trim() ? Number(i.height) : null,
+          width: i.width?.trim() ? Number(i.width) : null,
+          length: i.length?.trim() ? Number(i.length) : null,
         }));
 
       // 1) create a lead so it also appears in CRM (items as jsonb array — same shape as WhatsApp)
@@ -1005,15 +1179,37 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
         quantity: i.quantity,
         unitPrice: i.price,
       }));
-      const { error: leadErr } = await supabase.from("leads" as never).insert({
-        name,
-        phone: phone || null,
-        items: leadItems,
-        source: "manual",
-      } as never);
-      if (leadErr) {
-        console.warn("[lead insert]", leadErr.message);
-        toast.warning("Orçamento criado, mas falhou ao gravar lead no CRM: " + leadErr.message);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) throw new Error("Sessão administrativa expirada.");
+
+      if (!editMode) {
+        const leadResponse = await fetch("/api/admin-leads", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            name,
+            phone: phone || null,
+            email: email || null,
+            cpf: personType === "fisica" ? cpf : null,
+            cnpj: personType === "juridica" ? cnpj : null,
+            items: leadItems,
+            source: "manual",
+          }),
+        });
+        const leadResult = (await leadResponse.json()) as {
+          ok?: boolean;
+          error?: string;
+        };
+        if (!leadResponse.ok || !leadResult.ok) {
+          throw new Error(
+            "Não foi possível salvar o lead no CRM: " +
+              (leadResult.error || `erro HTTP ${leadResponse.status}`),
+          );
+        }
       }
 
       // 2) create the order
@@ -1032,7 +1228,6 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
         companyName: personType === "juridica" ? companyName : null,
       });
       const basePayload: Record<string, unknown> = {
-        status: "em_aberto",
         customer_name: name,
         customer_phone: phone || null,
         items: cleanItems,
@@ -1045,15 +1240,45 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
         { ...basePayload },
       ];
       let orderErr: { message: string } | null = null;
-      for (const payload of attempts) {
-        const { error } = await supabase.from("orders" as never).insert(payload as never);
-        if (!error) { orderErr = null; break; }
-        orderErr = error;
-        console.warn("[order insert attempt]", error.message, Object.keys(payload));
+      let orderSaved = false;
+      if (editMode && duplicateSource) {
+        for (const payload of attempts) {
+          const { error } = await supabase
+            .from("orders" as never)
+            .update(payload as never)
+            .eq("id", duplicateSource.id);
+          if (!error) {
+            orderErr = null;
+            orderSaved = true;
+            break;
+          }
+          orderErr = error;
+          console.warn("[order update attempt]", error.message, Object.keys(payload));
+        }
+      } else {
+        for (const status of STATUS_WRITE_CANDIDATES.em_aberto) {
+          for (const payload of attempts) {
+            const { error } = await supabase
+              .from("orders" as never)
+              .insert({ ...payload, status } as never);
+            if (!error) {
+              orderErr = null;
+              orderSaved = true;
+              break;
+            }
+            orderErr = error;
+            console.warn(
+              `[order insert attempt:${status}]`,
+              error.message,
+              Object.keys(payload),
+            );
+          }
+          if (orderSaved) break;
+        }
       }
-      if (orderErr) throw orderErr;
+      if (!orderSaved && orderErr) throw orderErr;
 
-      toast.success("Orçamento criado");
+      toast.success(editMode ? "Orçamento atualizado" : "Orçamento criado");
       onCreated();
     } catch (e) {
       const msg =
@@ -1062,8 +1287,8 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
           : e && typeof e === "object" && "message" in e
             ? String((e as { message: unknown }).message)
             : JSON.stringify(e);
-      console.error("[new order]", e);
-      toast.error("Erro ao criar orçamento: " + msg, { duration: 8000 });
+      console.error(editMode ? "[edit order]" : "[new order]", e);
+      toast.error(`Erro ao ${editMode ? "atualizar" : "criar"} orçamento: ${msg}`, { duration: 8000 });
       setSaving(false);
       return;
     }
@@ -1073,7 +1298,7 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
   return (
     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>Novo orçamento</DialogTitle>
+        <DialogTitle>{editMode ? "Editar orçamento" : duplicateSource ? "Duplicar orçamento" : "Novo orçamento"}</DialogTitle>
       </DialogHeader>
 
       <ol className="mb-2 flex items-center gap-4 border-b border-border pb-3 text-xs uppercase tracking-widest">
@@ -1277,52 +1502,148 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
 
           <div className="space-y-3">
             {items.map((it, idx) => (
-              <div key={idx} className="rounded-lg border border-border bg-muted/20 p-3">
-                <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-wide text-muted-foreground">
-                  <span>{it.kind === "catalog" ? "Do catálogo" : "Personalizado"}</span>
+              <div
+                key={idx}
+                className={`rounded-lg border p-3 ${
+                  it.kind === "catalog"
+                    ? "border-slate-200 bg-slate-50"
+                    : "border-border bg-white"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleItem(idx)}
+                    className="flex min-w-0 flex-1 items-center justify-between gap-3 py-1 text-left"
+                    aria-expanded={expandedItems.has(idx)}
+                  >
+                    <span className="truncate font-medium text-foreground">
+                      {it.name.trim() || (it.kind === "catalog" ? "Novo produto do catálogo" : "Novo produto personalizado")}
+                    </span>
+                    <ChevronDown
+                      className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+                        expandedItems.has(idx) ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
                   <button
                     type="button"
                     onClick={() => removeItem(idx)}
-                    className="text-muted-foreground hover:text-destructive"
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                    aria-label={`Remover ${it.name || "item"}`}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
 
+                {expandedItems.has(idx) && (
+                <>
+                <div className="mb-2 mt-2 text-xs uppercase tracking-wide text-muted-foreground">
+                  {it.kind === "catalog" ? "Do catálogo" : "Personalizado"}
+                </div>
                 {it.kind === "catalog" ? (
                   (() => {
                     const p = products.find((x) => x.id === it.product_id);
                     const sizes = [...(p?.product_sizes ?? [])].sort((a, b) => a.sort_order - b.sort_order);
                     const finishes = [...(p?.product_finishes ?? [])].sort((a, b) => a.sort_order - b.sort_order);
                     const colors = [...(p?.product_colors ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+                    const productSearch = (it.product_search ?? "").trim().toLocaleLowerCase("pt-BR");
+                    const filteredProducts = productSearch
+                      ? products.filter((product) =>
+                          product.name.toLocaleLowerCase("pt-BR").includes(productSearch),
+                        )
+                      : products;
                     return (
                       <div className="space-y-2">
-                        <Select
-                          value={it.product_id ?? ""}
-                          onValueChange={(v) => {
-                            const prod = products.find((x) => x.id === v);
-                            updateItem(idx, {
-                              product_id: v,
-                              name: prod?.name ?? "",
-                              size_id: undefined,
-                              size_name: undefined,
-                              finish: undefined,
-                              color: undefined,
-                              price: 0,
-                            });
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um produto" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {products.map((prod) => (
-                              <SelectItem key={prod.id} value={prod.id}>
-                                {prod.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="relative">
+                          <Label className="text-xs">Buscar produto por nome</Label>
+                          <Input
+                            type="search"
+                            autoComplete="off"
+                            placeholder="Comece a digitar o nome do produto"
+                            value={it.product_search ?? ""}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              updateItem(idx, {
+                                product_search: value,
+                                product_id: undefined,
+                                name: "",
+                                size_id: undefined,
+                                size_name: undefined,
+                                finish: undefined,
+                                color: undefined,
+                                height: undefined,
+                                width: undefined,
+                                length: undefined,
+                                price: 0,
+                              });
+                            }}
+                          />
+
+                          {productSearch && !p && (
+                            <div className="absolute inset-x-0 top-full z-30 max-h-60 overflow-y-auto border border-t-0 border-border bg-background shadow-xl">
+                              {filteredProducts.length > 0 ? (
+                                filteredProducts.slice(0, 10).map((product) => (
+                                  <button
+                                    key={product.id}
+                                    type="button"
+                                    onClick={() =>
+                                      updateItem(idx, {
+                                        product_id: product.id,
+                                        name: product.name,
+                                        product_search: product.name,
+                                        size_id: undefined,
+                                        size_name: undefined,
+                                        finish: undefined,
+                                        color: undefined,
+                                        height: undefined,
+                                        width: undefined,
+                                        length: undefined,
+                                        price: 0,
+                                      })
+                                    }
+                                    className="block w-full border-t border-border/60 px-3 py-2.5 text-left text-sm text-foreground transition-colors first:border-t-0 hover:bg-muted"
+                                  >
+                                    {product.name}
+                                  </button>
+                                ))
+                              ) : (
+                                <p className="px-3 py-3 text-sm text-muted-foreground">
+                                  Nenhum produto encontrado.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {p && (
+                          <div className="flex items-center justify-between border border-border bg-background px-3 py-2 text-sm">
+                            <span>
+                              Produto selecionado: <strong>{p.name}</strong>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateItem(idx, {
+                                  product_id: undefined,
+                                  name: "",
+                                  product_search: "",
+                                  size_id: undefined,
+                                  size_name: undefined,
+                                  finish: undefined,
+                                  color: undefined,
+                                  height: undefined,
+                                  width: undefined,
+                                  length: undefined,
+                                  price: 0,
+                                })
+                              }
+                              className="text-xs font-medium text-muted-foreground hover:text-foreground"
+                            >
+                              Trocar
+                            </button>
+                          </div>
+                        )}
 
                         {p && (
                           <div className="grid gap-2 sm:grid-cols-3">
@@ -1396,6 +1717,13 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
                             )}
                           </div>
                         )}
+                        {p && (
+                          <DimensionFields
+                            item={it}
+                            onChange={(patch) => updateItem(idx, patch)}
+                            catalogOverride
+                          />
+                        )}
                       </div>
                     );
                   })()
@@ -1412,6 +1740,7 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
                       value={it.description ?? ""}
                       onChange={(e) => updateItem(idx, { description: e.target.value })}
                     />
+                    <DimensionFields item={it} onChange={(patch) => updateItem(idx, patch)} />
                   </>
                 )}
 
@@ -1436,6 +1765,23 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
                     />
                   </div>
                 </div>
+                <div className="mt-3 flex justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!it.name.trim()}
+                    onClick={() => setExpandedItems((current) => {
+                      const next = new Set(current);
+                      next.delete(idx);
+                      return next;
+                    })}
+                  >
+                    Concluir item
+                  </Button>
+                </div>
+                </>
+                )}
               </div>
             ))}
           </div>
@@ -1508,7 +1854,7 @@ function NewQuoteDialogImpl({ onCreated }: { onCreated: () => void }) {
           </Button>
         ) : (
           <Button onClick={submit} disabled={saving}>
-            {saving ? "Salvando…" : "Criar orçamento"}
+            {saving ? "Salvando…" : editMode ? "Salvar alterações" : duplicateSource ? "Criar cópia" : "Criar orçamento"}
           </Button>
         )}
       </DialogFooter>

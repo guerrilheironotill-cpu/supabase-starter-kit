@@ -1,23 +1,54 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { WhatsAppQuoteDrawer } from "./whatsapp-quote-drawer";
 
 export function AboutSection() {
   const [waOpen, setWaOpen] = useState(false);
-  return (
-    <section className="relative overflow-hidden bg-[#eaf3dd]">
-      {/* Decorative palm shadow */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-24 top-10 hidden h-[520px] w-[520px] opacity-[0.18] lg:block"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 30% 30%, rgba(20,60,40,0.45), transparent 60%)",
-        }}
-      />
+  const [visible, setVisible] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
 
-      <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 py-20 sm:px-8 lg:grid-cols-2 lg:gap-20 lg:py-28">
-        <div className="relative">
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setVisible(true);
+      return;
+    }
+    let sectionInView = false;
+    let revealed = false;
+    const revealWhenReady = () => {
+      if (revealed || !sectionInView || window.scrollY < 160) return;
+      revealed = true;
+      setVisible(true);
+      observer.disconnect();
+      window.removeEventListener("scroll", revealWhenReady);
+    };
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        sectionInView = entry.isIntersecting;
+        revealWhenReady();
+      },
+      { threshold: 0.25 },
+    );
+    observer.observe(section);
+    window.addEventListener("scroll", revealWhenReady, { passive: true });
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", revealWhenReady);
+    };
+  }, []);
+
+  return (
+    <section ref={sectionRef} className="relative overflow-hidden bg-[#eaf3dd]">
+      <div className="relative z-10 mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 py-20 sm:px-8 lg:grid-cols-2 lg:gap-20 lg:py-28">
+        <div
+          className="relative"
+          style={{
+            opacity: visible ? 1 : 0,
+            transform: visible ? "translate3d(0, 0, 0)" : "translate3d(-140px, 0, 0)",
+            transition: "transform 1000ms cubic-bezier(0.22, 1, 0.36, 1), opacity 1000ms ease-out",
+          }}
+        >
           <div className="aspect-square overflow-hidden rounded-2xl bg-primary/5 shadow-xl ring-1 ring-primary/10">
             <img
               src="https://arteno.com.br/wp-content/uploads/2024/09/arteno-vasodecor-p-vaso-cimento-florianopolis-vaso-concreto.jpg"
@@ -29,17 +60,39 @@ export function AboutSection() {
         </div>
 
         <div>
-          <h2 className="font-display text-3xl leading-[1.15] text-primary sm:text-4xl">
+          <h2
+            className="font-display text-3xl leading-[1.15] text-primary sm:text-4xl"
+            style={{
+              transform: visible ? "translate3d(0, 0, 0)" : "translate3d(140px, 0, 0)",
+              transition: "transform 1000ms cubic-bezier(0.22, 1, 0.36, 1)",
+              transitionDelay: visible ? "300ms" : "0ms",
+            }}
+          >
             Utilizamos o concreto como matéria-prima para criar peças artesanais únicas.
           </h2>
+          <div
+            style={{
+              transform: visible ? "translate3d(0, 0, 0)" : "translate3d(140px, 0, 0)",
+              transition: "transform 1000ms cubic-bezier(0.22, 1, 0.36, 1)",
+              transitionDelay: visible ? "600ms" : "0ms",
+            }}
+          >
           <p className="mt-6 max-w-xl text-base text-primary/75 sm:text-lg">
             Somos especialistas em traduzir a solidez do cimento em vasos e projetos sob medida.
           </p>
           <p className="mt-4 max-w-xl text-base text-primary/75 sm:text-lg">
             Cada peça carrega a exclusividade do trabalho feito à mão e a sofisticação do design autoral. Explore nossas criações.
           </p>
+          </div>
 
-          <div className="mt-10 flex flex-wrap items-center gap-4">
+          <div
+            className="mt-10 flex flex-wrap items-center gap-4"
+            style={{
+              opacity: visible ? 1 : 0,
+              transition: "opacity 1000ms ease-out",
+              transitionDelay: visible ? "900ms" : "0ms",
+            }}
+          >
             <a
               href="/catalogo"
               className="inline-flex items-center gap-2 rounded-full bg-secondary px-7 py-3.5 text-sm font-semibold text-primary transition-all duration-300 hover:-translate-y-0.5 hover:bg-secondary/85"

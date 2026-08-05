@@ -13,7 +13,7 @@ export const DEFAULT_SLIDES: HeroSlide[] = [
   {
     image:
       "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=1920&q=80",
-    eyebrow: "Coleção 2026",
+    eyebrow: "Vasos de concreto",
     title: "Vasos que transformam ambientes",
     description:
       "Peças exclusivas em cimento e fibra, feitas à mão para o seu jardim.",
@@ -23,7 +23,7 @@ export const DEFAULT_SLIDES: HeroSlide[] = [
   {
     image:
       "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=1920&q=80",
-    eyebrow: "Novidade",
+    eyebrow: "Arquitetos e paisagistas",
     title: "Jardineiras sob medida",
     description:
       "Design contemporâneo e acabamento premium para varandas e áreas externas.",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import {
@@ -10,9 +10,19 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { fetchProductCategoryOptions } from "@/lib/dashboard-taxonomies";
+import { toast } from "sonner";
 
 type Category = { id: string; name: string; slug: string };
-type SizeRow = { id?: string; name: string; base_price: number; sale_price: number | null; sort_order: number };
+type SizeRow = {
+  id?: string;
+  name: string;
+  height: string;
+  width: string;
+  length: string;
+  base_price: number;
+  sale_price: number | null;
+  sort_order: number;
+};
 type AttrRow = { id?: string; name: string; sort_order: number };
 
 type ProductData = {
@@ -31,6 +41,7 @@ type Props = {
   productId: string | null;
   onClose: () => void;
   onSaved: () => void;
+  mode?: "dialog" | "page";
 };
 
 type SupabaseLikeError = {
@@ -65,6 +76,28 @@ function normalizeProduct(row: Partial<ProductData> & { images?: string[] | null
   };
 }
 
+function parseSizeDimensions(value: string | null | undefined) {
+  const match = value?.match(/(\d+(?:[.,]\d+)?)\s*(?:cm)?\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(?:cm)?\s*[x×]\s*(\d+(?:[.,]\d+)?)/i);
+  return {
+    height: match?.[1]?.replace(",", ".") ?? "",
+    width: match?.[2]?.replace(",", ".") ?? "",
+    length: match?.[3]?.replace(",", ".") ?? "",
+  };
+}
+
+function sizeName(row: SizeRow) {
+  if (!row.height && !row.width && !row.length) return row.name;
+  return `${row.height || 0}x${row.width || 0}x${row.length || 0}cm`;
+}
+
+const sizesSignature = (rows: SizeRow[]) => JSON.stringify(rows.map((row) => ({
+  name: sizeName(row),
+  base_price: row.base_price,
+  sale_price: row.sale_price,
+})));
+
+const attributesSignature = (rows: AttrRow[]) => JSON.stringify(rows.map((row) => row.name));
+
 async function fetchEditableProduct(productId: string): Promise<ProductData> {
   const withSeo = await supabase
     .from("products")
@@ -90,7 +123,7 @@ async function fetchEditableProduct(productId: string): Promise<ProductData> {
   return normalizeProduct(fallback.data as Partial<ProductData> & { images?: string[] | null });
 }
 
-export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
+export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialog" }: Props) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +134,9 @@ export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
   const [finishes, setFinishes] = useState<AttrRow[]>([]);
   const [colors, setColors] = useState<AttrRow[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const initialSizes = useRef("");
+  const initialFinishes = useRef("");
+  const initialColors = useRef("");
 
   useEffect(() => {
     if (!productId) return;
@@ -118,9 +154,28 @@ export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
         ]);
         if (cancel) return;
         setProduct(p);
-        setSizes((s.data ?? []) as SizeRow[]);
-        setFinishes(((f.data ?? []) as AttrRow[]).map((x) => ({ id: x.id, name: x.name, sort_order: x.sort_order })));
-        setColors(((c.data ?? []) as AttrRow[]).map((x) => ({ id: x.id, name: x.name, sort_order: x.sort_order })));
+        const loadedSizes = ((s.data ?? []) as Array<{ id: string; size: string; name?: string; base_price: number; sale_price: number | null; sort_order: number }>)
+            .map((x) => {
+              const name = x.name ?? x.size ?? "";
+              return {
+                id: x.id,
+                name,
+                ...parseSizeDimensions(name),
+                base_price: x.base_price ?? 0,
+                sale_price: x.sale_price ?? null,
+                sort_order: x.sort_order ?? 0,
+              };
+            });
+        const loadedFinishes = ((f.data ?? []) as Array<{ id: string; finish: string; name?: string; sort_order: number }>)
+          .map((x) => ({ id: x.id, name: x.name ?? x.finish ?? "", sort_order: x.sort_order ?? 0 }));
+        const loadedColors = ((c.data ?? []) as Array<{ id: string; color: string; name?: string; sort_order: number }>)
+          .map((x) => ({ id: x.id, name: x.name ?? x.color ?? "", sort_order: x.sort_order ?? 0 }));
+        setSizes(loadedSizes);
+        setFinishes(loadedFinishes);
+        setColors(loadedColors);
+        initialSizes.current = sizesSignature(loadedSizes);
+        initialFinishes.current = attributesSignature(loadedFinishes);
+        initialColors.current = attributesSignature(loadedColors);
         setCategories(cats as Category[]);
       } catch (e) {
         if (!cancel) setError(e instanceof Error ? e.message : "Falha ao carregar");
@@ -128,9 +183,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
         if (!cancel) setLoading(false);
       }
     })();
-    return () => {
-      cancel = true;
-    };
+    return () => { cancel = true; };
   }, [productId]);
 
   async function uploadImage(file: File): Promise<string> {
@@ -148,6 +201,14 @@ export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
     setSaving(true);
     setError(null);
     try {
+      const invalidSize = sizes.find((size) => {
+        const hasAllDimensions = Boolean(size.height && size.width && size.length);
+        const preservedLegacySize = Boolean(size.name && !size.height && !size.width && !size.length);
+        return !hasAllDimensions && !preservedLegacySize;
+      });
+      if (invalidSize) {
+        throw new Error("Preencha altura, largura e comprimento de todos os tamanhos.");
+      }
       const productPayload = {
         name: product.name,
         slug: product.slug,
@@ -179,29 +240,40 @@ export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
         if (fallbackErr) throw fallbackErr;
       }
 
-      await Promise.all([
-        replaceRows("product_sizes", product.id, sizes.map((s, i) => ({
+      const relationUpdates: Array<Promise<void>> = [];
+      if (sizesSignature(sizes) !== initialSizes.current) {
+        relationUpdates.push(replaceRows("product_sizes", product.id, sizes.map((s, i) => ({
           product_id: product.id,
-          name: s.name,
+          size: sizeName(s),
+          name: sizeName(s),
           base_price: s.base_price,
           sale_price: s.sale_price,
           sort_order: i,
-        }))),
-        replaceRows("product_finishes", product.id, finishes.map((f, i) => ({
+        }))));
+      }
+      if (attributesSignature(finishes) !== initialFinishes.current) {
+        relationUpdates.push(replaceRows("product_finishes", product.id, finishes.map((f, i) => ({
           product_id: product.id,
-          name: f.name,
+          finish: f.name,
           sort_order: i,
-        }))),
-        replaceRows("product_colors", product.id, colors.map((c, i) => ({
+        }))));
+      }
+      if (attributesSignature(colors) !== initialColors.current) {
+        relationUpdates.push(replaceRows("product_colors", product.id, colors.map((c, i) => ({
           product_id: product.id,
-          name: c.name,
+          color: c.name,
           sort_order: i,
-        }))),
-      ]);
+        }))));
+      }
+      await Promise.all(relationUpdates);
+
+      toast.success(`Produto "${product.name}" salvo com sucesso!`);
       onSaved();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Falha ao salvar");
+      const msg = e instanceof Error ? e.message : "Falha ao salvar";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -219,12 +291,18 @@ export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
     if (insErr) throw insErr;
   }
 
-  return (
-    <Dialog open={!!productId} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="dark dashboard-scope max-h-[90vh] max-w-3xl overflow-hidden bg-background p-0 text-foreground">
-        <DialogHeader className="border-b border-border px-6 py-4">
-          <DialogTitle>Editar produto</DialogTitle>
-        </DialogHeader>
+  const editorBody = (
+    <>
+        {mode === "dialog" ? (
+          <DialogHeader className="border-b border-border px-6 py-4">
+            <DialogTitle>Editar produto</DialogTitle>
+          </DialogHeader>
+        ) : (
+          <div className="border-b border-border px-6 py-5">
+            <h1 className="text-xl font-semibold text-foreground">Editar produto</h1>
+            {product?.name && <p className="mt-1 text-sm text-muted-foreground">{product.name}</p>}
+          </div>
+        )}
 
         {loading ? (
           <div className="flex h-64 items-center justify-center">
@@ -270,7 +348,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
               ))}
             </div>
 
-            <div className="max-h-[60vh] overflow-y-auto px-6 py-4 text-sm">
+            <div className={cn("px-6 py-4 text-sm", mode === "dialog" && "max-h-[60vh] overflow-y-auto")}>
               {tab === "basic" && (
                 <BasicTab product={product} setProduct={setProduct} categories={categories} />
               )}
@@ -299,7 +377,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
                   onClick={onClose}
                   className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
                 >
-                  Cancelar
+                  {mode === "page" ? "Voltar para produtos" : "Cancelar"}
                 </button>
                 <button
                   type="button"
@@ -314,6 +392,21 @@ export function ProductEditorDialog({ productId, onClose, onSaved }: Props) {
             </div>
           </>
         ) : null}
+    </>
+  );
+
+  if (mode === "page") {
+    return (
+      <div className="dark dashboard-scope overflow-hidden rounded-2xl border border-border bg-background text-foreground">
+        {editorBody}
+      </div>
+    );
+  }
+
+  return (
+    <Dialog open={!!productId} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="dark dashboard-scope max-h-[90vh] max-w-3xl overflow-hidden bg-background p-0 text-foreground">
+        {editorBody}
       </DialogContent>
     </Dialog>
   );
@@ -371,7 +464,7 @@ function BasicTab({
       </Field>
       <Field label="Descrição">
         <textarea
-          rows={5}
+          rows={10}
           className={cn(inputCls, "resize-none")}
           value={product.description ?? ""}
           onChange={(e) => setProduct({ ...product, description: e.target.value })}
@@ -407,8 +500,11 @@ function ImagesTab({
     try {
       const urls = await Promise.all(Array.from(files).map(uploadImage));
       setImages([...images, ...urls]);
+      toast.success(`${urls.length} imagem(ns) enviada(s)!`);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Erro no upload");
+      const msg = e instanceof Error ? e.message : "Erro no upload";
+      setErr(msg);
+      toast.error(msg);
     } finally {
       setBusy(false);
     }
@@ -452,25 +548,13 @@ function ImagesTab({
                 </span>
               )}
               <div className="absolute inset-x-1 bottom-1 flex justify-between opacity-0 transition-opacity group-hover:opacity-100">
-                <button
-                  type="button"
-                  onClick={() => move(i, -1)}
-                  className="rounded bg-black/60 p-1 text-white hover:bg-black/80"
-                >
+                <button type="button" onClick={() => move(i, -1)} className="rounded bg-black/60 p-1 text-white hover:bg-black/80">
                   <ArrowUp className="h-3 w-3" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => move(i, 1)}
-                  className="rounded bg-black/60 p-1 text-white hover:bg-black/80"
-                >
+                <button type="button" onClick={() => move(i, 1)} className="rounded bg-black/60 p-1 text-white hover:bg-black/80">
                   <ArrowDown className="h-3 w-3" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setImages(images.filter((_, k) => k !== i))}
-                  className="rounded bg-black/60 p-1 text-white hover:bg-black/80"
-                >
+                <button type="button" onClick={() => setImages(images.filter((_, k) => k !== i))} className="rounded bg-black/60 p-1 text-white hover:bg-black/80">
                   <X className="h-3 w-3" />
                 </button>
               </div>
@@ -487,48 +571,42 @@ function SizesTab({ rows, setRows }: { rows: SizeRow[]; setRows: (r: SizeRow[]) 
     setRows(rows.map((r, k) => (k === i ? { ...r, ...patch } : r)));
   }
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {rows.map((r, i) => (
-        <div key={i} className="grid grid-cols-[1fr_100px_100px_auto] gap-2">
-          <input
-            placeholder="Nome"
-            className={inputCls}
-            value={r.name}
-            onChange={(e) => update(i, { name: e.target.value })}
-          />
-          <input
-            type="number"
-            placeholder="Preço"
-            className={inputCls}
-            value={r.base_price}
-            onChange={(e) => update(i, { base_price: Number(e.target.value) })}
-          />
-          <input
-            type="number"
-            placeholder="Promo"
-            className={inputCls}
-            value={r.sale_price ?? ""}
-            onChange={(e) =>
-              update(i, { sale_price: e.target.value === "" ? null : Number(e.target.value) })
-            }
-          />
-          <button
-            type="button"
-            onClick={() => setRows(rows.filter((_, k) => k !== i))}
-            className="rounded-md border border-border bg-background px-2 hover:bg-muted"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+        <div key={i} className="rounded-xl border border-border bg-card p-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Tamanho {i + 1}</p>
+            <button type="button" onClick={() => setRows(rows.filter((_, k) => k !== i))} className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-destructive hover:bg-muted" aria-label={`Excluir tamanho ${i + 1}`}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Altura (cm)">
+              <input type="number" min="0" step="0.1" className={inputCls} value={r.height} onChange={(e) => update(i, { height: e.target.value })} />
+            </Field>
+            <Field label="Largura (cm)">
+              <input type="number" min="0" step="0.1" className={inputCls} value={r.width} onChange={(e) => update(i, { width: e.target.value })} />
+            </Field>
+            <Field label="Comprimento (cm)">
+              <input type="number" min="0" step="0.1" className={inputCls} value={r.length} onChange={(e) => update(i, { length: e.target.value })} />
+            </Field>
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <Field label="Preço (R$)">
+              <input type="number" min="0" step="0.01" className={inputCls} value={r.base_price} onChange={(e) => update(i, { base_price: Number(e.target.value) })} />
+            </Field>
+            <Field label="Preço promocional (R$)">
+              <input type="number" min="0" step="0.01" className={inputCls} value={r.sale_price ?? ""} onChange={(e) => update(i, { sale_price: e.target.value === "" ? null : Number(e.target.value) })} />
+            </Field>
+          </div>
+          {!r.height && !r.width && !r.length && r.name && (
+            <p className="mt-2 text-xs text-muted-foreground">Tamanho atual: {r.name}. Preencha as três medidas para padronizar.</p>
+          )}
         </div>
       ))}
       <button
         type="button"
-        onClick={() =>
-          setRows([
-            ...rows,
-            { name: "", base_price: 0, sale_price: null, sort_order: rows.length },
-          ])
-        }
+        onClick={() => setRows([...rows, { name: "", height: "", width: "", length: "", base_price: 0, sale_price: null, sort_order: rows.length }])}
         className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
       >
         <Plus className="h-3.5 w-3.5" /> Adicionar tamanho
@@ -552,9 +630,10 @@ function AttrTab({
   useEffect(() => {
     (async () => {
       const relation = catalog === "finish_catalog" ? "product_finishes" : "product_colors";
+      const finishCol = catalog === "finish_catalog" ? "finish" : "color";
       const [catalogRows, productRows] = await Promise.all([
         supabase.from(catalog).select("name").order("name"),
-        supabase.from(relation).select("name").order("name"),
+        supabase.from(relation).select(finishCol).order(finishCol),
       ]);
       const names = new Set<string>();
       if (!catalogRows.error) {
@@ -563,8 +642,9 @@ function AttrTab({
         }
       }
       if (!productRows.error) {
-        for (const row of (productRows.data ?? []) as Array<{ name: string | null }>) {
-          if (row.name) names.add(row.name);
+        for (const row of (productRows.data ?? []) as Array<Record<string, string | null>>) {
+          const val = row[finishCol];
+          if (val) names.add(val);
         }
       }
       setOptions(Array.from(names).sort((a, b) => a.localeCompare(b)));
@@ -572,50 +652,53 @@ function AttrTab({
   }, [catalog]);
 
   return (
-    <div className="space-y-2">
-      {rows.map((r, i) => (
-        <div key={i} className="flex gap-2">
-          <input
-            list={`${catalog}-opts`}
-            className={inputCls}
-            placeholder={label}
-            value={r.name}
-            onChange={(e) =>
-              setRows(rows.map((x, k) => (k === i ? { ...x, name: e.target.value } : x)))
-            }
-          />
-          <button
-            type="button"
-            onClick={() => setRows(rows.filter((_, k) => k !== i))}
-            className="rounded-md border border-border bg-background px-2 hover:bg-muted"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      ))}
-      <datalist id={`${catalog}-opts`}>
-        {options.map((o) => (
-          <option key={o} value={o} />
-        ))}
-      </datalist>
-      <button
-        type="button"
-        onClick={() => setRows([...rows, { name: "", sort_order: rows.length }])}
-        className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
-      >
-        <Plus className="h-3.5 w-3.5" /> Adicionar {label.toLowerCase()}
-      </button>
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">
+          Marque os itens disponíveis para este produto. Os desmarcados permanecem visíveis como excluídos.
+        </p>
+        <button
+          type="button"
+          onClick={() => setRows(options.map((name, index) => ({ name, sort_order: index })))}
+          disabled={options.length > 0 && rows.length === options.length}
+          className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
+        >
+          Selecionar todos
+        </button>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {options.map((option) => {
+          const selected = rows.some((row) => row.name === option);
+          return (
+            <label key={option} className={cn("flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-3 transition-colors", selected ? "border-primary/30 bg-primary/5" : "border-border bg-muted/30")}>
+              <input
+                type="checkbox"
+                checked={selected}
+                onChange={(event) => {
+                  if (event.target.checked) {
+                    setRows([...rows, { name: option, sort_order: rows.length }]);
+                  } else {
+                    setRows(rows.filter((row) => row.name !== option));
+                  }
+                }}
+                className="h-4 w-4 accent-primary"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-foreground">{option}</span>
+                <span className={cn("text-[11px]", selected ? "text-emerald-600" : "text-muted-foreground")}>
+                  {selected ? "Disponível" : `Excluído do produto`}
+                </span>
+              </span>
+            </label>
+          );
+        })}
+      </div>
+      {options.length === 0 && <p className="text-xs text-muted-foreground">Nenhum {label.toLowerCase()} cadastrado.</p>}
     </div>
   );
 }
 
-function SeoTab({
-  product,
-  setProduct,
-}: {
-  product: ProductData;
-  setProduct: (p: ProductData) => void;
-}) {
+function SeoTab({ product, setProduct }: { product: ProductData; setProduct: (p: ProductData) => void }) {
   return (
     <div className="space-y-3">
       <Field label="Meta title">

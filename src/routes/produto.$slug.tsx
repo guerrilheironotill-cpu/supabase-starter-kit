@@ -2,12 +2,16 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   fetchProductBySlug,
+  productDescriptionToText,
+  categorySlug,
   slugify,
   type ProductDetail,
   type ProductSize,
 } from "@/lib/products";
-import { ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, MessageCircle, Minus, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { useQuoteStore } from "@/lib/quote-store";
 import { AdminEditBar } from "@/components/admin-edit-bar";
 import {
@@ -17,6 +21,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { ProductRelatedSection } from "@/components/ProductRelatedSection";
+import { AvailableColorsSection, AvailableFinishesSection } from "@/components/available-finishes-section";
+import { openCatalogDownload } from "@/components/catalog-download-dialog";
+import { absoluteUrl } from "@/lib/site-config";
+import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
 
 export const Route = createFileRoute("/produto/$slug")({
   loader: async ({ params }) => {
@@ -28,8 +37,8 @@ export const Route = createFileRoute("/produto/$slug")({
     meta: [
       {
         title: loaderData
-          ? `${loaderData.product.name} — Casa & Jardim`
-          : "Produto — Casa & Jardim",
+          ? `${loaderData.product.name} — Arteno`
+          : "Produto — Arteno",
       },
       {
         name: "description",
@@ -39,13 +48,26 @@ export const Route = createFileRoute("/produto/$slug")({
       },
       {
         property: "og:title",
-        content: loaderData?.product.name ?? "Produto",
+        content: loaderData ? `${loaderData.product.name} — Arteno` : "Produto — Arteno",
       },
       {
         property: "og:image",
         content: loaderData?.product.images?.[0] ?? "",
       },
+      { property: "og:type", content: "product" },
+      ...(loaderData
+        ? [{ property: "og:url", content: absoluteUrl(`/produto/${loaderData.product.slug}`) }]
+        : []),
     ],
+    links: loaderData
+      ? [{ rel: "canonical", href: absoluteUrl(`/produto/${loaderData.product.slug}`) }]
+      : [],
+    scripts: loaderData
+      ? [{
+          type: "application/ld+json",
+          children: JSON.stringify(productStructuredData(loaderData.product)),
+        }]
+      : [],
   }),
   notFoundComponent: () => (
     <div className="mx-auto max-w-4xl px-4 py-20 text-center">
@@ -74,6 +96,69 @@ export const Route = createFileRoute("/produto/$slug")({
   component: ProductPage,
 });
 
+function productStructuredData(product: ProductDetail) {
+  const url = absoluteUrl(`/produto/${product.slug}`);
+  const prices = product.product_sizes
+    .map((size) => size.sale_price ?? size.base_price)
+    .filter((price) => Number.isFinite(price) && price > 0);
+  const images = product.images
+    .filter(Boolean)
+    .map((image) => image.startsWith("http") ? image : absoluteUrl(image));
+  const description = productDescriptionToText(product.description ?? "").slice(0, 5000);
+  const offers = prices.length
+    ? {
+        "@type": "AggregateOffer",
+        priceCurrency: "BRL",
+        lowPrice: Math.min(...prices),
+        highPrice: Math.max(...prices),
+        offerCount: product.product_sizes.length,
+        availability: "https://schema.org/InStock",
+        url,
+      }
+    : undefined;
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Product",
+        "@id": `${url}#product`,
+        name: product.name,
+        description: description || undefined,
+        image: images,
+        category: product.category,
+        brand: { "@type": "Brand", name: "Arteno" },
+        url,
+        offers,
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${url}#breadcrumb`,
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Início",
+            item: absoluteUrl("/"),
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: product.category,
+            item: absoluteUrl(`/categoria/${categorySlug(product.category)}`),
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: product.name,
+            item: url,
+          },
+        ],
+      },
+    ],
+  };
+}
+
 function formatBRL(n: number) {
   return n.toLocaleString("pt-BR", {
     style: "currency",
@@ -86,8 +171,9 @@ function formatBRL(n: number) {
 function parseDims(
   name: string,
 ): { altura: string; largura: string; comprimento: string } | null {
+  // Accept formats like "50x40x30 cm" or "50 cm × 40 cm × 30 cm".
   const m = name.match(
-    /(\d+(?:[.,]\d+)?)\s*cm\s*[×x]\s*(\d+(?:[.,]\d+)?)\s*cm\s*[×x]\s*(\d+(?:[.,]\d+)?)\s*cm/i,
+    /(\d+(?:[.,]\d+)?)(?:\s*cm)?\s*[×x]\s*(\d+(?:[.,]\d+)?)(?:\s*cm)?\s*[×x]\s*(\d+(?:[.,]\d+)?)(?:\s*cm)?/i,
   );
   if (!m) return null;
   return {
@@ -108,12 +194,14 @@ function GalleryImage({
   src,
   alt,
   eager,
+  onOpen,
 }: {
   src: string;
   alt: string;
   eager: boolean;
+  onOpen: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLButtonElement>(null);
   const [scale, setScale] = useState(0.85);
 
   useEffect(() => {
@@ -140,9 +228,11 @@ function GalleryImage({
   }, []);
 
   return (
-    <div
+    <button
+      type="button"
       ref={ref}
-      className="aspect-square overflow-hidden bg-white ring-1 ring-primary/10"
+      onClick={onOpen}
+      className="aspect-square w-full cursor-zoom-in overflow-hidden bg-white text-left ring-1 ring-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
       style={{
         transform: `scale(${scale})`,
         transition: "transform 120ms ease-out",
@@ -155,7 +245,7 @@ function GalleryImage({
         loading={eager ? "eager" : "lazy"}
         className="h-full w-full object-cover"
       />
-    </div>
+    </button>
   );
 }
 
@@ -183,10 +273,19 @@ function ProductPage() {
   const baseMax = basePrices.length ? Math.max(...basePrices) : null;
 
   const images = p.images ?? [];
+  const description = productDescriptionToText(p.description);
 
-  const finishes = [...(p.product_finishes ?? [])].sort(
-    (a, b) => a.sort_order - b.sort_order,
-  );
+  const { data: finishCatalog = [] } = useQuery({
+    queryKey: ["attribute-terms", "product_finishes"],
+    queryFn: () => fetchAttributeTerms("product_finishes", "finish_catalog"),
+    staleTime: 60_000,
+  });
+  const finishes = [...(p.product_finishes ?? [])]
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((finish) => ({
+      ...finish,
+      extra_price: finishCatalog.find((term) => term.name === finish.name)?.extra_price ?? 0,
+    }));
   const colors = [...(p.product_colors ?? [])].sort(
     (a, b) => a.sort_order - b.sort_order,
   );
@@ -195,15 +294,38 @@ function ProductPage() {
   const [selectedSizeId, setSelectedSizeId] = useState<string>(
     sizes[0]?.id ?? "",
   );
-  const [selectedFinish, setSelectedFinish] = useState<string>(
-    finishes[0]?.name ?? "",
-  );
-  const [selectedColor, setSelectedColor] = useState<string>(
-    colors[0]?.name ?? "",
-  );
+  const [selectedFinish, setSelectedFinish] = useState<string>("");
+  const [selectedColor, setSelectedColor] = useState<string>("");
   const [qty, setQty] = useState<number>(1);
   const [open, setOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const selectedSize = sizes.find((size) => size.id === selectedSizeId);
+  const selectedFinishExtra =
+    finishes.find((finish) => finish.name === selectedFinish)?.extra_price ?? 0;
+  const selectedUnitPrice = selectedSize
+    ? (selectedSize.sale_price ?? selectedSize.base_price) + selectedFinishExtra
+    : 0;
 
+  useEffect(() => {
+    (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+      const { data } = await supabase.rpc("has_role", {
+        _user_id: userData.user.id,
+        _role: "admin",
+      });
+      setIsAdmin(!!data);
+    })();
+  }, []);
+
+  function openProductConfiguration(sizeId: string) {
+    setSelectedSizeId(sizeId);
+    setSelectedFinish("");
+    setSelectedColor("");
+    setQty(1);
+    setOpen(true);
+  }
   function handleAddSelected() {
     const idx = sizes.findIndex((s) => s.id === selectedSizeId);
     const s = sizes[idx];
@@ -215,18 +337,19 @@ function ProductPage() {
       image: images[0],
       quantity: qty,
       sizeLabel: sizeCode(idx, sizes.length),
-      dimensions: s.name,
+      // Use the canonical name if present; otherwise fall back to the raw size value.
+      dimensions: s.name ?? s.size ?? "",
       finish: selectedFinish || undefined,
       color: selectedColor || undefined,
-      unitPrice: s.sale_price ?? s.base_price,
+      unitPrice: (s.sale_price ?? s.base_price) + selectedFinishExtra,
     });
     setOpen(false);
+    toast.success(`${p.name} adicionado ao orçamento.`, { duration: 3500 });
   }
-
 
   return (
     <>
-      <AdminEditBar label="Editar produto" to="/dashboard/produtos" search={{ edit: p.id }} />
+      <AdminEditBar label="Editar produto" to="/dashboard/editar-produto/$productId" params={{ productId: p.id }} />
       <section className="bg-background py-8 sm:py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-8">
           <nav aria-label="Breadcrumb" className="text-xs text-primary/60">
@@ -254,7 +377,7 @@ function ProductPage() {
         <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-8 lg:grid-cols-2 lg:items-start">
           {/* Gallery — carousel on mobile, stacked on desktop */}
           <div className="min-w-0 lg:hidden">
-            <MobileGallery images={images} name={p.name} />
+            <MobileGallery images={images} name={p.name} onOpen={setLightboxIndex} />
           </div>
           <div className="hidden min-w-0 flex-col gap-4 lg:flex">
             {images.length > 0 ? (
@@ -264,6 +387,7 @@ function ProductPage() {
                   src={src}
                   alt={`${p.name} — imagem ${i + 1}`}
                   eager={i === 0}
+                  onOpen={() => setLightboxIndex(i)}
                 />
               ))
             ) : (
@@ -291,7 +415,25 @@ function ProductPage() {
                     ? formatBRL(priceMin)
                     : `${formatBRL(priceMin)} até ${formatBRL(priceMax)}`}
                 </div>
+                {isAdmin && (
+                  <div className="text-xs text-primary/60 mt-1">
+                    Preço revendedor: {priceMin === priceMax
+                      ? formatBRL(priceMin * 0.7)
+                      : `${formatBRL(priceMin * 0.7)} até ${formatBRL(priceMax * 0.7)}`}
+                  </div>
+                )}
               </div>
+            )}
+
+            {description && (
+              <section className="mt-8 border-t border-primary/10 pt-6" aria-labelledby="product-description-title">
+                <h2 id="product-description-title" className="mb-3 font-display text-xl font-semibold text-primary">
+                  Descrição do produto
+                </h2>
+                <p className="whitespace-pre-line text-base leading-relaxed text-primary/80">
+                  {description}
+                </p>
+              </section>
             )}
 
             {sizes.length > 0 && (
@@ -308,14 +450,13 @@ function ProductPage() {
                         <th className="px-4 py-3">Larg.</th>
                         <th className="px-4 py-3">Comp.</th>
                         <th className="px-4 py-3">Estoque</th>
-                        <th className="px-4 py-3">Preço</th>
+                        <th className="px-4 py-3 text-center"><span className="sr-only">Adicionar</span></th>
                       </tr>
                     </thead>
                     <tbody className="text-primary">
                       {sizes.map((s, i) => {
-                        const dims = parseDims(s.name);
-                        const hasSale =
-                          s.sale_price !== null && s.sale_price < s.base_price;
+                        // Use the raw size field when the name does not contain dimensions.
+                        const dims = parseDims(s.name ?? (s as any).size ?? "");
                         return (
                           <tr
                             key={s.id}
@@ -335,22 +476,21 @@ function ProductPage() {
                             </td>
                             <td className="px-4 py-3 text-primary/80">
                               Sob Encomenda
-                            </td>
-                            <td className="px-4 py-3">
-                              {hasSale ? (
-                                <span className="flex flex-wrap items-baseline gap-1.5">
-                                  <span className="text-xs text-primary/50 line-through">
-                                    {formatBRL(s.base_price)}
-                                  </span>
-                                  <span className="font-semibold underline">
-                                    {formatBRL(s.sale_price!)}
-                                  </span>
+                            </td>                            <td className="px-4 py-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => openProductConfiguration(s.id)}
+                                className="group/add relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#2a2f2c] text-white transition-all hover:scale-105 hover:bg-[#3a403c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2a2f2c]/40"
+                                aria-label={`Adicionar ${p.name}, tamanho ${sizeCode(i, sizes.length)}`}
+                              >
+                                <Plus className="h-4 w-4" />
+                                <span
+                                  role="tooltip"
+                                  className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-[#2a2f2c] px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover/add:opacity-100 group-focus-visible/add:opacity-100"
+                                >
+                                  Adicionar ao orçamento
                                 </span>
-                              ) : (
-                                <span className="font-semibold">
-                                  {formatBRL(s.base_price)}
-                                </span>
-                              )}
+                              </button>
                             </td>
                           </tr>
                         );
@@ -359,33 +499,90 @@ function ProductPage() {
                   </table>
                 </div>
 
-                <div className="mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setOpen(true)}
-                    className="inline-flex w-full items-center justify-center gap-2 bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Adicionar ao orçamento
-                  </button>
-                </div>
-
               </div>
             )}
 
-            {p.description && (
-              <p className="mt-6 whitespace-pre-line text-sm leading-relaxed text-primary/80">
-                {p.description}
-              </p>
-            )}
+            {/* Botões sempre visíveis */}
+            <div className="mt-6 flex gap-3">
+              
+              <button
+                type="button"
+                onClick={openCatalogDownload}
+                className="inline-flex flex-1 items-center justify-center gap-2 bg-secondary px-5 py-3 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/90 cursor-pointer"
+              >
+                <Download className="h-4 w-4" />
+                Baixar Catálogo
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  window.dispatchEvent(new CustomEvent("arteno:open-whatsapp"))
+                }
+                className="inline-flex flex-1 items-center justify-center gap-2 border border-[#2a2f2c] bg-white px-5 py-3 text-sm font-medium text-[#2a2f2c] transition-colors hover:bg-[#2a2f2c] hover:text-white cursor-pointer"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Suporte WhatsApp
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
+      <AvailableFinishesSection availableNames={finishes.map((finish) => finish.name)} />
+      <AvailableColorsSection availableNames={colors.map((color) => color.name)} />
+
+      {p.category && (
+        <ProductRelatedSection
+          currentProductId={p.id}
+          category={p.category}
+          limit={8}
+        />
+      )}
+
+      <Dialog open={lightboxIndex !== null} onOpenChange={(isOpen) => !isOpen && setLightboxIndex(null)}>
+        <DialogContent className="max-h-[94vh] max-w-6xl overflow-hidden border-primary/10 bg-white p-0 text-primary sm:rounded-2xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Galeria de {p.name}</DialogTitle>
+          </DialogHeader>
+          {lightboxIndex !== null && images[lightboxIndex] && (
+            <div className="flex max-h-[94vh] flex-col bg-white">
+              <div className="relative flex min-h-0 flex-1 items-center justify-center bg-white px-4 pb-3 pt-12 sm:px-8">
+                <img src={images[lightboxIndex]} alt={`${p.name} — imagem ${lightboxIndex + 1}`} className="max-h-[72vh] max-w-full object-contain" />
+                {images.length > 1 && (
+                  <>
+                    <button type="button" onClick={() => setLightboxIndex((lightboxIndex - 1 + images.length) % images.length)} className="absolute left-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-primary shadow-md ring-1 ring-primary/10 hover:bg-neutral-50 sm:left-5" aria-label="Imagem anterior">
+                      <ChevronLeft className="h-6 w-6" />
+                    </button>
+                    <button type="button" onClick={() => setLightboxIndex((lightboxIndex + 1) % images.length)} className="absolute right-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-primary shadow-md ring-1 ring-primary/10 hover:bg-neutral-50 sm:right-5" aria-label="Próxima imagem">
+                      <ChevronRight className="h-6 w-6" />
+                    </button>
+                  </>
+                )}
+              </div>
+              <div className="border-t border-primary/10 bg-white px-5 py-4">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="font-display text-lg font-semibold text-primary">{p.name}</p>
+                  <span className="text-xs text-primary/55">{lightboxIndex + 1} / {images.length}</span>
+                </div>
+                {images.length > 1 && (
+                  <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                    {images.map((url, index) => (
+                      <button key={url + index} type="button" onClick={() => setLightboxIndex(index)} className={`h-16 w-16 shrink-0 overflow-hidden rounded-md border-2 bg-white transition ${index === lightboxIndex ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"}`} aria-label={`Abrir imagem ${index + 1}`}>
+                        <img src={url} alt="" className="h-full w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Adicionar ao orçamento</DialogTitle>
+            <DialogTitle>Configurar produto</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
@@ -410,9 +607,10 @@ function ProductPage() {
                   onChange={(e) => setSelectedFinish(e.target.value)}
                   className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 >
+                  <option value="" disabled>Selecione um acabamento</option>
                   {finishes.map((f) => (
                     <option key={f.id} value={f.name}>
-                      {f.name}
+                      {f.name}{f.extra_price > 0 ? ` (+ ${formatBRL(f.extra_price)})` : ""}
                     </option>
                   ))}
                 </select>
@@ -426,6 +624,7 @@ function ProductPage() {
                   onChange={(e) => setSelectedColor(e.target.value)}
                   className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 >
+                  <option value="" disabled>Selecione uma cor</option>
                   {colors.map((c) => (
                     <option key={c.id} value={c.name}>
                       {c.name}
@@ -459,6 +658,17 @@ function ProductPage() {
               </div>
             </label>
           </div>
+          {selectedSize && (
+            <div className="border-t border-primary/10 pt-4 text-right">
+              <p className="text-xs uppercase tracking-wider text-primary/55">Valor unitário</p>
+              <p className="font-display text-2xl text-primary">{formatBRL(selectedUnitPrice)}</p>
+              {selectedFinishExtra > 0 && (
+                <p className="text-xs text-primary/60">
+                  Inclui {formatBRL(selectedFinishExtra)} do acabamento
+                </p>
+              )}
+            </div>
+          )}
           <DialogFooter>
             <button
               type="button"
@@ -466,16 +676,16 @@ function ProductPage() {
               className="inline-flex w-full items-center justify-center gap-2 bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
               <Plus className="h-4 w-4" />
-              Confirmar
+              Adicionar ao pedido
             </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+</>
   );
 }
 
-function MobileGallery({ images, name }: { images: string[]; name: string }) {
+function MobileGallery({ images, name, onOpen }: { images: string[]; name: string; onOpen: (index: number) => void }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
 
@@ -504,9 +714,11 @@ function MobileGallery({ images, name }: { images: string[]; name: string }) {
         className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {images.map((src, i) => (
-          <div
+          <button
+            type="button"
             key={i}
-            className="aspect-square w-full flex-shrink-0 snap-center bg-white ring-1 ring-primary/10"
+            onClick={() => onOpen(i)}
+            className="aspect-square w-full flex-shrink-0 cursor-zoom-in snap-center bg-white ring-1 ring-primary/10"
           >
             <img
               src={src}
@@ -514,7 +726,7 @@ function MobileGallery({ images, name }: { images: string[]; name: string }) {
               loading={i === 0 ? "eager" : "lazy"}
               className="h-full w-full object-cover"
             />
-          </div>
+          </button>
         ))}
       </div>
 

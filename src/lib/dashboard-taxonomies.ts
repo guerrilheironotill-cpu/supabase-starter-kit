@@ -21,6 +21,8 @@ export type AttributeTerm = {
   image_url: string | null;
   gallery: string[];
   description: string | null;
+  video_url: string | null;
+  extra_price: number;
   count: number;
 };
 
@@ -159,13 +161,19 @@ export async function fetchAttributeTerms(
   const rows = await supabase.from(relationTable).select("name");
   if (rows.error) throw rows.error;
 
-  const catalog = await supabase
+  let catalog = await supabase
     .from(catalogTable)
-    .select(
-      catalogTable === "finish_catalog"
-        ? "name, image_url, gallery, description"
-        : "name, image_url, description",
-    );
+    .select("name, image_url, gallery, description, extra_price");
+  if (catalog.error && isOptionalMetadataError(catalog.error)) {
+    catalog = await supabase
+      .from(catalogTable)
+      .select("name, image_url, gallery, description") as typeof catalog;
+  }
+  if (catalog.error && catalogTable === "color_catalog" && isOptionalMetadataError(catalog.error)) {
+    catalog = await supabase
+      .from(catalogTable)
+      .select("name, image_url, description") as typeof catalog;
+  }
   if (catalog.error && !isOptionalMetadataError(catalog.error)) throw catalog.error;
 
   const counts = new Map<string, number>();
@@ -177,7 +185,7 @@ export async function fetchAttributeTerms(
 
   const meta = new Map<
     string,
-    { image_url: string | null; gallery: string[]; description: string | null }
+    { image_url: string | null; gallery: string[]; description: string | null; video_url: string | null; extra_price: number }
   >();
   if (!catalog.error) {
     for (const row of catalog.data ?? []) {
@@ -186,13 +194,18 @@ export async function fetchAttributeTerms(
         image_url?: string | null;
         gallery?: string[] | null;
         description?: string | null;
+        extra_price?: number | null;
       };
       const name = cleanName(item.name);
       if (!name) continue;
+      const rawGallery = item.gallery ?? [];
+      const videoEntry = rawGallery.find((entry) => entry.startsWith("__video__:"));
       meta.set(name, {
         image_url: item.image_url ?? null,
-        gallery: item.gallery ?? [],
+        gallery: rawGallery.filter((entry) => !entry.startsWith("__video__:")),
         description: item.description ?? null,
+        video_url: videoEntry ? videoEntry.slice("__video__:".length) : null,
+        extra_price: Number(item.extra_price) || 0,
       });
       if (!counts.has(name)) counts.set(name, 0);
     }
@@ -207,6 +220,8 @@ export async function fetchAttributeTerms(
         image_url: item?.image_url ?? null,
         gallery: item?.gallery ?? [],
         description: item?.description ?? null,
+        video_url: item?.video_url ?? null,
+        extra_price: item?.extra_price ?? 0,
         count: counts.get(name) ?? 0,
       };
     });

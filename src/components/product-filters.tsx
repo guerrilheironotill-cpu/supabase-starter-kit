@@ -30,6 +30,12 @@ export const DEFAULT_FILTERS: FilterState = {
   maxPrice: null,
 };
 
+/**
+ * Parse a size string like "80 cm × 120 cm × 10 cm".
+ * The function now accepts either the `name` field (canonical) or the raw `size`
+ * field when `name` is empty, ensuring dimensions are extracted even if the
+ * import populated only the `size` column.
+ */
 function parseSize(name: string): { altura: number; largura: number } | null {
   const m = name.match(/(\d+)\s*cm\s*[×x]\s*(\d+)\s*cm\s*[×x]\s*(\d+)\s*cm/i);
   if (!m) return null;
@@ -40,7 +46,8 @@ function parseSize(name: string): { altura: number; largura: number } | null {
 }
 
 function sizeValue(size: ProductSize, axis: DimensionAxis): number | null {
-  const parsed = parseSize(size.name);
+  // Prefer the canonical `name`; fall back to the raw `size` column if needed.
+  const parsed = parseSize(size.name ?? (size as any).size ?? "");
   if (!parsed) return null;
   return axis === "altura" ? parsed.altura : parsed.largura;
 }

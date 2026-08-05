@@ -6,6 +6,7 @@ type Props = {
   product: Product;
   priceFrom?: number | null;
   index?: number;
+  variant?: "default" | "home";
 };
 
 function formatBRL(n: number) {
@@ -17,16 +18,24 @@ function formatBRL(n: number) {
   });
 }
 
-export function ProductCard({ product, priceFrom, index = 0 }: Props) {
+export function ProductCard({ product, priceFrom, index = 0, variant = "default" }: Props) {
   const img = product.images?.[0];
+  const homeStyle = variant === "home";
+
   return (
     <Link
       to="/produto/$slug"
       params={{ slug: product.slug }}
-      className="group block animate-fade-in opacity-0 [animation-fill-mode:forwards]"
-      style={{ animationDelay: `${Math.min(index, 20) * 70}ms` }}
+      className={homeStyle ? "group block" : "group block animate-fade-in opacity-0 [animation-fill-mode:forwards]"}
+      style={homeStyle ? undefined : { animationDelay: `${Math.min(index, 20) * 70}ms` }}
     >
-      <div className="relative aspect-square overflow-hidden bg-white ring-1 ring-primary/10 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-sm">
+      <div
+        className={
+          homeStyle
+            ? "relative aspect-square overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-primary/10 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg"
+            : "relative aspect-square overflow-hidden bg-white ring-1 ring-primary/10 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-sm"
+        }
+      >
         {img ? (
           <img
             src={img}
@@ -37,22 +46,28 @@ export function ProductCard({ product, priceFrom, index = 0 }: Props) {
         ) : (
           <div className="h-full w-full bg-primary/5" />
         )}
-        <span
-          aria-label="Ver produto"
-          className="pointer-events-none absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-secondary-foreground opacity-0 shadow-sm transition-all duration-300 group-hover:opacity-100 group-hover:bg-primary group-hover:text-primary-foreground"
-        >
-          <ArrowUpRight className="h-4 w-4" />
-        </span>
+
+        {homeStyle ? (
+          <div className="pointer-events-none absolute inset-0 flex items-end justify-center bg-gradient-to-t from-[#2a2f2c]/80 via-[#2a2f2c]/25 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100 sm:p-6">
+            <span className="pointer-events-auto translate-y-2 rounded-full bg-white px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary shadow-lg transition-transform duration-300 group-hover:translate-y-0 sm:text-sm">
+              Ver produto
+            </span>
+          </div>
+        ) : (
+          <span
+            aria-label="Ver produto"
+            className="pointer-events-none absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-secondary-foreground opacity-0 shadow-sm transition-all duration-300 group-hover:opacity-100 group-hover:bg-primary group-hover:text-primary-foreground"
+          >
+            <ArrowUpRight className="h-4 w-4" />
+          </span>
+        )}
       </div>
       <h3 className="mt-4 font-display text-lg font-semibold text-primary sm:text-xl">
         {product.name}
       </h3>
       {typeof priceFrom === "number" && (
         <p className="mt-1 text-sm text-primary/70">
-          A partir de{" "}
-          <span className="font-semibold text-primary">
-            {formatBRL(priceFrom)}
-          </span>
+          A partir de <span className="font-semibold text-primary">{formatBRL(priceFrom)}</span>
         </p>
       )}
     </Link>

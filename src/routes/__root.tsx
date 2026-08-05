@@ -8,6 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -16,6 +17,8 @@ import { SiteFooter } from "../components/site-footer";
 import { DashboardHeader } from "../components/dashboard-header";
 import { useRouterState } from "@tanstack/react-router";
 import { useApplySiteSeo } from "../lib/site-seo-store";
+import { absoluteUrl, SITE_NAME, SITE_URL } from "../lib/site-config";
+import { CookieConsentBanner } from "../components/cookie-consent-banner";
 
 function NotFoundComponent() {
   return (
@@ -96,6 +99,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "Arteno" },
+      { property: "og:locale", content: "pt_BR" },
+      { property: "og:url", content: SITE_URL },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
@@ -103,7 +108,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "canonical", href: SITE_URL },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
         rel: "preconnect",
@@ -112,7 +118,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter:wght@300;400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap",
       },
     ],
     scripts: [
@@ -120,9 +126,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         type: "application/ld+json",
         children: JSON.stringify({
           "@context": "https://schema.org",
-          "@type": "Organization",
-          name: "Arteno",
-          url: "/",
+          "@type": "FurnitureStore",
+          "@id": `${SITE_URL}/#organization`,
+          name: SITE_NAME,
+          url: SITE_URL,
+          logo: absoluteUrl("/images/logo-arteno-header-site.svg"),
+          telephone: "+55 48 98848-6279",
+          address: {
+            "@type": "PostalAddress",
+            addressLocality: "Florianópolis",
+            addressRegion: "SC",
+            addressCountry: "BR",
+          },
         }),
       },
     ],
@@ -135,7 +150,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="pt-BR" suppressHydrationWarning>
       <head suppressHydrationWarning>
         <HeadContent />
       </head>
@@ -151,7 +166,9 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isDashboard = pathname.startsWith("/dashboard");
-  useApplySiteSeo();
+  // The dashboard setting is the homepage fallback. Route-specific metadata
+  // must remain authoritative on catalog, category and product pages.
+  useApplySiteSeo(pathname === "/");
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -168,12 +185,13 @@ function RootComponent() {
         }
       >
         {isDashboard ? <DashboardHeader /> : <SiteHeader />}
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <main className="flex-1" suppressHydrationWarning>
           <Outlet />
         </main>
         {!isDashboard && <SiteFooter />}
       </div>
+      {!isDashboard && <CookieConsentBanner />}
+      <Toaster position="bottom-right" richColors closeButton />
     </QueryClientProvider>
   );
 }

@@ -1,18 +1,41 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Instagram } from "lucide-react";
+import { Download, Instagram } from "lucide-react";
 import { WhatsAppQuoteDrawer } from "./whatsapp-quote-drawer";
+import { CatalogDownloadDialog, OPEN_CATALOG_EVENT } from "./catalog-download-dialog";
+import { OPEN_COOKIE_PREFERENCES_EVENT } from "@/lib/cookie-consent";
 
-const LINKS: { label: string; to: string; params?: { slug: string } }[] = [
-  { label: "Catálogo", to: "/catalogo" },
-  { label: "Vasos", to: "/categoria/$slug", params: { slug: "vasos" } },
+export const OPEN_WHATSAPP_EVENT = "arteno:open-whatsapp";
+
+const LINKS: {
+  label: string;
+  to: string;
+  params?: { slug: string };
+  downloadIcon?: boolean;
+}[] = [
+  { label: "Catálogo (PDF)", to: "/catalogo", downloadIcon: true },
+  { label: "Vasos", to: "/categoria/$slug", params: { slug: "vasos-de-concreto" } },
   { label: "Jardineiras", to: "/categoria/$slug", params: { slug: "jardineiras" } },
   { label: "Mesas", to: "/categoria/$slug", params: { slug: "mesas" } },
-  { label: "Cubas & Pias", to: "/categoria/$slug", params: { slug: "cubas" } },
+  { label: "Cubas e Pias", to: "/pias-e-cubas-de-concreto" },
+  { label: "Mobiliário Urbano", to: "/mobiliario-urbano" },
+  { label: "Projetos sob medida", to: "/projetos-personalizados" },
 ];
 
 export function SiteFooter() {
   const [waOpen, setWaOpen] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(false);
+
+  useEffect(() => {
+    const openWhatsApp = () => setWaOpen(true);
+    const openCatalog = () => setCatalogOpen(true);
+    window.addEventListener(OPEN_WHATSAPP_EVENT, openWhatsApp);
+    window.addEventListener(OPEN_CATALOG_EVENT, openCatalog);
+    return () => {
+      window.removeEventListener(OPEN_WHATSAPP_EVENT, openWhatsApp);
+      window.removeEventListener(OPEN_CATALOG_EVENT, openCatalog);
+    };
+  }, []);
   return (
     <>
       <footer className="bg-[#1c211d] pb-[64px] text-white lg:pb-0">
@@ -20,22 +43,34 @@ export function SiteFooter() {
           <div className="flex flex-col items-center justify-between gap-8 lg:flex-row">
             <Link to="/" className="flex items-center">
               <img
-                src="https://arteno.com.br/wp-content/uploads/2025/03/Ativo-8-e1782929111841.png"
+                src="/images/logo-header-scroll.svg"
                 alt="Arteno"
-                className="h-16 w-auto object-contain"
+                className="h-11 w-[181px] object-contain"
               />
             </Link>
             <nav className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-              {LINKS.map((l) => (
-                <Link
-                  key={l.label}
-                  to={l.to as never}
-                  params={l.params as never}
-                  className="text-sm font-medium text-white/85 transition-colors hover:text-secondary"
-                >
-                  {l.label}
-                </Link>
-              ))}
+              {LINKS.map((l) =>
+                l.downloadIcon ? (
+                  <button
+                    key={l.label}
+                    type="button"
+                    onClick={() => setCatalogOpen(true)}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-white/85 transition-colors hover:text-secondary"
+                  >
+                    {l.label}
+                    <Download className="h-3.5 w-3.5" />
+                  </button>
+                ) : (
+                  <Link
+                    key={l.label}
+                    to={l.to as never}
+                    params={l.params as never}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-white/85 transition-colors hover:text-secondary"
+                  >
+                    {l.label}
+                  </Link>
+                ),
+              )}
             </nav>
             <a
               href="https://www.instagram.com/"
@@ -56,6 +91,18 @@ export function SiteFooter() {
               <br />
               Todos os direitos reservados.
             </p>
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+              <Link to="/politica-de-cookies" className="hover:text-secondary hover:underline">
+                Política de Cookies
+              </Link>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new Event(OPEN_COOKIE_PREFERENCES_EVENT))}
+                className="hover:text-secondary hover:underline"
+              >
+                Preferências de cookies
+              </button>
+            </div>
             <p className="inline-flex items-center gap-1.5">
               <span>Desenvolvido por:</span>
               <a
@@ -95,6 +142,7 @@ export function SiteFooter() {
       </button>
 
       <WhatsAppQuoteDrawer open={waOpen} onClose={() => setWaOpen(false)} />
+      <CatalogDownloadDialog open={catalogOpen} onOpenChange={setCatalogOpen} />
     </>
   );
 }
