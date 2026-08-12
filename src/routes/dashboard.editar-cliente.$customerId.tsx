@@ -79,6 +79,8 @@ function EditCustomerPage() {
   async function save() {
     setSaving(true);
     try {
+      const effectiveCommercialStatus =
+        form.customer_type === "final" ? "pending" : form.commercial_status || "pending";
       const patch = {
         first_name: form.first_name || null,
         last_name: form.last_name || null,
@@ -93,11 +95,11 @@ function EditCustomerPage() {
         notes: form.notes || null,
         status: form.status || "active",
         customer_type: form.customer_type || "final",
-        commercial_status: form.commercial_status || "pending",
+        commercial_status: effectiveCommercialStatus,
         professional_type:
           form.customer_type === "professional" ? form.professional_type || null : null,
         commercial_approved_at:
-          form.commercial_status === "approved"
+          effectiveCommercialStatus === "approved"
             ? form.commercial_approved_at || new Date().toISOString()
             : null,
         commercial_notes: form.commercial_notes || null,
@@ -107,6 +109,18 @@ function EditCustomerPage() {
         .update(patch as never)
         .eq("id", customerId);
       if (error) throw error;
+      const customerName = `${form.first_name ?? ""} ${form.last_name ?? ""}`.trim();
+      const customerDocument = (form.cpf || form.cnpj || "").replace(/\D/g, "") || null;
+      const { error: orderSyncError } = await supabase
+        .from("app_orders" as never)
+        .update({
+          customer_name: customerName || null,
+          customer_email: form.email || null,
+          customer_phone: form.phone || null,
+          customer_document: customerDocument,
+        } as never)
+        .eq("customer_id", customerId);
+      if (orderSyncError) throw orderSyncError;
       await qc.invalidateQueries({ queryKey: ["local-customers"] });
       toast.success("Cliente atualizado.");
     } catch (error) {
@@ -217,18 +231,27 @@ function EditCustomerPage() {
             <option value="reseller">Revendedor / Lojista</option>
           </select>
         </label>
-        <label className="grid gap-1 text-sm">
-          Status comercial
-          <select
-            value={form.commercial_status ?? "pending"}
-            onChange={(e) => set("commercial_status", e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-2"
-          >
-            <option value="pending">Pendente</option>
-            <option value="approved">Aprovado</option>
-            <option value="suspended">Suspenso</option>
-          </select>
-        </label>
+        {form.customer_type === "final" ? (
+          <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
+            <div className="font-medium">Status comercial: não se aplica</div>
+            <div className="text-xs text-muted-foreground">
+              Cliente final utiliza preços públicos e não exige aprovação comercial.
+            </div>
+          </div>
+        ) : (
+          <label className="grid gap-1 text-sm">
+            Status comercial
+            <select
+              value={form.commercial_status ?? "pending"}
+              onChange={(e) => set("commercial_status", e.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-2"
+            >
+              <option value="pending">Pendente</option>
+              <option value="approved">Aprovado</option>
+              <option value="suspended">Suspenso</option>
+            </select>
+          </label>
+        )}
         {form.customer_type === "professional" && (
           <label className="grid gap-1 text-sm">
             Profissão

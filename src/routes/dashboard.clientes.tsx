@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Loader2, Pencil } from "lucide-react";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { RowActionsMenu } from "@/components/row-actions-menu";
 
 type Order = { id: string; number: number; external_number: string | null };
 type Row = {
@@ -277,20 +278,25 @@ function CustomersPage() {
                         : "Final"}
                   </td>
                   <td className="px-3 py-3">
-                    {c.commercial_status === "approved"
-                      ? "Aprovado"
-                      : c.commercial_status === "suspended"
-                        ? "Suspenso"
-                        : "Pendente"}
+                    {c.customer_type === "final"
+                      ? "Não se aplica"
+                      : c.commercial_status === "approved"
+                        ? "Aprovado"
+                        : c.commercial_status === "suspended"
+                          ? "Suspenso"
+                          : "Pendente"}
                   </td>
                   <td className="px-3 py-3">
-                    <Link
-                      to="/dashboard/editar-cliente/$customerId"
-                      params={{ customerId: c.id }}
-                      className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs"
-                    >
-                      <Pencil className="h-3 w-3" /> Editar
-                    </Link>
+                    <RowActionsMenu
+                      actions={[
+                        {
+                          label: "Editar cliente",
+                          icon: Pencil,
+                          onClick: () =>
+                            window.location.assign(`/dashboard/editar-cliente/${c.id}`),
+                        },
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}

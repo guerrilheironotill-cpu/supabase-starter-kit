@@ -33,6 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { RowActionsMenu } from "@/components/row-actions-menu";
 
 export const Route = createFileRoute("/dashboard/produtos")({
   head: () => ({
@@ -671,72 +672,54 @@ function DashboardProductsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => void moveProduct(row, -1)}
-                            title="Mover para cima"
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background hover:bg-muted"
-                          >
-                            <ArrowUp className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void moveProduct(row, 1)}
-                            title="Mover para baixo"
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background hover:bg-muted"
-                          >
-                            <ArrowDown className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void navigate({
-                                to: "/dashboard/editar-produto/$productId",
-                                params: { productId: row.id },
-                              })
-                            }
-                            title="Editar produto"
-                            aria-label={`Editar ${row.name}`}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-foreground hover:bg-muted"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedIds(new Set([row.id]));
-                              setConfirmDelete(true);
-                            }}
-                            title="Excluir produto"
-                            aria-label={`Excluir ${row.name}`}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-destructive/25 bg-background text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void duplicateProduct(row)}
-                            disabled={Boolean(duplicatingId)}
-                            title="Duplicar produto"
-                            aria-label={`Duplicar ${row.name}`}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-foreground hover:bg-muted disabled:opacity-50"
-                          >
-                            {duplicatingId === row.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </button>
-                          <a
-                            href={`/produto/${row.slug}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="Visualizar no site"
-                            aria-label={`Visualizar ${row.name} no site`}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-foreground hover:bg-muted"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </a>
+                          <RowActionsMenu
+                            label={`Ações de ${row.name}`}
+                            actions={[
+                              {
+                                label: "Editar produto",
+                                icon: Pencil,
+                                onClick: () =>
+                                  void navigate({
+                                    to: "/dashboard/editar-produto/$productId",
+                                    params: { productId: row.id },
+                                  }),
+                              },
+                              {
+                                label: "Duplicar produto",
+                                icon: Copy,
+                                onClick: () => void duplicateProduct(row),
+                              },
+                              {
+                                label: "Visualizar no site",
+                                icon: Eye,
+                                onClick: () =>
+                                  window.open(
+                                    `/produto/${row.slug}`,
+                                    "_blank",
+                                    "noopener,noreferrer",
+                                  ),
+                              },
+                              {
+                                label: "Mover para cima",
+                                icon: ArrowUp,
+                                onClick: () => void moveProduct(row, -1),
+                              },
+                              {
+                                label: "Mover para baixo",
+                                icon: ArrowDown,
+                                onClick: () => void moveProduct(row, 1),
+                              },
+                              {
+                                label: "Excluir produto",
+                                icon: Trash2,
+                                destructive: true,
+                                onClick: () => {
+                                  setSelectedIds(new Set([row.id]));
+                                  setConfirmDelete(true);
+                                },
+                              },
+                            ]}
+                          />
                         </div>
                       </td>
                     </tr>

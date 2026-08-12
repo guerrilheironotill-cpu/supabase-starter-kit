@@ -22,7 +22,15 @@ type Order = {
   customer_phone: string | null;
   customer_document: string | null;
   created_at: string;
-  customer: { id: string; first_name: string | null; last_name: string | null } | null;
+  customer: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+    phone: string | null;
+    cpf: string | null;
+    cnpj: string | null;
+  } | null;
   items: Item[];
 };
 
@@ -74,7 +82,7 @@ function EditOrderPage() {
       const { data, error } = await supabase
         .from("app_orders" as never)
         .select(
-          "id, number, external_number, status, currency, shipping_total, subtotal, total, customer_note, customer_id, customer_name, customer_email, customer_phone, customer_document, created_at, customer:customers(id,first_name,last_name), items:app_order_items(id,name,quantity,unit_price,total)",
+          "id, number, external_number, status, currency, shipping_total, subtotal, total, customer_note, customer_id, customer_name, customer_email, customer_phone, customer_document, created_at, customer:customers(id,first_name,last_name,email,phone,cpf,cnpj), items:app_order_items(id,name,quantity,unit_price,total)",
         )
         .eq("id", orderId)
         .single();
@@ -87,12 +95,13 @@ function EditOrderPage() {
     if (!order) return;
     setStatus(order.status);
     setName(
-      order.customer_name ||
-        `${order.customer?.first_name ?? ""} ${order.customer?.last_name ?? ""}`.trim(),
+      `${order.customer?.first_name ?? ""} ${order.customer?.last_name ?? ""}`.trim() ||
+        order.customer_name ||
+        "",
     );
-    setEmail(order.customer_email ?? "");
-    setPhone(order.customer_phone ?? "");
-    setDocument(order.customer_document ?? "");
+    setEmail(order.customer?.email ?? order.customer_email ?? "");
+    setPhone(order.customer?.phone ?? order.customer_phone ?? "");
+    setDocument(order.customer?.cpf ?? order.customer?.cnpj ?? order.customer_document ?? "");
     setNote(order.customer_note ?? "");
     setShipping(Number(order.shipping_total) || 0);
     setItems(order.items ?? []);
@@ -136,6 +145,32 @@ function EditOrderPage() {
         } as never)
         .eq("id", orderId);
       if (error) throw error;
+      if (order.customer_id) {
+        const parts = name.trim().split(/\s+/).filter(Boolean);
+        const cleanDocument = document.replace(/\D/g, "");
+        const { error: customerError } = await supabase
+          .from("customers" as never)
+          .update({
+            first_name: parts.shift() || "Cliente",
+            last_name: parts.join(" "),
+            email: email || null,
+            phone: phone || null,
+            cpf: cleanDocument.length === 11 ? cleanDocument : null,
+            cnpj: cleanDocument.length === 14 ? cleanDocument : null,
+          } as never)
+          .eq("id", order.customer_id);
+        if (customerError) throw customerError;
+        const { error: syncError } = await supabase
+          .from("app_orders" as never)
+          .update({
+            customer_name: name || null,
+            customer_email: email || null,
+            customer_phone: phone || null,
+            customer_document: cleanDocument || null,
+          } as never)
+          .eq("customer_id", order.customer_id);
+        if (syncError) throw syncError;
+      }
       for (const item of items) {
         const { error: itemError } = await supabase
           .from("app_order_items" as never)

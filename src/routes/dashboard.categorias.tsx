@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { uploadOptimizedImage } from "@/lib/vps-media";
+import { RowActionsMenu } from "@/components/row-actions-menu";
 
 const UNCATEGORIZED_NAME = "Sem categoria";
 const UNCATEGORIZED_SLUG = "sem-categoria";
@@ -178,8 +179,26 @@ function DashboardCategoriesPage() {
                       : `Selecionar ${c.name}`
                   }
                   title={c.slug === UNCATEGORIZED_SLUG ? "Categoria protegida" : undefined}
-                  className="absolute right-4 top-4 z-10 h-4 w-4 accent-primary disabled:cursor-not-allowed disabled:opacity-35"
+                  className="absolute right-14 top-5 z-10 h-4 w-4 accent-primary disabled:cursor-not-allowed disabled:opacity-35"
                 />
+                {c.slug !== UNCATEGORIZED_SLUG && (
+                  <div className="absolute right-4 top-3 z-20">
+                    <RowActionsMenu
+                      label={`Ações de ${c.name}`}
+                      actions={[
+                        {
+                          label: "Excluir categoria",
+                          icon: Trash2,
+                          destructive: true,
+                          onClick: () => {
+                            setSelectedSlugs(new Set([c.slug]));
+                            setConfirmDelete(true);
+                          },
+                        },
+                      ]}
+                    />
+                  </div>
+                )}
                 <CategoryEditor
                   row={c}
                   onSaved={() => {

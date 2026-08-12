@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { RowActionsMenu } from "@/components/row-actions-menu";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -125,8 +125,8 @@ export function AdminOrdersManager() {
     }
   }
 
-  async function removeSelected() {
-    const ids = [...selected];
+  async function removeSelected(explicitIds?: string[]) {
+    const ids = explicitIds ?? [...selected];
     if (
       !ids.length ||
       !window.confirm(`Excluir ${ids.length} pedido(s)? Esta ação não pode ser desfeita.`)
@@ -356,13 +356,22 @@ export function AdminOrdersManager() {
                       {money(order.total, order.currency)}
                     </td>
                     <td className="px-3 py-3 text-right">
-                      <Link
-                        to="/dashboard/editar-pedido/$orderId"
-                        params={{ orderId: order.id }}
-                        className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
-                      >
-                        <Pencil className="h-3 w-3" /> Editar
-                      </Link>
+                      <RowActionsMenu
+                        actions={[
+                          {
+                            label: "Editar pedido",
+                            icon: Pencil,
+                            onClick: () =>
+                              window.location.assign(`/dashboard/editar-pedido/${order.id}`),
+                          },
+                          {
+                            label: "Excluir pedido",
+                            icon: Trash2,
+                            destructive: true,
+                            onClick: () => void removeSelected([order.id]),
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 );

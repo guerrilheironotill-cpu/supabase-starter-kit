@@ -6,17 +6,28 @@ import { DashboardGalleryEditor } from "@/components/dashboard-gallery-editor";
 import { fetchAttributeTerms, type AttributeTerm } from "@/lib/dashboard-taxonomies";
 import { useEffect, useState } from "react";
 import { Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { RowActionsMenu } from "@/components/row-actions-menu";
 import { refreshPreparedCatalogs } from "@/lib/catalog-cache";
-import { clearCatalogPdfPending, isCatalogPdfPending, markCatalogPdfPending } from "@/lib/catalog-pending";
+import {
+  clearCatalogPdfPending,
+  isCatalogPdfPending,
+  markCatalogPdfPending,
+} from "@/lib/catalog-pending";
 
 export const Route = createFileRoute("/dashboard/acabamentos")({
   head: () => ({
-    meta: [
-      { title: "Acabamentos — Dashboard" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Acabamentos — Dashboard" }, { name: "robots", content: "noindex" }],
   }),
   component: DashboardFinishesPage,
 });
@@ -66,12 +77,20 @@ function DashboardFinishesPage() {
     setDeleting(true);
     try {
       const finish = finishToDelete;
-      const { error: relationError } = await supabase.from("product_finishes").delete().eq("name", finish.name);
+      const { error: relationError } = await supabase
+        .from("product_finishes")
+        .delete()
+        .eq("name", finish.name);
       if (relationError) throw relationError;
-      const { error: catalogError } = await supabase.from("finish_catalog").delete().eq("name", finish.name);
+      const { error: catalogError } = await supabase
+        .from("finish_catalog")
+        .delete()
+        .eq("name", finish.name);
       if (catalogError) throw catalogError;
 
-      const urls = [finish.image_url, ...finish.gallery].filter((url): url is string => Boolean(url));
+      const urls = [finish.image_url, ...finish.gallery].filter((url): url is string =>
+        Boolean(url),
+      );
       const marker = "/storage/v1/object/public/catalog-media/";
       const paths = urls.flatMap((url) => {
         const index = url.indexOf(marker);
@@ -96,11 +115,10 @@ function DashboardFinishesPage() {
     <>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Acabamentos
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Acabamentos</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Envie a imagem principal circular e as imagens da galeria que serão exibidas no lightbox.
+            Envie a imagem principal circular e as imagens da galeria que serão exibidas no
+            lightbox.
           </p>
           {pdfPending && (
             <p className="mt-2 text-sm font-medium text-amber-700">
@@ -114,7 +132,11 @@ function DashboardFinishesPage() {
           disabled={updatingPdf || !pdfPending}
           className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {updatingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+          {updatingPdf ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="mr-2 h-4 w-4" />
+          )}
           {updatingPdf ? "Atualizando PDFs..." : "Atualizar acabamentos no PDF"}
         </button>
       </div>
@@ -138,82 +160,111 @@ function DashboardFinishesPage() {
           <div className="grid gap-3">
             {data.map((f) => (
               <div key={f.name} className="relative">
-                <button type="button" onClick={() => setFinishToDelete(f)} className="absolute right-4 top-4 z-10 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-destructive/25 bg-background text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground" aria-label={`Excluir acabamento ${f.name}`} title="Excluir acabamento">
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <div className="absolute right-4 top-4 z-10">
+                  <RowActionsMenu
+                    label={`Ações de ${f.name}`}
+                    actions={[
+                      {
+                        label: "Excluir acabamento",
+                        icon: Trash2,
+                        destructive: true,
+                        onClick: () => setFinishToDelete(f),
+                      },
+                    ]}
+                  />
+                </div>
                 <DashboardGalleryEditor
-                label={f.name}
-                editableLabel
-                sublabel={`${f.count} produto${f.count === 1 ? "" : "s"}`}
-                mainImage={f.image_url}
-                gallery={f.gallery}
-                description={f.description}
-                videoUrl={f.video_url}
-                extraPrice={f.extra_price}
-                showExtraPrice
-                showVideo
-                showGallery
-                maxGallery={10}
-                bucketFolder="finishes"
-                onSave={async ({ name, image_url, gallery, description, video_url, extra_price }) => {
-                  const payload = {
+                  label={f.name}
+                  editableLabel
+                  sublabel={`${f.count} produto${f.count === 1 ? "" : "s"}`}
+                  mainImage={f.image_url}
+                  gallery={f.gallery}
+                  description={f.description}
+                  videoUrl={f.video_url}
+                  extraPrice={f.extra_price}
+                  showExtraPrice
+                  showVideo
+                  showGallery
+                  maxGallery={10}
+                  bucketFolder="finishes"
+                  onSave={async ({
                     name,
                     image_url,
-                    gallery: [
-                      ...(gallery ?? []),
-                      ...(video_url ? [`__video__:${video_url}`] : []),
-                    ],
-                    description: description ?? null,
-                    extra_price: Math.max(0, Number(extra_price) || 0),
-                  };
-                  if (name !== f.name) {
-                    const { error: createError } = await supabase
-                      .from("finish_catalog")
-                      .insert(payload);
-                    if (createError) throw createError;
+                    gallery,
+                    description,
+                    video_url,
+                    extra_price,
+                  }) => {
+                    const payload = {
+                      name,
+                      image_url,
+                      gallery: [
+                        ...(gallery ?? []),
+                        ...(video_url ? [`__video__:${video_url}`] : []),
+                      ],
+                      description: description ?? null,
+                      extra_price: Math.max(0, Number(extra_price) || 0),
+                    };
+                    if (name !== f.name) {
+                      const { error: createError } = await supabase
+                        .from("finish_catalog")
+                        .insert(payload);
+                      if (createError) throw createError;
 
-                    const { error: relationError } = await supabase
-                      .from("product_finishes")
-                      .update({ finish: name })
-                      .eq("name", f.name);
-                    if (relationError) {
-                      await supabase.from("finish_catalog").delete().eq("name", name);
-                      throw relationError;
+                      const { error: relationError } = await supabase
+                        .from("product_finishes")
+                        .update({ finish: name })
+                        .eq("name", f.name);
+                      if (relationError) {
+                        await supabase.from("finish_catalog").delete().eq("name", name);
+                        throw relationError;
+                      }
+
+                      const { error: deleteError } = await supabase
+                        .from("finish_catalog")
+                        .delete()
+                        .eq("name", f.name);
+                      if (deleteError) throw deleteError;
+                    } else {
+                      const { error } = await supabase
+                        .from("finish_catalog")
+                        .update(payload)
+                        .eq("name", f.name);
+                      if (error) throw error;
                     }
-
-                    const { error: deleteError } = await supabase
-                      .from("finish_catalog")
-                      .delete()
-                      .eq("name", f.name);
-                    if (deleteError) throw deleteError;
-                  } else {
-                    const { error } = await supabase
-                      .from("finish_catalog")
-                      .update(payload)
-                      .eq("name", f.name);
-                    if (error) throw error;
-                  }
-                  qc.invalidateQueries({ queryKey: ["dashboard", "acabamentos"] });
-                  markPdfPending();
-                  toast.success(`Acabamento "${name}" salvo!`);
-                }}
+                    qc.invalidateQueries({ queryKey: ["dashboard", "acabamentos"] });
+                    markPdfPending();
+                    toast.success(`Acabamento "${name}" salvo!`);
+                  }}
                 />
               </div>
             ))}
           </div>
         )}
       </DashboardSection>
-      <AlertDialog open={Boolean(finishToDelete)} onOpenChange={(open) => !open && !deleting && setFinishToDelete(null)}>
+      <AlertDialog
+        open={Boolean(finishToDelete)}
+        onOpenChange={(open) => !open && !deleting && setFinishToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir acabamento?</AlertDialogTitle>
             <AlertDialogDescription>
-              {finishToDelete ? `O acabamento "${finishToDelete.name}" será removido do catálogo e de ${finishToDelete.count} produto${finishToDelete.count === 1 ? "" : "s"}. Orçamentos antigos não serão alterados.` : "Esta ação não pode ser desfeita."}
+              {finishToDelete
+                ? `O acabamento "${finishToDelete.name}" será removido do catálogo e de ${finishToDelete.count} produto${finishToDelete.count === 1 ? "" : "s"}. Orçamentos antigos não serão alterados.`
+                : "Esta ação não pode ser desfeita."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction disabled={deleting} onClick={(event) => { event.preventDefault(); void deleteFinish(); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(event) => {
+                event.preventDefault();
+                void deleteFinish();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Excluir acabamento
             </AlertDialogAction>

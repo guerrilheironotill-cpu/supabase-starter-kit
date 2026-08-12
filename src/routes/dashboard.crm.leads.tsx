@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { RowActionsMenu } from "@/components/row-actions-menu";
 
 export const Route = createFileRoute("/dashboard/crm/leads")({
   head: () => ({
@@ -780,18 +781,17 @@ function LeadsPage() {
                         {new Date(l.created_at).toLocaleDateString("pt-BR")}
                       </td>
                       <td className="px-3 py-3 text-right">
-                        <button
-                          onClick={() => startEdit(l)}
-                          className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
-                        >
-                          <Pencil className="h-3 w-3" /> Editar
-                        </button>
-                        <button
-                          onClick={() => void removeLead(l.id)}
-                          className="ml-1 inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-destructive hover:bg-muted"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
+                        <RowActionsMenu
+                          actions={[
+                            { label: "Editar lead", icon: Pencil, onClick: () => startEdit(l) },
+                            {
+                              label: "Excluir lead",
+                              icon: Trash2,
+                              destructive: true,
+                              onClick: () => void removeLead(l.id),
+                            },
+                          ]}
+                        />
                       </td>
                     </>
                   )}

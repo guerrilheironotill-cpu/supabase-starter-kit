@@ -6,16 +6,23 @@ import { DashboardGalleryEditor } from "@/components/dashboard-gallery-editor";
 import { fetchAttributeTerms, type AttributeTerm } from "@/lib/dashboard-taxonomies";
 import { useState } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { RowActionsMenu } from "@/components/row-actions-menu";
 import { schedulePreparedCatalogRefresh } from "@/lib/catalog-refresh";
 
 export const Route = createFileRoute("/dashboard/cores")({
   head: () => ({
-    meta: [
-      { title: "Cores — Dashboard" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Cores — Dashboard" }, { name: "robots", content: "noindex" }],
   }),
   component: DashboardColorsPage,
 });
@@ -38,9 +45,15 @@ function DashboardColorsPage() {
     setDeleting(true);
     try {
       const color = colorToDelete;
-      const { error: relationError } = await supabase.from("product_colors").delete().eq("name", color.name);
+      const { error: relationError } = await supabase
+        .from("product_colors")
+        .delete()
+        .eq("name", color.name);
       if (relationError) throw relationError;
-      const { error: catalogError } = await supabase.from("color_catalog").delete().eq("name", color.name);
+      const { error: catalogError } = await supabase
+        .from("color_catalog")
+        .delete()
+        .eq("name", color.name);
       if (catalogError) throw catalogError;
 
       const urls = [color.image_url, ...color.gallery].filter((url): url is string => Boolean(url));
@@ -67,9 +80,7 @@ function DashboardColorsPage() {
   return (
     <>
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Cores
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Cores</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Envie a imagem principal circular e as imagens da galeria que serão exibidas no lightbox.
         </p>
@@ -94,61 +105,86 @@ function DashboardColorsPage() {
           <div className="grid gap-3">
             {data.map((f) => (
               <div key={f.name} className="relative">
-                <button type="button" onClick={() => setColorToDelete(f)} className="absolute right-4 top-4 z-10 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-destructive/25 bg-background text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground" aria-label={`Excluir cor ${f.name}`} title="Excluir cor">
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <div className="absolute right-4 top-4 z-10">
+                  <RowActionsMenu
+                    label={`Ações de ${f.name}`}
+                    actions={[
+                      {
+                        label: "Excluir cor",
+                        icon: Trash2,
+                        destructive: true,
+                        onClick: () => setColorToDelete(f),
+                      },
+                    ]}
+                  />
+                </div>
                 <DashboardGalleryEditor
-                label={f.name}
-                editableLabel
-                sublabel={`${f.count} produto${f.count === 1 ? "" : "s"}`}
-                mainImage={f.image_url}
-                gallery={f.gallery}
-                description={f.description}
-                videoUrl={f.video_url}
-                showVideo
-                showGallery
-                maxGallery={10}
-                bucketFolder="colors"
-                onSave={async ({ name, image_url, gallery, description, video_url }) => {
-                  const payload = {
-                    name,
-                    image_url,
-                    gallery: [
-                      ...(gallery ?? []),
-                      ...(video_url ? [`__video__:${video_url}`] : []),
-                    ],
-                    description: description ?? null,
-                  };
-                  const { error } = await supabase.from("color_catalog").update(payload).eq("name", f.name);
-                  if (error) throw error;
-                  if (name !== f.name) {
-                    const { error: relationError } = await supabase
-                      .from("product_colors")
-                      .update({ name, color: name })
+                  label={f.name}
+                  editableLabel
+                  sublabel={`${f.count} produto${f.count === 1 ? "" : "s"}`}
+                  mainImage={f.image_url}
+                  gallery={f.gallery}
+                  description={f.description}
+                  videoUrl={f.video_url}
+                  showVideo
+                  showGallery
+                  maxGallery={10}
+                  bucketFolder="colors"
+                  onSave={async ({ name, image_url, gallery, description, video_url }) => {
+                    const payload = {
+                      name,
+                      image_url,
+                      gallery: [
+                        ...(gallery ?? []),
+                        ...(video_url ? [`__video__:${video_url}`] : []),
+                      ],
+                      description: description ?? null,
+                    };
+                    const { error } = await supabase
+                      .from("color_catalog")
+                      .update(payload)
                       .eq("name", f.name);
-                    if (relationError) throw relationError;
-                  }
-                  qc.invalidateQueries({ queryKey: ["dashboard", "cores"] });
-                  schedulePreparedCatalogRefresh();
-                  toast.success(`Cor "${name}" salva!`);
-                }}
+                    if (error) throw error;
+                    if (name !== f.name) {
+                      const { error: relationError } = await supabase
+                        .from("product_colors")
+                        .update({ name, color: name })
+                        .eq("name", f.name);
+                      if (relationError) throw relationError;
+                    }
+                    qc.invalidateQueries({ queryKey: ["dashboard", "cores"] });
+                    schedulePreparedCatalogRefresh();
+                    toast.success(`Cor "${name}" salva!`);
+                  }}
                 />
               </div>
             ))}
           </div>
         )}
       </DashboardSection>
-      <AlertDialog open={Boolean(colorToDelete)} onOpenChange={(open) => !open && !deleting && setColorToDelete(null)}>
+      <AlertDialog
+        open={Boolean(colorToDelete)}
+        onOpenChange={(open) => !open && !deleting && setColorToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir cor?</AlertDialogTitle>
             <AlertDialogDescription>
-              {colorToDelete ? `A cor "${colorToDelete.name}" será removido do catálogo e de ${colorToDelete.count} produto${colorToDelete.count === 1 ? "" : "s"}. Orçamentos antigos não serão alterados.` : "Esta ação não pode ser desfeita."}
+              {colorToDelete
+                ? `A cor "${colorToDelete.name}" será removido do catálogo e de ${colorToDelete.count} produto${colorToDelete.count === 1 ? "" : "s"}. Orçamentos antigos não serão alterados.`
+                : "Esta ação não pode ser desfeita."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction disabled={deleting} onClick={(event) => { event.preventDefault(); void deleteColor(); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(event) => {
+                event.preventDefault();
+                void deleteColor();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Excluir cor
             </AlertDialogAction>
