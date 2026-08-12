@@ -11,7 +11,9 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "migrate": "supabase migration up"
+    "migrate": "supabase migration up",
+    "media:dry-run": "node --env-file=.env scripts/migrate-media-to-vps.mjs --dry-run",
+    "media:migrate": "node --env-file=.env scripts/migrate-media-to-vps.mjs --apply"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
