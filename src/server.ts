@@ -42,7 +42,6 @@ function noStoreHtmlHeaders(init?: HeadersInit): Headers {
   const headers = new Headers(init);
   headers.set("cache-control", HTML_NO_STORE);
   headers.set("cdn-cache-control", "no-store");
-  headers.set("vercel-cdn-cache-control", "no-store");
   return headers;
 }
 

@@ -20,7 +20,7 @@ function SupabaseCheck() {
       results.push({
         name: "1. VITE_SUPABASE_URL",
         status: url ? "ok" : "fail",
-        detail: url ? url : "Variável ausente no build (.env / Vercel env vars).",
+        detail: url ? url : "Variável ausente no build ou no ambiente do VPS.",
       });
       results.push({
         name: "2. VITE_SUPABASE_PUBLISHABLE_KEY",

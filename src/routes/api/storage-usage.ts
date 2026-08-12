@@ -8,8 +8,7 @@ export const Route = createFileRoute("/api/storage-usage")({
         const SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
         const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
         const ANON_KEY =
-          process.env.SUPABASE_PUBLISHABLE_KEY ??
-          process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+          process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
         const noStore = { "cache-control": "no-store" };
 
@@ -19,16 +18,13 @@ export const Route = createFileRoute("/api/storage-usage")({
               ok: false,
               configured: false,
               error:
-                "Configure SUPABASE_SERVICE_ROLE_KEY no Vercel/local para medir o Storage do Supabase.",
+                "Configure SUPABASE_SERVICE_ROLE_KEY no ambiente do VPS para medir o Storage do Supabase.",
             },
             { headers: noStore },
           );
         }
 
-        const token = (request.headers.get("authorization") ?? "").replace(
-          /^Bearer\s+/i,
-          "",
-        );
+        const token = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
         if (!token) {
           return Response.json(
             { ok: false, configured: false, error: "sem token" },
