@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { categorySlug, fetchProductsByCategory, fetchProductsBySlugs } from "@/lib/products";
 import { ProductCard } from "@/components/product-card";
+import { ScrollReveal } from "@/components/scroll-reveal";
 import {
   type CarouselApi,
   Carousel,
@@ -21,13 +22,19 @@ type ProductGridProps = {
   carousel?: boolean;
 };
 
-export function ProductGrid({ title, category, limit = 8, slugs, carousel = false }: ProductGridProps) {
+export function ProductGrid({
+  title,
+  category,
+  limit = 8,
+  slugs,
+  carousel = false,
+}: ProductGridProps) {
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [selectedSlide, setSelectedSlide] = useState(0);
   const [slideCount, setSlideCount] = useState(0);
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products", "home-grid", category, limit, slugs],
-    queryFn: () => slugs ? fetchProductsBySlugs(slugs) : fetchProductsByCategory(category, limit),
+    queryFn: () => (slugs ? fetchProductsBySlugs(slugs) : fetchProductsByCategory(category, limit)),
     staleTime: 60_000,
   });
 
@@ -48,23 +55,16 @@ export function ProductGrid({ title, category, limit = 8, slugs, carousel = fals
 
   return (
     <section className="bg-white py-10 sm:py-12">
-      <div className="mx-auto max-w-7xl px-4 sm:px-8">
-        <h2 className="text-center font-display text-3xl text-primary sm:text-4xl">
-          {title}
-        </h2>
+      <ScrollReveal className="mx-auto max-w-7xl px-4 sm:px-8">
+        <h2 className="text-center font-display text-3xl text-primary sm:text-4xl">{title}</h2>
         {isLoading ? (
           <div className="mt-10 grid grid-cols-2 gap-5 sm:mt-12 sm:gap-6 lg:grid-cols-4">
             {Array.from({ length: limit }).map((_, i) => (
-              <div
-                key={i}
-                className="aspect-square animate-pulse rounded-2xl bg-white/60"
-              />
+              <div key={i} className="aspect-square animate-pulse rounded-2xl bg-white/60" />
             ))}
           </div>
         ) : products.length === 0 ? (
-          <p className="mt-10 text-center text-primary/70">
-            Nenhum produto encontrado.
-          </p>
+          <p className="mt-10 text-center text-primary/70">Nenhum produto encontrado.</p>
         ) : carousel ? (
           <>
             <Carousel
@@ -82,13 +82,22 @@ export function ProductGrid({ title, category, limit = 8, slugs, carousel = fals
               </CarouselContent>
               {products.length > 4 && (
                 <>
-                  <CarouselPrevious className="left-2 h-10 w-10 border-primary/20 bg-white/95 text-primary shadow-sm hover:bg-white sm:-left-5" aria-label="Ver jardineiras anteriores" />
-                  <CarouselNext className="right-2 h-10 w-10 border-primary/20 bg-white/95 text-primary shadow-sm hover:bg-white sm:-right-5" aria-label="Ver próximas jardineiras" />
+                  <CarouselPrevious
+                    className="left-2 h-10 w-10 border-primary/20 bg-white/95 text-primary shadow-sm hover:bg-white sm:-left-5"
+                    aria-label="Ver jardineiras anteriores"
+                  />
+                  <CarouselNext
+                    className="right-2 h-10 w-10 border-primary/20 bg-white/95 text-primary shadow-sm hover:bg-white sm:-right-5"
+                    aria-label="Ver próximas jardineiras"
+                  />
                 </>
               )}
             </Carousel>
             {slideCount > 1 && (
-              <div className="mt-7 flex items-center justify-center gap-2" aria-label="Navegação do carrossel">
+              <div
+                className="mt-7 flex items-center justify-center gap-2"
+                aria-label="Navegação do carrossel"
+              >
                 {Array.from({ length: slideCount }).map((_, index) => (
                   <button
                     key={index}
@@ -121,7 +130,7 @@ export function ProductGrid({ title, category, limit = 8, slugs, carousel = fals
             </Link>
           </div>
         )}
-      </div>
+      </ScrollReveal>
     </section>
   );
 }

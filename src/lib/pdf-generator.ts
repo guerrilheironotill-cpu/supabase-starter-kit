@@ -6,11 +6,9 @@ import {
   productDescriptionToText,
   type ProductWithSizes,
 } from "./products";
-import {
-  fetchAttributeTerms,
-  type AttributeTerm,
-} from "./dashboard-taxonomies";
+import { fetchAttributeTerms, type AttributeTerm } from "./dashboard-taxonomies";
 import { absoluteUrl } from "./site-config";
+import { fetchHeroSlides } from "./hero-slides";
 
 export type CatalogVariant = "standard" | "reseller";
 
@@ -19,6 +17,7 @@ export type CatalogSnapshot = {
   categories: string[];
   colors: AttributeTerm[];
   finishes: AttributeTerm[];
+  coverImage: string | null;
   generatedAt: Date;
 };
 
@@ -26,37 +25,45 @@ const RESELLER_DISCOUNT = 0.3;
 type ImageCache = Map<string, Promise<string | null>>;
 
 export async function fetchCatalogSnapshot(): Promise<CatalogSnapshot> {
-  const [products, colors, finishes] = await Promise.all([
+  const [products, colors, finishes, slides] = await Promise.all([
     fetchProductsWithSizes({}),
     fetchAttributeTerms("product_colors", "color_catalog"),
     fetchAttributeTerms("product_finishes", "finish_catalog"),
+    fetchHeroSlides(),
   ]);
   const categories = Array.from(
     new Set(products.map((product) => product.category).filter(Boolean)),
   ).sort((a, b) => a.localeCompare(b, "pt-BR"));
-  return { products, categories, colors, finishes, generatedAt: new Date() };
+  return {
+    products,
+    categories,
+    colors,
+    finishes,
+    coverImage: slides[0]?.image ?? null,
+    generatedAt: new Date(),
+  };
 }
 
-async function loadImageAsDataUrl(
-  url: string,
-  cache: ImageCache,
-): Promise<string | null> {
+async function loadImageAsDataUrl(url: string, cache: ImageCache): Promise<string | null> {
   if (!cache.has(url)) {
-    cache.set(url, (async () => {
-      try {
-        const response = await fetch(url, { mode: "cors" });
-        if (!response.ok) return null;
-        const blob = await response.blob();
-        return await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      } catch {
-        return null;
-      }
-    })());
+    cache.set(
+      url,
+      (async () => {
+        try {
+          const response = await fetch(url, { mode: "cors" });
+          if (!response.ok) return null;
+          const blob = await response.blob();
+          return await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch {
+          return null;
+        }
+      })(),
+    );
   }
   return cache.get(url)!;
 }
@@ -117,6 +124,32 @@ function addCategoryTitle(pdf: jsPDF, category: string) {
   pdf.text("Produtos Arteno", pageWidth / 2, 28, { align: "center" });
 }
 
+async function addCategoryCover(
+  pdf: jsPDF,
+  category: string,
+  imageUrl: string | undefined,
+  cache: ImageCache,
+) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  if (imageUrl) {
+    const added = await addImageContained(pdf, imageUrl, 0, 0, pageWidth, pageHeight, cache);
+    if (!added) addImagePlaceholder(pdf, 0, 0, pageWidth, pageHeight);
+  } else {
+    pdf.setFillColor(236, 239, 234);
+    pdf.rect(0, 0, pageWidth, pageHeight, "F");
+  }
+  pdf.setFillColor(42, 47, 44);
+  pdf.rect(0, pageHeight * 0.62, pageWidth, pageHeight * 0.38, "F");
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(9);
+  pdf.text("COLEÇÃO ARTENO", pageWidth / 2, pageHeight * 0.7, { align: "center" });
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(30);
+  pdf.text(category, pageWidth / 2, pageHeight * 0.77, { align: "center" });
+}
+
 function addAttributeTitle(pdf: jsPDF, section: string, item: string, continuation = false) {
   const pageWidth = pdf.internal.pageSize.getWidth();
   pdf.setTextColor(105, 112, 107);
@@ -133,13 +166,7 @@ function addAttributeTitle(pdf: jsPDF, section: string, item: string, continuati
   pdf.text(item, pageWidth / 2, 27, { align: "center" });
 }
 
-function addImagePlaceholder(
-  pdf: jsPDF,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-) {
+function addImagePlaceholder(pdf: jsPDF, x: number, y: number, width: number, height: number) {
   pdf.setFillColor(242, 244, 241);
   pdf.setDrawColor(205, 211, 206);
   pdf.rect(x, y, width, height, "FD");
@@ -202,13 +229,19 @@ export async function buildCatalogPDF(
   for (const category of snapshot.categories) {
     categoryPages.set(category, pdf.getNumberOfPages() + 1);
     pdf.addPage();
-    addCategoryTitle(pdf, category);
-    addBackToIndex(pdf);
-    let currentY = 36;
     const products = snapshot.products.filter((product) => product.category === category);
+    const categoryImage = products.find((product) => product.images?.[0])?.images?.[0];
+    await addCategoryCover(pdf, category, categoryImage, sharedImageCache);
+    addBackToIndex(pdf);
+    pdf.addPage();
+    addBackToIndex(pdf);
+    let currentY = 15;
 
     for (const product of products) {
-      const rowHeight = 78;
+      const sizes = product.product_sizes ?? [];
+      const rowLineHeight = 7;
+      const tableHeight = 12 + rowLineHeight * Math.max(1, sizes.length);
+      const rowHeight = Math.max(78, 32 + tableHeight);
       if (currentY + rowHeight > pageHeight - 16) {
         pdf.addPage();
         addBackToIndex(pdf);
@@ -252,26 +285,41 @@ export async function buildCatalogPDF(
       const sizeColumnWidth = Math.min(24, tableWidth * 0.25);
       const finishColumnWidth = (tableWidth - sizeColumnWidth) / priceFinishes.length;
       const headerHeight = 12;
-      const availableRowsHeight = rowHeight - 30;
-      const sizes = product.product_sizes ?? [];
-      const rowLineHeight = Math.max(5.5, Math.min(8, availableRowsHeight / Math.max(1, sizes.length)));
 
       pdf.setFillColor(246, 248, 245);
       pdf.rect(tableX, tableY, tableWidth, headerHeight, "F");
       pdf.setDrawColor(218, 222, 218);
       pdf.setLineWidth(0.25);
-      pdf.rect(tableX, tableY, tableWidth, headerHeight + rowLineHeight * Math.max(1, sizes.length), "S");
-      pdf.line(tableX + sizeColumnWidth, tableY, tableX + sizeColumnWidth, tableY + headerHeight + rowLineHeight * Math.max(1, sizes.length));
+      pdf.rect(
+        tableX,
+        tableY,
+        tableWidth,
+        headerHeight + rowLineHeight * Math.max(1, sizes.length),
+        "S",
+      );
+      pdf.line(
+        tableX + sizeColumnWidth,
+        tableY,
+        tableX + sizeColumnWidth,
+        tableY + headerHeight + rowLineHeight * Math.max(1, sizes.length),
+      );
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(6.5);
       pdf.setTextColor(65, 72, 67);
-      pdf.text("Tamanho", tableX + 2, tableY + 7);
+      pdf.text("Altura × Largura × Comprimento (cm)", tableX + 2, tableY + 7);
       priceFinishes.forEach((finish, finishIndex) => {
         const columnX = tableX + sizeColumnWidth + finishColumnWidth * finishIndex;
         if (finishIndex > 0) {
-          pdf.line(columnX, tableY, columnX, tableY + headerHeight + rowLineHeight * Math.max(1, sizes.length));
+          pdf.line(
+            columnX,
+            tableY,
+            columnX,
+            tableY + headerHeight + rowLineHeight * Math.max(1, sizes.length),
+          );
         }
-        const labelLines = pdf.splitTextToSize(finish.name, Math.max(8, finishColumnWidth - 2)).slice(0, 2);
+        const labelLines = pdf
+          .splitTextToSize(finish.name, Math.max(8, finishColumnWidth - 2))
+          .slice(0, 2);
         pdf.text(labelLines, columnX + finishColumnWidth / 2, tableY + 5, { align: "center" });
       });
 
@@ -280,7 +328,11 @@ export async function buildCatalogPDF(
       sizes.forEach((size, sizeIndex) => {
         const rowY = tableY + headerHeight + rowLineHeight * sizeIndex;
         pdf.line(tableX, rowY, tableX + tableWidth, rowY);
-        const sizeLabel = size.size || size.name || "Único";
+        const rawSize = size.size || size.name || "Único";
+        const dimensions = parseDims(rawSize);
+        const sizeLabel = dimensions
+          ? `${dimensions.altura} × ${dimensions.largura} × ${dimensions.comprimento}`
+          : rawSize;
         pdf.text(
           pdf.splitTextToSize(sizeLabel, sizeColumnWidth - 3).slice(0, 1),
           tableX + 2,
@@ -289,10 +341,10 @@ export async function buildCatalogPDF(
         const basePrice = size.sale_price ?? size.base_price;
         priceFinishes.forEach((finish, finishIndex) => {
           const fullPrice = basePrice + (Number(finish.extra_price) || 0);
-          const finalPrice = variant === "reseller"
-            ? fullPrice * (1 - RESELLER_DISCOUNT)
-            : fullPrice;
-          const priceX = tableX + sizeColumnWidth + finishColumnWidth * finishIndex + finishColumnWidth / 2;
+          const finalPrice =
+            variant === "reseller" ? fullPrice * (1 - RESELLER_DISCOUNT) : fullPrice;
+          const priceX =
+            tableX + sizeColumnWidth + finishColumnWidth * finishIndex + finishColumnWidth / 2;
           pdf.text(
             `R$ ${finalPrice.toFixed(2).replace(".", ",")}`,
             priceX,
@@ -301,7 +353,7 @@ export async function buildCatalogPDF(
           );
         });
       });
-      const buttonWidth = 42;
+      const buttonWidth = 64;
       const buttonHeight = 8;
       const buttonX = imageX + (imageWidth - buttonWidth) / 2;
       const buttonY = currentY + rowHeight - 13;
@@ -310,7 +362,13 @@ export async function buildCatalogPDF(
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(8);
       pdf.setTextColor(42, 47, 44);
-      pdf.text("Ver produto no site", buttonX + buttonWidth / 2, buttonY + 5.2, { align: "center" });
+      pdf.setFontSize(6.5);
+      pdf.text(
+        "Clique aqui para ver detalhes do produto",
+        buttonX + buttonWidth / 2,
+        buttonY + 5.2,
+        { align: "center" },
+      );
       pdf.link(buttonX, buttonY, buttonWidth, buttonHeight, {
         url: absoluteUrl(`/produto/${product.slug}`),
       });
@@ -334,9 +392,7 @@ export async function buildCatalogPDF(
       pdf.text("Nenhum item cadastrado.", margin, 40);
     }
     for (const item of items) {
-      const media = [item.image_url, ...item.gallery].filter(
-        (url): url is string => Boolean(url),
-      );
+      const media = [item.image_url, ...item.gallery].filter((url): url is string => Boolean(url));
       const mediaPages: string[][] = [];
       for (let start = 0; start < media.length; start += 4) {
         mediaPages.push(media.slice(start, start + 4));
@@ -348,7 +404,10 @@ export async function buildCatalogPDF(
         addAttributeTitle(pdf, title, item.name, mediaPage > 0);
         addBackToIndex(pdf);
         const positions = [
-          [15, 42], [107, 42], [15, 130], [107, 130],
+          [15, 42],
+          [107, 42],
+          [15, 130],
+          [107, 130],
         ] as const;
         const pageMedia = mediaPages[mediaPage];
         if (pageMedia.length === 0) {
@@ -356,7 +415,15 @@ export async function buildCatalogPDF(
         } else {
           for (let index = 0; index < pageMedia.length; index++) {
             const [x, y] = positions[index];
-            const added = await addImageContained(pdf, pageMedia[index], x, y, 84, 78, sharedImageCache);
+            const added = await addImageContained(
+              pdf,
+              pageMedia[index],
+              x,
+              y,
+              84,
+              78,
+              sharedImageCache,
+            );
             if (!added) addImagePlaceholder(pdf, x, y, 84, 78);
           }
         }
@@ -371,7 +438,13 @@ export async function buildCatalogPDF(
             footerY += lines.length * 4.5 + 4;
           }
           if (item.video_url) {
-            addExternalLink(pdf, `Assistir no YouTube: ${item.video_url}`, item.video_url, margin, footerY);
+            addExternalLink(
+              pdf,
+              `Assistir no YouTube: ${item.video_url}`,
+              item.video_url,
+              margin,
+              footerY,
+            );
           }
         }
       }
@@ -384,29 +457,35 @@ export async function buildCatalogPDF(
   finishesPage = await addAttributeSection("Acabamentos disponíveis", snapshot.finishes);
 
   pdf.setPage(1);
-  pdf.setFillColor(234, 243, 221);
+  pdf.setFillColor(250, 250, 247);
   pdf.rect(0, 0, pageWidth, pageHeight, "F");
-  pdf.setTextColor(42, 47, 44);
+  if (snapshot.coverImage) {
+    await addImageContained(pdf, snapshot.coverImage, 0, 0, pageWidth, 105, sharedImageCache);
+  }
+  pdf.setFillColor(42, 47, 44);
+  pdf.rect(0, 70, pageWidth, 35, "F");
+  pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(27);
-  pdf.text("Catálogo Arteno", margin, 28);
+  pdf.text("Catálogo Arteno", pageWidth / 2, 86, { align: "center" });
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(11);
+  pdf.setFontSize(10);
   pdf.text(
-    variant === "reseller" ? "Tabela para revendedores — 30% de desconto" : "Tabela de preços padrão",
-    margin,
-    37,
+    variant === "reseller"
+      ? "Tabela para revendedores — 30% de desconto"
+      : "Tabela de preços padrão",
+    pageWidth / 2,
+    95,
+    { align: "center" },
   );
+  pdf.setTextColor(105, 112, 107);
   pdf.setFontSize(9);
-  pdf.text(
-    `Atualizado em ${snapshot.generatedAt.toLocaleString("pt-BR")}`,
-    margin,
-    44,
-  );
+  pdf.text(`Atualizado em ${snapshot.generatedAt.toLocaleString("pt-BR")}`, margin, 116);
+  pdf.setTextColor(42, 47, 44);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(15);
-  pdf.text("Índice", margin, 60);
-  let indexY = 70;
+  pdf.text("Índice", margin, 130);
+  let indexY = 141;
   pdf.setFontSize(11);
   for (const category of snapshot.categories) {
     const page = categoryPages.get(category)!;

@@ -50,7 +50,7 @@ export function ProductRelatedSection({
   if (loading || products.length === 0) return null;
 
   return (
-    <section className="bg-white py-12 sm:py-16">
+    <section className="bg-[#f5f6f2] py-12 sm:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         <h2 className="text-center font-display text-3xl text-primary sm:text-4xl">
           Produtos Relacionados

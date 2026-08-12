@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
@@ -8,6 +8,16 @@ import sharp from "sharp";
 const folders = new Set(["products", "categories", "finishes", "colors", "banners", "pages"]);
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 const maxUploadBytes = 15 * 1024 * 1024;
+
+async function directorySize(path: string): Promise<number> {
+  let total = 0;
+  for (const entry of await readdir(path, { withFileTypes: true })) {
+    const child = join(path, entry.name);
+    if (entry.isDirectory()) total += await directorySize(child);
+    else if (entry.isFile()) total += (await stat(child)).size;
+  }
+  return total;
+}
 
 export const Route = createFileRoute("/api/upload-media")({
   server: {
@@ -76,11 +86,21 @@ export const Route = createFileRoute("/api/upload-media")({
           const filename = `${randomUUID()}.webp`;
           const destination = join(directory, filename);
           const source = Buffer.from(await file.arrayBuffer());
-          const info = await sharp(source, { limitInputPixels: 64_000_000 })
+          const { data: optimized, info } = await sharp(source, { limitInputPixels: 64_000_000 })
             .rotate()
             .resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true })
             .webp({ quality: 82, effort: 5, smartSubsample: true })
-            .toFile(destination);
+            .toBuffer({ resolveWithObject: true });
+          const limitBytes =
+            Number(process.env.ARTENO_STORAGE_LIMIT_BYTES) || 5 * 1024 * 1024 * 1024;
+          const usedBytes = await directorySize(uploadRoot);
+          if (usedBytes + optimized.byteLength > limitBytes) {
+            return Response.json(
+              { ok: false, error: "O limite de armazenamento da Arteno foi atingido." },
+              { status: 507, headers: noStore },
+            );
+          }
+          await writeFile(destination, optimized, { flag: "wx" });
           const base = (process.env.UPLOAD_BASE_URL ?? "/uploads").replace(/\/$/, "");
           return Response.json(
             {
@@ -88,7 +108,7 @@ export const Route = createFileRoute("/api/upload-media")({
               url: `${base}/${folder}/${filename}`,
               width: info.width,
               height: info.height,
-              bytes: info.size,
+              bytes: optimized.byteLength,
             },
             { headers: noStore },
           );

@@ -1,6 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { FileText, Plus, Trash2, Share2, Link as LinkIcon, FileDown, MessageCircle, Mail, Copy, Pencil, ChevronDown } from "lucide-react";
+import {
+  FileText,
+  Plus,
+  Trash2,
+  Share2,
+  Link as LinkIcon,
+  FileDown,
+  MessageCircle,
+  Mail,
+  Copy,
+  Pencil,
+  ChevronDown,
+} from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardSection } from "@/components/dashboard-layout";
 import { maskPhoneBR } from "@/lib/masks";
@@ -31,13 +43,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { ensureCustomerForApprovedQuote } from "@/lib/customer-conversion";
 
 export const Route = createFileRoute("/dashboard/orcamentos")({
   head: () => ({
-    meta: [
-      { title: "Orçamentos — Dashboard" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Orçamentos — Dashboard" }, { name: "robots", content: "noindex" }],
   }),
   component: DashboardQuotesPage,
 });
@@ -72,7 +82,15 @@ type QuoteMeta = {
 };
 
 function parseMeta(raw: string | null | undefined): QuoteMeta {
-  const empty: QuoteMeta = { freight: 0, freightNote: "", deadline: "", payment: "", pix: "", note: "", address: "" };
+  const empty: QuoteMeta = {
+    freight: 0,
+    freightNote: "",
+    deadline: "",
+    payment: "",
+    pix: "",
+    note: "",
+    address: "",
+  };
   if (!raw) return empty;
   try {
     const p = JSON.parse(raw);
@@ -86,7 +104,9 @@ function parseMeta(raw: string | null | undefined): QuoteMeta {
         note: String(p.note ?? ""),
         address: String(p.address ?? ""),
         app_order_id: typeof p.app_order_id === "string" ? p.app_order_id : undefined,
-        app_order_number: Number.isFinite(Number(p.app_order_number)) ? Number(p.app_order_number) : undefined,
+        app_order_number: Number.isFinite(Number(p.app_order_number))
+          ? Number(p.app_order_number)
+          : undefined,
         personType: p.personType === "juridica" ? "juridica" : "fisica",
         cpf: typeof p.cpf === "string" ? p.cpf : null,
         cnpj: typeof p.cnpj === "string" ? p.cnpj : null,
@@ -181,17 +201,23 @@ function normalizeQuoteStatus(status: string | null | undefined): QuoteStatus {
 }
 
 const currency = (n: number | null | undefined) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-    Number(n ?? 0),
-  );
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(n ?? 0));
 
 function DashboardQuotesPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [duplicateSource, setDuplicateSource] = useState<OrderRow | null>(null);
   const [editingSource, setEditingSource] = useState<OrderRow | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | QuoteStatus>("all");
+  const [originFilter, setOriginFilter] = useState("all");
 
-  const { data: allOrders = [], isLoading, error } = useQuery({
+  const {
+    data: allOrders = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["orders"],
     queryFn: async () => {
       const controller = new AbortController();
@@ -219,17 +245,51 @@ function DashboardQuotesPage() {
   });
 
   const orders = useMemo(
-    () => allOrders.filter((o) => normalizeQuoteStatus(o.status) !== "aprovado"),
-    [allOrders],
+    () =>
+      allOrders.filter((o) => {
+        const normalized = normalizeQuoteStatus(o.status);
+        const haystack =
+          `${o.customer_name} ${o.customer_email ?? ""} ${o.customer_phone ?? ""}`.toLowerCase();
+        return (
+          normalized !== "aprovado" &&
+          (statusFilter === "all" || normalized === statusFilter) &&
+          (originFilter === "all" || o.origin === originFilter) &&
+          (!search || haystack.includes(search.toLowerCase()))
+        );
+      }),
+    [allOrders, originFilter, search, statusFilter],
   );
+
+  const allSelected = orders.length > 0 && orders.every((o) => selected.has(o.id));
+  async function bulkQuoteStatus(status: "em_aberto" | "nao_aprovado") {
+    const ids = [...selected];
+    const { error } = await supabase
+      .from("orders" as never)
+      .update({ status: STATUS_WRITE_CANDIDATES[status][0] } as never)
+      .in("id", ids);
+    if (error) return toast.error(error.message);
+    setSelected(new Set());
+    await qc.invalidateQueries({ queryKey: ["orders"] });
+    toast.success(`${ids.length} orçamento(s) atualizado(s)`);
+  }
+  async function deleteQuotes() {
+    const ids = [...selected];
+    if (!ids.length || !window.confirm(`Excluir ${ids.length} orçamento(s)?`)) return;
+    const { error } = await supabase
+      .from("orders" as never)
+      .delete()
+      .in("id", ids);
+    if (error) return toast.error(error.message);
+    setSelected(new Set());
+    await qc.invalidateQueries({ queryKey: ["orders"] });
+    toast.success("Orçamentos excluídos");
+  }
 
   return (
     <>
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Orçamentos
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Orçamentos</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Orçamentos e pedidos do site, WhatsApp, Instagram e manuais.
           </p>
@@ -245,15 +305,24 @@ function DashboardQuotesPage() {
           }}
         >
           <DialogTrigger asChild>
-            <Button className="gap-2" onClick={() => {
-              setDuplicateSource(null);
-              setEditingSource(null);
-            }}>
+            <Button
+              className="gap-2"
+              onClick={() => {
+                setDuplicateSource(null);
+                setEditingSource(null);
+              }}
+            >
               <Plus className="h-4 w-4" /> Novo orçamento
             </Button>
           </DialogTrigger>
           <NewQuoteDialog
-            key={editingSource ? `edit-${editingSource.id}` : duplicateSource ? `duplicate-${duplicateSource.id}` : "new"}
+            key={
+              editingSource
+                ? `edit-${editingSource.id}`
+                : duplicateSource
+                  ? `duplicate-${duplicateSource.id}`
+                  : "new"
+            }
             duplicateSource={editingSource ?? duplicateSource}
             editMode={Boolean(editingSource)}
             onCreated={() => {
@@ -266,10 +335,71 @@ function DashboardQuotesPage() {
       </div>
 
       <DashboardSection title="Últimos orçamentos">
+        <div className="mb-4 flex flex-wrap gap-2">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Nome do cliente, e-mail ou telefone"
+            className="min-w-[260px] flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+          >
+            <option value="all">Todos os status</option>
+            <option value="em_aberto">Em aberto</option>
+            <option value="nao_aprovado">Não aprovado</option>
+          </select>
+          <select
+            value={originFilter}
+            onChange={(e) => setOriginFilter(e.target.value)}
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+          >
+            <option value="all">Todas as origens</option>
+            {[...new Set(allOrders.map((o) => o.origin))].map((origin) => (
+              <option key={origin} value={origin}>
+                {origin}
+              </option>
+            ))}
+          </select>
+        </div>
+        {selected.size > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 p-2 text-sm">
+            <span>{selected.size} selecionado(s)</span>
+            <button
+              onClick={() => bulkQuoteStatus("em_aberto")}
+              className="rounded border border-border bg-background px-2 py-1"
+            >
+              Marcar em aberto
+            </button>
+            <button
+              onClick={() => bulkQuoteStatus("nao_aprovado")}
+              className="rounded border border-border bg-background px-2 py-1"
+            >
+              Não aprovado
+            </button>
+            <button
+              onClick={deleteQuotes}
+              className="rounded px-2 py-1 text-destructive hover:bg-destructive/10"
+            >
+              Excluir
+            </button>
+          </div>
+        )}
         <div className="overflow-hidden rounded-2xl border border-border bg-card">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-left text-xs uppercase tracking-widest text-muted-foreground">
               <tr>
+                <th className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={() =>
+                      setSelected(allSelected ? new Set() : new Set(orders.map((o) => o.id)))
+                    }
+                  />
+                </th>
                 <th className="px-4 py-3">#</th>
                 <th className="px-4 py-3">Cliente</th>
                 <th className="px-4 py-3">Origem</th>
@@ -290,7 +420,8 @@ function DashboardQuotesPage() {
               {!isLoading && error && (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-destructive">
-                    Erro ao carregar orçamentos: {error instanceof Error ? error.message : String(error)}
+                    Erro ao carregar orçamentos:{" "}
+                    {error instanceof Error ? error.message : String(error)}
                   </td>
                 </tr>
               )}
@@ -303,9 +434,21 @@ function DashboardQuotesPage() {
               )}
               {orders.map((o) => (
                 <tr key={o.id} className="border-t border-border">
-                  <td className="px-4 py-3 font-medium text-foreground">
-                    #{o.id.slice(0, 6)}
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(o.id)}
+                      onChange={() =>
+                        setSelected((current) => {
+                          const next = new Set(current);
+                          if (next.has(o.id)) next.delete(o.id);
+                          else next.add(o.id);
+                          return next;
+                        })
+                      }
+                    />
                   </td>
+                  <td className="px-4 py-3 font-medium text-foreground">#{o.id.slice(0, 6)}</td>
                   <td className="px-4 py-3">
                     <div className="text-foreground">{o.customer_name}</div>
                     {o.customer_phone && (
@@ -389,9 +532,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
           setValue(next);
           qc.setQueryData<OrderRow[]>(["orders"], (current) =>
             current?.map((row) =>
-              row.id === order.id
-                ? { ...row, status: next, notes: extraNotes ?? row.notes }
-                : row,
+              row.id === order.id ? { ...row, status: next, notes: extraNotes ?? row.notes } : row,
             ),
           );
           qc.invalidateQueries({ queryKey: ["orders"] });
@@ -419,12 +560,14 @@ function StatusSelect({ order }: { order: OrderRow }) {
   const rejectAsLead = async (tag: string, listName: string) => {
     setSaving(true);
     try {
-      const items = Array.isArray(order.items) ? (order.items as Array<{
-        product_id?: string | null;
-        name: string;
-        quantity: number;
-        price: number;
-      }>) : [];
+      const items = Array.isArray(order.items)
+        ? (order.items as Array<{
+            product_id?: string | null;
+            name: string;
+            quantity: number;
+            price: number;
+          }>)
+        : [];
       const leadItems = items.map((i) => ({
         id: i.product_id ?? `custom_${Math.random().toString(36).slice(2, 8)}`,
         name: i.name,
@@ -503,56 +646,24 @@ function StatusSelect({ order }: { order: OrderRow }) {
             length?: number | null;
           }>)
         : [];
-      const [first, ...rest] = (order.customer_name ?? "").split(" ");
       const email = order.customer_email ?? null;
       const phone = order.customer_phone ?? null;
 
-      // 1) find/create customer
-      let customerId: string | null = null;
-      if (email) {
-        const { data: existing, error: findErr } = await supabase
-          .from("customers" as never)
-          .select("id")
-          .eq("email", email)
-          .limit(1)
-          .maybeSingle();
-        if (findErr) fail("buscar cliente", findErr);
-        customerId = (existing as { id: string } | null)?.id ?? null;
-        if (customerId) toast.success("Cliente já cadastrado — vinculando ao pedido");
-      }
-      if (!customerId) {
-        const basePayload: Record<string, unknown> = {
-          first_name: first || (order.customer_name ?? "Cliente"),
-          last_name: rest.join(" "),
-          email,
-          phone,
-          address_1: meta.address || null,
-        };
-        // Try with extended fields; fallback if columns don't exist
-        const attempts: Array<Record<string, unknown>> = [
-          { ...basePayload, status: "cliente" },
-          basePayload,
-        ];
-        let created: { id: string } | null = null;
-        let lastErr: unknown = null;
-        for (const payload of attempts) {
-          const { data, error } = await supabase
-            .from("customers" as never)
-            .insert(payload as never)
-            .select("id")
-            .single();
-          if (!error) {
-            created = data as unknown as { id: string };
-            break;
-          }
-          lastErr = error;
-          const msg = (error as { message?: string }).message ?? "";
-          if (!/column .* does not exist|status/i.test(msg)) break;
-        }
-        if (!created) fail("criar cliente", lastErr);
-        customerId = created!.id;
-        toast.success("Cliente cadastrado com sucesso");
-      }
+      // Approval is only persisted after a customer exists and can be linked.
+      const customer = await ensureCustomerForApprovedQuote({
+        name: order.customer_name || "Cliente",
+        email,
+        phone,
+        address: meta.address,
+        cpf: meta.cpf,
+        cnpj: meta.cnpj,
+      }).catch((error) => fail("garantir cliente", error));
+      const customerId = customer.id;
+      toast.success(
+        customer.created
+          ? "Cliente cadastrado e vinculado ao pedido"
+          : "Cliente existente atualizado e vinculado ao pedido",
+      );
 
       // 2) upsert app_order linked to this quote
       const subtotal = items.reduce(
@@ -636,6 +747,19 @@ function StatusSelect({ order }: { order: OrderRow }) {
         if (iErr) fail("inserir itens", iErr);
       }
 
+      const { data: verifiedOrder, error: verifyError } = await supabase
+        .from("app_orders" as never)
+        .select("id, customer_id")
+        .eq("id", newOrder.id)
+        .maybeSingle();
+      if (verifyError) fail("validar vínculo do cliente", verifyError);
+      if (
+        !(verifiedOrder as unknown as { customer_id?: string } | null)?.customer_id ||
+        (verifiedOrder as unknown as { customer_id: string }).customer_id !== customerId
+      ) {
+        fail("validar vínculo do cliente", new Error("O pedido não ficou vinculado ao cliente."));
+      }
+
       const nextNotes = JSON.stringify({
         __meta: 1,
         ...meta,
@@ -650,6 +774,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
       }
       toast.success(`Pedido #${newOrder.number} criado`);
       qc.invalidateQueries({ queryKey: ["app-orders"] });
+      qc.invalidateQueries({ queryKey: ["local-customers"] });
     } catch (e) {
       console.error("[approve:catch]", e);
     } finally {
@@ -736,7 +861,9 @@ function StatusSelect({ order }: { order: OrderRow }) {
               Cancelar
             </Button>
             <Button
-              onClick={() => void rejectAsLead(tagInput.trim() || "Sem tag", listInput.trim() || "Leads")}
+              onClick={() =>
+                void rejectAsLead(tagInput.trim() || "Sem tag", listInput.trim() || "Leads")
+              }
               disabled={saving || !tagInput.trim()}
             >
               Salvar
@@ -772,7 +899,10 @@ function ShareMenu({
       }>)
     : [];
   const meta = parseMeta(order.notes);
-  const itemsSubtotal = items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0);
+  const itemsSubtotal = items.reduce(
+    (s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 0),
+    0,
+  );
 
   const summary = () => {
     const lines = [
@@ -784,7 +914,11 @@ function ShareMenu({
         (i) => `• ${i.quantity}x ${i.name} — ${currency((i.price ?? 0) * (i.quantity ?? 1))}`,
       ),
       "",
-      ...(meta.freight ? [`Frete: ${currency(meta.freight)}${meta.freightNote ? " (" + meta.freightNote + ")" : ""}`] : []),
+      ...(meta.freight
+        ? [
+            `Frete: ${currency(meta.freight)}${meta.freightNote ? " (" + meta.freightNote + ")" : ""}`,
+          ]
+        : []),
       ...(meta.deadline ? [`Prazo de produção: ${meta.deadline}`] : []),
       ...(meta.payment ? [`Pagamento: ${meta.payment}`] : []),
       ...(meta.pix ? [`Pix (entrada): ${meta.pix}`] : []),
@@ -806,7 +940,14 @@ function ShareMenu({
   };
 
   const generatePdf = () => {
-    const attrLine = (i: { size_name?: string | null; finish?: string | null; color?: string | null; height?: number | null; width?: number | null; length?: number | null }) => {
+    const attrLine = (i: {
+      size_name?: string | null;
+      finish?: string | null;
+      color?: string | null;
+      height?: number | null;
+      width?: number | null;
+      length?: number | null;
+    }) => {
       const parts = [
         i.size_name ? `Tamanho: ${i.size_name}` : "",
         i.finish ? `Acabamento: ${i.finish}` : "",
@@ -838,9 +979,15 @@ function ShareMenu({
       <div class="row total"><span>Total</span><b>${currency(order.total)}</b></div>
     `;
     const condBody = [
-      meta.deadline ? `<div class="row"><span>Prazo de produção</span><b>${meta.deadline}</b></div>` : "",
-      meta.payment ? `<div class="row"><span>Forma de pagamento</span><b>${meta.payment}</b></div>` : "",
-      meta.pix ? `<div class="row"><span>Pix (entrada)</span><b><a href="${meta.pix}">${meta.pix}</a></b></div>` : "",
+      meta.deadline
+        ? `<div class="row"><span>Prazo de produção</span><b>${meta.deadline}</b></div>`
+        : "",
+      meta.payment
+        ? `<div class="row"><span>Forma de pagamento</span><b>${meta.payment}</b></div>`
+        : "",
+      meta.pix
+        ? `<div class="row"><span>Pix (entrada)</span><b><a href="${meta.pix}">${meta.pix}</a></b></div>`
+        : "",
     ].join("");
     const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Orçamento ${order.id.slice(0, 6)}</title>
 <style>
@@ -877,9 +1024,11 @@ function ShareMenu({
   </div>
 </div>
 ${module("Itens", `<table><thead><tr><th>Descrição</th><th>Qtd</th><th>Unit.</th><th>Subtotal</th></tr></thead><tbody>${rows}</tbody></table>`)}
-${condBody
-  ? `<div style="display:flex;gap:16px;align-items:stretch;"><div style="flex:1 1 50%;min-width:0;display:flex;"><section class="mod" style="flex:1;margin-bottom:0;"><h2>Condições</h2><div>${condBody}</div></section></div><div style="flex:1 1 50%;min-width:0;display:flex;"><section class="mod" style="flex:1;margin-bottom:0;"><h2>Valores</h2><div>${totalsBody}</div></section></div></div>`
-  : module("Valores", totalsBody)}
+${
+  condBody
+    ? `<div style="display:flex;gap:16px;align-items:stretch;"><div style="flex:1 1 50%;min-width:0;display:flex;"><section class="mod" style="flex:1;margin-bottom:0;"><h2>Condições</h2><div>${condBody}</div></section></div><div style="flex:1 1 50%;min-width:0;display:flex;"><section class="mod" style="flex:1;margin-bottom:0;"><h2>Valores</h2><div>${totalsBody}</div></section></div></div>`
+    : module("Valores", totalsBody)
+}
 ${meta.note ? module("Observações", `<div style="font-size:13px;line-height:1.5;white-space:pre-wrap;">${meta.note.replace(/</g, "&lt;")}</div>`) : ""}
 <div class="noprint" style="margin-top:24px;text-align:center;"><button onclick="window.print()" style="padding:10px 20px;font-size:14px;cursor:pointer;border:1px solid #111;background:#111;color:#fff;border-radius:6px;">Salvar como PDF</button></div>
 <script>setTimeout(function(){window.print();},400);</script>
@@ -1051,7 +1200,9 @@ function NewQuoteDialogImpl({
   const [name, setName] = useState(duplicateSource?.customer_name ?? "");
   const [phone, setPhone] = useState(duplicateSource?.customer_phone ?? "");
   const [email, setEmail] = useState(duplicateSource?.customer_email ?? "");
-  const [personType, setPersonType] = useState<"fisica" | "juridica">(initialMeta.personType ?? "fisica");
+  const [personType, setPersonType] = useState<"fisica" | "juridica">(
+    initialMeta.personType ?? "fisica",
+  );
   const [cpf, setCpf] = useState(initialMeta.cpf ?? "");
   const [cnpj, setCnpj] = useState(initialMeta.cnpj ?? "");
   const [companyName, setCompanyName] = useState(initialMeta.companyName ?? "");
@@ -1059,7 +1210,9 @@ function NewQuoteDialogImpl({
   const [notes, setNotes] = useState(initialMeta.note);
   const [freight, setFreight] = useState<number>(initialMeta.freight);
   const [freightNote, setFreightNote] = useState(initialMeta.freightNote);
-  const [deliveryMode, setDeliveryMode] = useState<"pickup" | "shipping">(initialMeta.freight > 0 || initialMeta.address ? "shipping" : "pickup");
+  const [deliveryMode, setDeliveryMode] = useState<"pickup" | "shipping">(
+    initialMeta.freight > 0 || initialMeta.address ? "shipping" : "pickup",
+  );
   const [deadline, setDeadline] = useState(initialMeta.deadline);
   const [payment, setPayment] = useState(initialMeta.payment);
   const [pix, setPix] = useState(initialMeta.pix);
@@ -1075,7 +1228,14 @@ function NewQuoteDialogImpl({
   type ProductFull = {
     id: string;
     name: string;
-    product_sizes: Array<{ id: string; name: string; size?: string; base_price: number; sale_price: number | null; sort_order: number }>;
+    product_sizes: Array<{
+      id: string;
+      name: string;
+      size?: string;
+      base_price: number;
+      sale_price: number | null;
+      sort_order: number;
+    }>;
     product_finishes: Array<{ id: string; name: string; sort_order: number }>;
     product_colors: Array<{ id: string; name: string; sort_order: number }>;
   };
@@ -1084,7 +1244,7 @@ function NewQuoteDialogImpl({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-          .select(
+        .select(
           "id, name, product_sizes(id, name, size, base_price, sale_price, sort_order), product_finishes(id, name, sort_order), product_colors(id, name, sort_order)",
         )
         .eq("active", true)
@@ -1112,11 +1272,14 @@ function NewQuoteDialogImpl({
 
   const removeItem = (idx: number) => {
     setItems((prev) => prev.filter((_, i) => i !== idx));
-    setExpandedItems((current) => new Set(
-      Array.from(current)
-        .filter((index) => index !== idx)
-        .map((index) => index > idx ? index - 1 : index),
-    ));
+    setExpandedItems(
+      (current) =>
+        new Set(
+          Array.from(current)
+            .filter((index) => index !== idx)
+            .map((index) => (index > idx ? index - 1 : index)),
+        ),
+    );
   };
 
   const toggleItem = (idx: number) =>
@@ -1267,11 +1430,7 @@ function NewQuoteDialogImpl({
               break;
             }
             orderErr = error;
-            console.warn(
-              `[order insert attempt:${status}]`,
-              error.message,
-              Object.keys(payload),
-            );
+            console.warn(`[order insert attempt:${status}]`, error.message, Object.keys(payload));
           }
           if (orderSaved) break;
         }
@@ -1288,7 +1447,9 @@ function NewQuoteDialogImpl({
             ? String((e as { message: unknown }).message)
             : JSON.stringify(e);
       console.error(editMode ? "[edit order]" : "[new order]", e);
-      toast.error(`Erro ao ${editMode ? "atualizar" : "criar"} orçamento: ${msg}`, { duration: 8000 });
+      toast.error(`Erro ao ${editMode ? "atualizar" : "criar"} orçamento: ${msg}`, {
+        duration: 8000,
+      });
       setSaving(false);
       return;
     }
@@ -1298,7 +1459,13 @@ function NewQuoteDialogImpl({
   return (
     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>{editMode ? "Editar orçamento" : duplicateSource ? "Duplicar orçamento" : "Novo orçamento"}</DialogTitle>
+        <DialogTitle>
+          {editMode
+            ? "Editar orçamento"
+            : duplicateSource
+              ? "Duplicar orçamento"
+              : "Novo orçamento"}
+        </DialogTitle>
       </DialogHeader>
 
       <ol className="mb-2 flex items-center gap-4 border-b border-border pb-3 text-xs uppercase tracking-widest">
@@ -1338,260 +1505,305 @@ function NewQuoteDialogImpl({
 
       <div className="grid gap-4 py-2">
         {step === 2 && (
-        <div>
-          <Label>Tipo de pessoa *</Label>
-          <div className="mt-2 flex gap-4 text-sm">
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="np-personType"
-                checked={personType === "fisica"}
-                onChange={() => setPersonType("fisica")}
-              />
-              Pessoa física
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="np-personType"
-                checked={personType === "juridica"}
-                onChange={() => setPersonType("juridica")}
-              />
-              Pessoa jurídica
-            </label>
+          <div>
+            <Label>Tipo de pessoa *</Label>
+            <div className="mt-2 flex gap-4 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="np-personType"
+                  checked={personType === "fisica"}
+                  onChange={() => setPersonType("fisica")}
+                />
+                Pessoa física
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="np-personType"
+                  checked={personType === "juridica"}
+                  onChange={() => setPersonType("juridica")}
+                />
+                Pessoa jurídica
+              </label>
+            </div>
           </div>
-        </div>
         )}
 
         {step === 2 && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <Label>Nome do cliente *</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div>
-            <Label>Telefone</Label>
-            <Input
-              value={phone}
-              onChange={(e) => setPhone(maskPhoneBR(e.target.value))}
-              placeholder="(00) 00000-0000"
-              inputMode="tel"
-              maxLength={16}
-            />
-          </div>
-          <div>
-            <Label>E-mail</Label>
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          {personType === "fisica" ? (
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <Label>CPF *</Label>
+              <Label>Nome do cliente *</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div>
+              <Label>Telefone</Label>
               <Input
-                value={cpf}
-                onChange={(e) => setCpf(e.target.value)}
-                maxLength={14}
-                placeholder="000.000.000-00"
+                value={phone}
+                onChange={(e) => setPhone(maskPhoneBR(e.target.value))}
+                placeholder="(00) 00000-0000"
+                inputMode="tel"
+                maxLength={16}
               />
             </div>
-          ) : (
-            <>
+            <div>
+              <Label>E-mail</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+            {personType === "fisica" ? (
               <div>
-                <Label>CNPJ *</Label>
+                <Label>CPF *</Label>
                 <Input
-                  value={cnpj}
-                  onChange={(e) => setCnpj(e.target.value)}
-                  maxLength={18}
-                  placeholder="00.000.000/0000-00"
+                  value={cpf}
+                  onChange={(e) => setCpf(e.target.value)}
+                  maxLength={14}
+                  placeholder="000.000.000-00"
                 />
               </div>
-              <div className="sm:col-span-2">
-                <Label>Nome da empresa *</Label>
-                <Input
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                />
-              </div>
-            </>
-          )}
-        </div>
+            ) : (
+              <>
+                <div>
+                  <Label>CNPJ *</Label>
+                  <Input
+                    value={cnpj}
+                    onChange={(e) => setCnpj(e.target.value)}
+                    maxLength={18}
+                    placeholder="00.000.000/0000-00"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Nome da empresa *</Label>
+                  <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
+                </div>
+              </>
+            )}
+          </div>
         )}
 
         {step === 3 && (
-        <div className="rounded-lg border border-border p-3">
-          <Label className="mb-2 block text-xs uppercase tracking-widest text-muted-foreground">
-            Entrega
-          </Label>
-          <div className="flex gap-4 text-sm">
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="np-deliveryMode"
-                checked={deliveryMode === "pickup"}
-                onChange={() => {
-                  setDeliveryMode("pickup");
-                  setFreight(0);
-                  setFreightNote("");
-                  setAddress("");
-                }}
-              />
-              Retirar na fábrica
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="np-deliveryMode"
-                checked={deliveryMode === "shipping"}
-                onChange={() => setDeliveryMode("shipping")}
-              />
-              Frete
-            </label>
-          </div>
-
-          {deliveryMode === "shipping" && (
-            <div className="mt-3 space-y-3">
-              <div>
-                <Label>Endereço de entrega</Label>
-                <Textarea
-                  placeholder="Rua, número, complemento, bairro, cidade/UF, CEP"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+          <div className="rounded-lg border border-border p-3">
+            <Label className="mb-2 block text-xs uppercase tracking-widest text-muted-foreground">
+              Entrega
+            </Label>
+            <div className="flex gap-4 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="np-deliveryMode"
+                  checked={deliveryMode === "pickup"}
+                  onChange={() => {
+                    setDeliveryMode("pickup");
+                    setFreight(0);
+                    setFreightNote("");
+                    setAddress("");
+                  }}
                 />
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div>
-                  <Label className="text-xs">Valor do frete (R$)</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={freight}
-                    onChange={(e) => setFreight(Number(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Observação do frete</Label>
-                  <Input
-                    placeholder="Ex: carga e descarga inclusos"
-                    value={freightNote}
-                    onChange={(e) => setFreightNote(e.target.value)}
-                  />
-                </div>
-              </div>
+                Retirar na fábrica
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="np-deliveryMode"
+                  checked={deliveryMode === "shipping"}
+                  onChange={() => setDeliveryMode("shipping")}
+                />
+                Frete
+              </label>
             </div>
-          )}
-        </div>
+
+            {deliveryMode === "shipping" && (
+              <div className="mt-3 space-y-3">
+                <div>
+                  <Label>Endereço de entrega</Label>
+                  <Textarea
+                    placeholder="Rua, número, complemento, bairro, cidade/UF, CEP"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div>
+                    <Label className="text-xs">Valor do frete (R$)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={freight}
+                      onChange={(e) => setFreight(Number(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Observação do frete</Label>
+                    <Input
+                      placeholder="Ex: carga e descarga inclusos"
+                      value={freightNote}
+                      onChange={(e) => setFreightNote(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {step === 1 && (
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <Label>Itens</Label>
-            <div className="flex gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={() => addItem("catalog")}>
-                + Catálogo
-              </Button>
-              <Button type="button" size="sm" variant="outline" onClick={() => addItem("custom")}>
-                + Personalizado
-              </Button>
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <Label>Itens</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => addItem("catalog")}
+                >
+                  + Catálogo
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => addItem("custom")}>
+                  + Personalizado
+                </Button>
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-3">
-            {items.map((it, idx) => (
-              <div
-                key={idx}
-                className={`rounded-lg border p-3 ${
-                  it.kind === "catalog"
-                    ? "border-slate-200 bg-slate-50"
-                    : "border-border bg-white"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => toggleItem(idx)}
-                    className="flex min-w-0 flex-1 items-center justify-between gap-3 py-1 text-left"
-                    aria-expanded={expandedItems.has(idx)}
-                  >
-                    <span className="truncate font-medium text-foreground">
-                      {it.name.trim() || (it.kind === "catalog" ? "Novo produto do catálogo" : "Novo produto personalizado")}
-                    </span>
-                    <ChevronDown
-                      className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
-                        expandedItems.has(idx) ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeItem(idx)}
-                    className="shrink-0 text-muted-foreground hover:text-destructive"
-                    aria-label={`Remover ${it.name || "item"}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
+            <div className="space-y-3">
+              {items.map((it, idx) => (
+                <div
+                  key={idx}
+                  className={`rounded-lg border p-3 ${
+                    it.kind === "catalog"
+                      ? "border-slate-200 bg-slate-50"
+                      : "border-border bg-white"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleItem(idx)}
+                      className="flex min-w-0 flex-1 items-center justify-between gap-3 py-1 text-left"
+                      aria-expanded={expandedItems.has(idx)}
+                    >
+                      <span className="truncate font-medium text-foreground">
+                        {it.name.trim() ||
+                          (it.kind === "catalog"
+                            ? "Novo produto do catálogo"
+                            : "Novo produto personalizado")}
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+                          expandedItems.has(idx) ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(idx)}
+                      className="shrink-0 text-muted-foreground hover:text-destructive"
+                      aria-label={`Remover ${it.name || "item"}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
 
-                {expandedItems.has(idx) && (
-                <>
-                <div className="mb-2 mt-2 text-xs uppercase tracking-wide text-muted-foreground">
-                  {it.kind === "catalog" ? "Do catálogo" : "Personalizado"}
-                </div>
-                {it.kind === "catalog" ? (
-                  (() => {
-                    const p = products.find((x) => x.id === it.product_id);
-                    const sizes = [...(p?.product_sizes ?? [])].sort((a, b) => a.sort_order - b.sort_order);
-                    const finishes = [...(p?.product_finishes ?? [])].sort((a, b) => a.sort_order - b.sort_order);
-                    const colors = [...(p?.product_colors ?? [])].sort((a, b) => a.sort_order - b.sort_order);
-                    const productSearch = (it.product_search ?? "").trim().toLocaleLowerCase("pt-BR");
-                    const filteredProducts = productSearch
-                      ? products.filter((product) =>
-                          product.name.toLocaleLowerCase("pt-BR").includes(productSearch),
-                        )
-                      : products;
-                    return (
-                      <div className="space-y-2">
-                        <div className="relative">
-                          <Label className="text-xs">Buscar produto por nome</Label>
-                          <Input
-                            type="search"
-                            autoComplete="off"
-                            placeholder="Comece a digitar o nome do produto"
-                            value={it.product_search ?? ""}
-                            onChange={(event) => {
-                              const value = event.target.value;
-                              updateItem(idx, {
-                                product_search: value,
-                                product_id: undefined,
-                                name: "",
-                                size_id: undefined,
-                                size_name: undefined,
-                                finish: undefined,
-                                color: undefined,
-                                height: undefined,
-                                width: undefined,
-                                length: undefined,
-                                price: 0,
-                              });
-                            }}
-                          />
+                  {expandedItems.has(idx) && (
+                    <>
+                      <div className="mb-2 mt-2 text-xs uppercase tracking-wide text-muted-foreground">
+                        {it.kind === "catalog" ? "Do catálogo" : "Personalizado"}
+                      </div>
+                      {it.kind === "catalog" ? (
+                        (() => {
+                          const p = products.find((x) => x.id === it.product_id);
+                          const sizes = [...(p?.product_sizes ?? [])].sort(
+                            (a, b) => a.sort_order - b.sort_order,
+                          );
+                          const finishes = [...(p?.product_finishes ?? [])].sort(
+                            (a, b) => a.sort_order - b.sort_order,
+                          );
+                          const colors = [...(p?.product_colors ?? [])].sort(
+                            (a, b) => a.sort_order - b.sort_order,
+                          );
+                          const productSearch = (it.product_search ?? "")
+                            .trim()
+                            .toLocaleLowerCase("pt-BR");
+                          const filteredProducts = productSearch
+                            ? products.filter((product) =>
+                                product.name.toLocaleLowerCase("pt-BR").includes(productSearch),
+                              )
+                            : products;
+                          return (
+                            <div className="space-y-2">
+                              <div className="relative">
+                                <Label className="text-xs">Buscar produto por nome</Label>
+                                <Input
+                                  type="search"
+                                  autoComplete="off"
+                                  placeholder="Comece a digitar o nome do produto"
+                                  value={it.product_search ?? ""}
+                                  onChange={(event) => {
+                                    const value = event.target.value;
+                                    updateItem(idx, {
+                                      product_search: value,
+                                      product_id: undefined,
+                                      name: "",
+                                      size_id: undefined,
+                                      size_name: undefined,
+                                      finish: undefined,
+                                      color: undefined,
+                                      height: undefined,
+                                      width: undefined,
+                                      length: undefined,
+                                      price: 0,
+                                    });
+                                  }}
+                                />
 
-                          {productSearch && !p && (
-                            <div className="absolute inset-x-0 top-full z-30 max-h-60 overflow-y-auto border border-t-0 border-border bg-background shadow-xl">
-                              {filteredProducts.length > 0 ? (
-                                filteredProducts.slice(0, 10).map((product) => (
+                                {productSearch && !p && (
+                                  <div className="absolute inset-x-0 top-full z-30 max-h-60 overflow-y-auto border border-t-0 border-border bg-background shadow-xl">
+                                    {filteredProducts.length > 0 ? (
+                                      filteredProducts.slice(0, 10).map((product) => (
+                                        <button
+                                          key={product.id}
+                                          type="button"
+                                          onClick={() =>
+                                            updateItem(idx, {
+                                              product_id: product.id,
+                                              name: product.name,
+                                              product_search: product.name,
+                                              size_id: undefined,
+                                              size_name: undefined,
+                                              finish: undefined,
+                                              color: undefined,
+                                              height: undefined,
+                                              width: undefined,
+                                              length: undefined,
+                                              price: 0,
+                                            })
+                                          }
+                                          className="block w-full border-t border-border/60 px-3 py-2.5 text-left text-sm text-foreground transition-colors first:border-t-0 hover:bg-muted"
+                                        >
+                                          {product.name}
+                                        </button>
+                                      ))
+                                    ) : (
+                                      <p className="px-3 py-3 text-sm text-muted-foreground">
+                                        Nenhum produto encontrado.
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              {p && (
+                                <div className="flex items-center justify-between border border-border bg-background px-3 py-2 text-sm">
+                                  <span>
+                                    Produto selecionado: <strong>{p.name}</strong>
+                                  </span>
                                   <button
-                                    key={product.id}
                                     type="button"
                                     onClick={() =>
                                       updateItem(idx, {
-                                        product_id: product.id,
-                                        name: product.name,
-                                        product_search: product.name,
+                                        product_id: undefined,
+                                        name: "",
+                                        product_search: "",
                                         size_id: undefined,
                                         size_name: undefined,
                                         finish: undefined,
@@ -1602,226 +1814,194 @@ function NewQuoteDialogImpl({
                                         price: 0,
                                       })
                                     }
-                                    className="block w-full border-t border-border/60 px-3 py-2.5 text-left text-sm text-foreground transition-colors first:border-t-0 hover:bg-muted"
+                                    className="text-xs font-medium text-muted-foreground hover:text-foreground"
                                   >
-                                    {product.name}
+                                    Trocar
                                   </button>
-                                ))
-                              ) : (
-                                <p className="px-3 py-3 text-sm text-muted-foreground">
-                                  Nenhum produto encontrado.
-                                </p>
+                                </div>
+                              )}
+
+                              {p && (
+                                <div className="grid gap-2 sm:grid-cols-3">
+                                  {sizes.length > 0 && (
+                                    <div>
+                                      <Label className="text-xs">Tamanho</Label>
+                                      <Select
+                                        value={it.size_id ?? ""}
+                                        onValueChange={(v) => {
+                                          const s = sizes.find((x) => x.id === v);
+                                          const priceFromSize = s
+                                            ? (s.sale_price ?? s.base_price)
+                                            : it.price;
+                                          updateItem(idx, {
+                                            size_id: v,
+                                            size_name: s?.name,
+                                            price: Number(priceFromSize) || 0,
+                                          });
+                                        }}
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Selecione" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {sizes.map((s) => (
+                                            <SelectItem key={s.id} value={s.id}>
+                                              {s.name} — {currency(s.sale_price ?? s.base_price)}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  )}
+                                  {finishes.length > 0 && (
+                                    <div>
+                                      <Label className="text-xs">Acabamento</Label>
+                                      <Select
+                                        value={it.finish ?? ""}
+                                        onValueChange={(v) => updateItem(idx, { finish: v })}
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Selecione" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {finishes.map((f) => (
+                                            <SelectItem key={f.id} value={f.name}>
+                                              {f.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  )}
+                                  {colors.length > 0 && (
+                                    <div>
+                                      <Label className="text-xs">Cor</Label>
+                                      <Select
+                                        value={it.color ?? ""}
+                                        onValueChange={(v) => updateItem(idx, { color: v })}
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Selecione" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {colors.map((c) => (
+                                            <SelectItem key={c.id} value={c.name}>
+                                              {c.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              {p && (
+                                <DimensionFields
+                                  item={it}
+                                  onChange={(patch) => updateItem(idx, patch)}
+                                  catalogOverride
+                                />
                               )}
                             </div>
-                          )}
-                        </div>
-
-                        {p && (
-                          <div className="flex items-center justify-between border border-border bg-background px-3 py-2 text-sm">
-                            <span>
-                              Produto selecionado: <strong>{p.name}</strong>
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateItem(idx, {
-                                  product_id: undefined,
-                                  name: "",
-                                  product_search: "",
-                                  size_id: undefined,
-                                  size_name: undefined,
-                                  finish: undefined,
-                                  color: undefined,
-                                  height: undefined,
-                                  width: undefined,
-                                  length: undefined,
-                                  price: 0,
-                                })
-                              }
-                              className="text-xs font-medium text-muted-foreground hover:text-foreground"
-                            >
-                              Trocar
-                            </button>
-                          </div>
-                        )}
-
-                        {p && (
-                          <div className="grid gap-2 sm:grid-cols-3">
-                            {sizes.length > 0 && (
-                              <div>
-                                <Label className="text-xs">Tamanho</Label>
-                                <Select
-                                  value={it.size_id ?? ""}
-                                  onValueChange={(v) => {
-                                    const s = sizes.find((x) => x.id === v);
-                                    const priceFromSize = s ? (s.sale_price ?? s.base_price) : it.price;
-                                    updateItem(idx, {
-                                      size_id: v,
-                                      size_name: s?.name,
-                                      price: Number(priceFromSize) || 0,
-                                    });
-                                  }}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Selecione" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {sizes.map((s) => (
-                                      <SelectItem key={s.id} value={s.id}>
-                                        {s.name} — {currency(s.sale_price ?? s.base_price)}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            )}
-                            {finishes.length > 0 && (
-                              <div>
-                                <Label className="text-xs">Acabamento</Label>
-                                <Select
-                                  value={it.finish ?? ""}
-                                  onValueChange={(v) => updateItem(idx, { finish: v })}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Selecione" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {finishes.map((f) => (
-                                      <SelectItem key={f.id} value={f.name}>
-                                        {f.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            )}
-                            {colors.length > 0 && (
-                              <div>
-                                <Label className="text-xs">Cor</Label>
-                                <Select
-                                  value={it.color ?? ""}
-                                  onValueChange={(v) => updateItem(idx, { color: v })}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Selecione" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {colors.map((c) => (
-                                      <SelectItem key={c.id} value={c.name}>
-                                        {c.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        {p && (
-                          <DimensionFields
-                            item={it}
-                            onChange={(patch) => updateItem(idx, patch)}
-                            catalogOverride
+                          );
+                        })()
+                      ) : (
+                        <>
+                          <Input
+                            placeholder="Nome do produto personalizado"
+                            value={it.name}
+                            onChange={(e) => updateItem(idx, { name: e.target.value })}
                           />
-                        )}
-                      </div>
-                    );
-                  })()
-                ) : (
-                  <>
-                    <Input
-                      placeholder="Nome do produto personalizado"
-                      value={it.name}
-                      onChange={(e) => updateItem(idx, { name: e.target.value })}
-                    />
-                    <Textarea
-                      className="mt-2"
-                      placeholder="Descrição / detalhes"
-                      value={it.description ?? ""}
-                      onChange={(e) => updateItem(idx, { description: e.target.value })}
-                    />
-                    <DimensionFields item={it} onChange={(patch) => updateItem(idx, patch)} />
-                  </>
-                )}
+                          <Textarea
+                            className="mt-2"
+                            placeholder="Descrição / detalhes"
+                            value={it.description ?? ""}
+                            onChange={(e) => updateItem(idx, { description: e.target.value })}
+                          />
+                          <DimensionFields item={it} onChange={(patch) => updateItem(idx, patch)} />
+                        </>
+                      )}
 
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-xs">Qtd</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={it.quantity}
-                      onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Valor unitário (R$)</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={it.price}
-                      onChange={(e) => updateItem(idx, { price: Number(e.target.value) })}
-                    />
-                  </div>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">Qtd</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={it.quantity}
+                            onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Valor unitário (R$)</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={it.price}
+                            onChange={(e) => updateItem(idx, { price: Number(e.target.value) })}
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-3 flex justify-end">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={!it.name.trim()}
+                          onClick={() =>
+                            setExpandedItems((current) => {
+                              const next = new Set(current);
+                              next.delete(idx);
+                              return next;
+                            })
+                          }
+                        >
+                          Concluir item
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div className="mt-3 flex justify-end">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={!it.name.trim()}
-                    onClick={() => setExpandedItems((current) => {
-                      const next = new Set(current);
-                      next.delete(idx);
-                      return next;
-                    })}
-                  >
-                    Concluir item
-                  </Button>
-                </div>
-                </>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
         )}
 
         {step === 1 && (
-        <div>
-          <Label>Observações</Label>
-          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
-        </div>
+          <div>
+            <Label>Observações</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
         )}
 
         {step === 3 && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <Label>Prazo de produção</Label>
-            <Input
-              placeholder="Ex: 15 dias úteis"
-              value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
-            />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label>Prazo de produção</Label>
+              <Input
+                placeholder="Ex: 15 dias úteis"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Forma de pagamento</Label>
+              <Input
+                placeholder="Ex: 50% entrada + 50% na entrega"
+                value={payment}
+                onChange={(e) => setPayment(e.target.value)}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Link Pix (entrada)</Label>
+              <Input
+                placeholder="https://... ou copia e cola Pix"
+                value={pix}
+                onChange={(e) => setPix(e.target.value)}
+              />
+            </div>
           </div>
-          <div>
-            <Label>Forma de pagamento</Label>
-            <Input
-              placeholder="Ex: 50% entrada + 50% na entrega"
-              value={payment}
-              onChange={(e) => setPayment(e.target.value)}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <Label>Link Pix (entrada)</Label>
-            <Input
-              placeholder="https://... ou copia e cola Pix"
-              value={pix}
-              onChange={(e) => setPix(e.target.value)}
-            />
-          </div>
-        </div>
         )}
 
         <div className="space-y-1 rounded-lg bg-muted/30 px-4 py-3 text-sm">
@@ -1844,7 +2024,11 @@ function NewQuoteDialogImpl({
 
       <DialogFooter>
         {step > 1 && (
-          <Button variant="outline" type="button" onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)}
+          >
             Voltar
           </Button>
         )}
@@ -1854,7 +2038,13 @@ function NewQuoteDialogImpl({
           </Button>
         ) : (
           <Button onClick={submit} disabled={saving}>
-            {saving ? "Salvando…" : editMode ? "Salvar alterações" : duplicateSource ? "Criar cópia" : "Criar orçamento"}
+            {saving
+              ? "Salvando…"
+              : editMode
+                ? "Salvar alterações"
+                : duplicateSource
+                  ? "Criar cópia"
+                  : "Criar orçamento"}
           </Button>
         )}
       </DialogFooter>

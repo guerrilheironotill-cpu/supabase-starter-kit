@@ -66,13 +66,17 @@ export const Route = createFileRoute("/api/server-storage")({
           ]);
           const totalBytes = fsInfo.blocks * fsInfo.bsize;
           const availableBytes = fsInfo.bavail * fsInfo.bsize;
+          const limitBytes =
+            Number(process.env.ARTENO_STORAGE_LIMIT_BYTES) || 5 * 1024 * 1024 * 1024;
           return Response.json(
             {
               ok: true,
-              totalBytes,
-              usedBytes: totalBytes - availableBytes,
-              availableBytes,
+              totalBytes: limitBytes,
+              usedBytes: uploadsBytes,
+              availableBytes: Math.max(0, limitBytes - uploadsBytes),
               uploadsBytes,
+              diskTotalBytes: totalBytes,
+              diskAvailableBytes: availableBytes,
             },
             { headers: noStore },
           );

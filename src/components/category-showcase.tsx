@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { categorySlug } from "@/lib/products";
+import { ScrollReveal } from "@/components/scroll-reveal";
 
 const CATEGORIES = ["Bancos", "Mesas"] as const;
 
@@ -38,13 +39,15 @@ export function CategoryShowcase() {
 
   return (
     <section className="bg-white py-10 sm:py-12">
-      <div className="mx-auto max-w-7xl px-4 sm:px-8">
+      <ScrollReveal className="mx-auto max-w-7xl px-4 sm:px-8">
         <h2 className="text-center font-display text-3xl text-primary sm:text-4xl">
           Outros produtos
         </h2>
         <div className="mt-10 grid gap-5 sm:mt-12 sm:gap-6 md:grid-cols-2">
           {isLoading
-            ? CATEGORIES.map((name) => <div key={name} className="h-[250px] animate-pulse rounded-2xl bg-primary/5" />)
+            ? CATEGORIES.map((name) => (
+                <div key={name} className="h-[250px] animate-pulse rounded-2xl bg-primary/5" />
+              ))
             : data.map((category) => (
                 <Link
                   key={category.slug}
@@ -75,7 +78,7 @@ export function CategoryShowcase() {
                 </Link>
               ))}
         </div>
-      </div>
+      </ScrollReveal>
     </section>
   );
 }

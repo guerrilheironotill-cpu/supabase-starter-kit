@@ -6,13 +6,11 @@ import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { fetchWc, type WcOrder } from "@/lib/wc-api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AdminOrdersManager } from "@/components/admin-orders-manager";
 
 export const Route = createFileRoute("/dashboard/pedidos")({
   head: () => ({
-    meta: [
-      { title: "Pedidos — Dashboard" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Pedidos — Dashboard" }, { name: "robots", content: "noindex" }],
   }),
   component: OrdersPage,
 });
@@ -64,12 +62,18 @@ function formatCurrency(value: string, currency: string) {
 }
 
 function OrdersPage() {
+  return <AdminOrdersManager />;
+}
+
+function LegacyOrdersPage() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("any");
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<WcOrder | null>(null);
   const [savingId, setSavingId] = useState<number | null>(null);
-  const [overrides, setOverrides] = useState<Record<number, { status?: string; customer_note?: string }>>(() => readOverrides());
+  const [overrides, setOverrides] = useState<
+    Record<number, { status?: string; customer_note?: string }>
+  >(() => readOverrides());
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -106,7 +110,9 @@ function OrdersPage() {
 
   const items = data?.items?.map((o) => {
     const ov = overrides[o.id];
-    return ov ? { ...o, status: ov.status ?? o.status, customer_note: ov.customer_note ?? o.customer_note } : o;
+    return ov
+      ? { ...o, status: ov.status ?? o.status, customer_note: ov.customer_note ?? o.customer_note }
+      : o;
   });
 
   return (
@@ -169,9 +175,7 @@ function OrdersPage() {
                   <tr key={o.id} className="hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">#{o.number}</td>
                     <td className="px-4 py-3">
-                      <div>
-                        {(o.billing.first_name ?? "") + " " + (o.billing.last_name ?? "")}
-                      </div>
+                      <div>{(o.billing.first_name ?? "") + " " + (o.billing.last_name ?? "")}</div>
                       <div className="text-xs text-muted-foreground">{o.billing.email}</div>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
@@ -187,15 +191,17 @@ function OrdersPage() {
                         }`}
                       >
                         {STATUS_OPTIONS.filter((s) => s.value !== "any").map((s) => (
-                          <option key={s.value} value={s.value} className="bg-background text-foreground">
+                          <option
+                            key={s.value}
+                            value={s.value}
+                            className="bg-background text-foreground"
+                          >
                             {s.label}
                           </option>
                         ))}
                       </select>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {o.line_items.length}
-                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{o.line_items.length}</td>
                     <td className="px-4 py-3 text-right font-medium">
                       {formatCurrency(o.total, o.currency)}
                     </td>
@@ -369,7 +375,10 @@ function EditOrderDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
       <div
         className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
@@ -531,10 +540,7 @@ function EditOrderDialog({
         </div>
 
         <div className="mt-5 flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="rounded-md border border-border px-3 py-1.5 text-sm"
-          >
+          <button onClick={onClose} className="rounded-md border border-border px-3 py-1.5 text-sm">
             Cancelar
           </button>
           <button
@@ -627,7 +633,9 @@ const APP_STATUS_COLOR: Record<string, string> = {
 };
 
 function fmtBRL(n: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(n) || 0);
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+    Number(n) || 0,
+  );
 }
 
 function AppOrdersRows() {
@@ -651,7 +659,10 @@ function AppOrdersRows() {
   });
 
   async function updateStatus(id: string, status: string) {
-    const { error } = await supabase.from("app_orders" as never).update({ status } as never).eq("id", id);
+    const { error } = await supabase
+      .from("app_orders" as never)
+      .update({ status } as never)
+      .eq("id", id);
     if (error) toast.error(error.message);
     else {
       toast.success("Status atualizado");
@@ -695,8 +706,14 @@ function AppOrdersRows() {
     }
 
     // 3) delete app_order + items
-    await supabase.from("app_order_items" as never).delete().eq("order_id", appOrderId);
-    const { error: delErr } = await supabase.from("app_orders" as never).delete().eq("id", appOrderId);
+    await supabase
+      .from("app_order_items" as never)
+      .delete()
+      .eq("order_id", appOrderId);
+    const { error: delErr } = await supabase
+      .from("app_orders" as never)
+      .delete()
+      .eq("id", appOrderId);
     if (delErr) {
       toast.error(delErr.message);
       return;
@@ -709,50 +726,48 @@ function AppOrdersRows() {
   return (
     <>
       {orders.map((o) => (
-                  <tr key={o.id} className="hover:bg-muted/30">
-                    <td className="px-4 py-3 font-medium">#{o.number}</td>
-                    <td className="px-4 py-3">
-                      <div>
-                        {(o.customer?.first_name ?? "") + " " + (o.customer?.last_name ?? "")}
-                      </div>
-                      <div className="text-xs text-muted-foreground">{o.customer?.email}</div>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {new Date(o.created_at).toLocaleDateString("pt-BR")}
-                    </td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={o.status}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          if (v === "__back_to_quote") void moveBackToQuote(o.id);
-                          else void updateStatus(o.id, v);
-                        }}
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium border-0 outline-none focus:ring-2 focus:ring-ring ${
-                          APP_STATUS_COLOR[o.status] ?? "bg-muted text-foreground"
-                        }`}
-                      >
-                        {APP_STATUS.map((s) => (
-                          <option key={s.value} value={s.value} className="bg-background text-foreground">
-                            {s.label}
-                          </option>
-                        ))}
-                        <option value="__back_to_quote" className="bg-background text-foreground">
-                          ← Voltar para orçamento
-                        </option>
-                      </select>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{o.items?.length ?? 0}</td>
-                    <td className="px-4 py-3 text-right font-medium">{fmtBRL(o.total)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => setEditing(o)}
-                        className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
-                      >
-                        <Pencil className="h-3 w-3" /> Editar
-                      </button>
-                    </td>
-                  </tr>
+        <tr key={o.id} className="hover:bg-muted/30">
+          <td className="px-4 py-3 font-medium">#{o.number}</td>
+          <td className="px-4 py-3">
+            <div>{(o.customer?.first_name ?? "") + " " + (o.customer?.last_name ?? "")}</div>
+            <div className="text-xs text-muted-foreground">{o.customer?.email}</div>
+          </td>
+          <td className="px-4 py-3 text-muted-foreground">
+            {new Date(o.created_at).toLocaleDateString("pt-BR")}
+          </td>
+          <td className="px-4 py-3">
+            <select
+              value={o.status}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "__back_to_quote") void moveBackToQuote(o.id);
+                else void updateStatus(o.id, v);
+              }}
+              className={`rounded-full px-2 py-0.5 text-xs font-medium border-0 outline-none focus:ring-2 focus:ring-ring ${
+                APP_STATUS_COLOR[o.status] ?? "bg-muted text-foreground"
+              }`}
+            >
+              {APP_STATUS.map((s) => (
+                <option key={s.value} value={s.value} className="bg-background text-foreground">
+                  {s.label}
+                </option>
+              ))}
+              <option value="__back_to_quote" className="bg-background text-foreground">
+                ← Voltar para orçamento
+              </option>
+            </select>
+          </td>
+          <td className="px-4 py-3 text-muted-foreground">{o.items?.length ?? 0}</td>
+          <td className="px-4 py-3 text-right font-medium">{fmtBRL(o.total)}</td>
+          <td className="px-4 py-3 text-right">
+            <button
+              onClick={() => setEditing(o)}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
+            >
+              <Pencil className="h-3 w-3" /> Editar
+            </button>
+          </td>
+        </tr>
       ))}
       {editing && typeof document !== "undefined"
         ? createPortal(
@@ -834,7 +849,14 @@ function AppOrderEditDialog({
   function addCustomItem() {
     setItems((a) => [
       ...a,
-      { key: `c-${Date.now()}`, product_id: null, name: "", quantity: 1, unit_price: 0, meta: { finish: "custom" } },
+      {
+        key: `c-${Date.now()}`,
+        product_id: null,
+        name: "",
+        quantity: 1,
+        unit_price: 0,
+        meta: { finish: "custom" },
+      },
     ]);
   }
 
@@ -860,7 +882,10 @@ function AppOrderEditDialog({
       // delete removed items
       const toDelete = items.filter((i) => i.id && i.removed).map((i) => i.id!) as string[];
       if (toDelete.length > 0) {
-        await supabase.from("app_order_items" as never).delete().in("id", toDelete);
+        await supabase
+          .from("app_order_items" as never)
+          .delete()
+          .in("id", toDelete);
       }
       // upsert / insert
       for (const i of items.filter((x) => !x.removed)) {
@@ -874,7 +899,10 @@ function AppOrderEditDialog({
           meta: i.meta ?? null,
         };
         if (i.id) {
-          await supabase.from("app_order_items" as never).update(row as never).eq("id", i.id);
+          await supabase
+            .from("app_order_items" as never)
+            .update(row as never)
+            .eq("id", i.id);
         } else {
           await supabase.from("app_order_items" as never).insert(row as never);
         }
@@ -902,7 +930,10 @@ function AppOrderEditDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
       <div
         className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
@@ -1101,7 +1132,9 @@ function EditItemRow({
           </>
         )}
         {item.meta?.finish === "custom" && (
-          <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">Personalizado</div>
+          <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+            Personalizado
+          </div>
         )}
       </div>
       <input

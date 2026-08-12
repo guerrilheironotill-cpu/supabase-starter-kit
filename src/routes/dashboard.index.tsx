@@ -317,10 +317,10 @@ function StorageUsageCard({ s }: { s?: ServerStorage }) {
           <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-500" />
           <div className="flex-1">
             <p className="text-sm font-medium text-foreground">
-              Uso do espaço do servidor — indisponível
+              Uso do espaço da Arteno — indisponível
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {s.error ?? "Não foi possível medir o disco da VPS agora."}
+              {s.error ?? "Não foi possível medir os uploads da Arteno agora."}
             </p>
           </div>
         </div>
@@ -328,7 +328,7 @@ function StorageUsageCard({ s }: { s?: ServerStorage }) {
     );
   }
   const pct = s.totalBytes > 0 ? (s.usedBytes / s.totalBytes) * 100 : 0;
-  const warn = pct >= 80;
+  const warn = pct >= 70;
   const critical = pct >= 95;
   const barColor = critical ? "bg-destructive" : warn ? "bg-amber-500" : "bg-primary";
   const borderColor = critical
@@ -342,7 +342,7 @@ function StorageUsageCard({ s }: { s?: ServerStorage }) {
         <div className="flex items-center gap-2">
           <HardDrive className="h-4 w-4 text-primary" />
           <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            Uso do espaço do servidor
+            Uso do espaço da Arteno
           </span>
         </div>
         <span className="text-xs text-muted-foreground">
@@ -364,12 +364,16 @@ function StorageUsageCard({ s }: { s?: ServerStorage }) {
             }`}
           >
             <AlertTriangle className="h-3.5 w-3.5" />
-            {critical ? "Perto do limite — faça upgrade." : "Considere upgrade em breve."}
+            {critical
+              ? "Limite crítico — novos uploads serão bloqueados."
+              : pct >= 85
+                ? "Espaço em alerta."
+                : "Atenção ao espaço disponível."}
           </span>
         )}
       </div>
       <div className="mt-3 flex justify-between text-[11px] text-muted-foreground">
-        <span>Uploads da Arteno</span>
+        <span>Arquivos enviados pela Arteno</span>
         <span>{formatMB(s.uploadsBytes)}</span>
       </div>
     </div>

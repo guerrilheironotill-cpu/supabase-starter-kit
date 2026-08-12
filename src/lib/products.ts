@@ -13,6 +13,7 @@ export function productDescriptionToText(description: string | null | undefined)
   if (!description) return "";
 
   return description
+    .replace(/\\r\\n|\\n|\\r/g, "\n")
     .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, "")
     .replace(/<br\s*\/?\s*>/gi, "\n")
     .replace(/<\/p\s*>|<\/li\s*>|<\/h[1-6]\s*>/gi, "\n")
@@ -65,10 +66,7 @@ export function categorySlug(category: string): string {
   return slug === "vasos" ? "vasos-de-concreto" : slug;
 }
 
-export async function fetchProductsByCategory(
-  category: string,
-  limit = 8,
-): Promise<Product[]> {
+export async function fetchProductsByCategory(category: string, limit = 8): Promise<Product[]> {
   const { data, error } = await supabase
     .from("products")
     .select("id, slug, name, category, images")
@@ -156,9 +154,7 @@ export type ProductDetail = ProductWithSizes & {
   product_colors: ProductOption[];
 };
 
-export async function fetchProductBySlug(
-  slug: string,
-): Promise<ProductDetail | null> {
+export async function fetchProductBySlug(slug: string): Promise<ProductDetail | null> {
   const { data, error } = await supabase
     .from("products")
     .select(

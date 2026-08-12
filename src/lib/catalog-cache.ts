@@ -1,12 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
-import {
-  buildCatalogPDF,
-  fetchCatalogSnapshot,
-  type CatalogVariant,
-} from "@/lib/pdf-generator";
+import { buildCatalogPDF, fetchCatalogSnapshot, type CatalogVariant } from "@/lib/pdf-generator";
 
 const BUCKET = "catalog-media";
-const CATALOG_LAYOUT_VERSION = "v4";
+const CATALOG_LAYOUT_VERSION = "v5";
 const PATHS: Record<CatalogVariant, string> = {
   standard: `generated/${CATALOG_LAYOUT_VERSION}/catalogo-arteno.pdf`,
   reseller: `generated/${CATALOG_LAYOUT_VERSION}/catalogo-arteno-revendedor.pdf`,
@@ -44,9 +40,7 @@ async function regenerateOnce(onProgress?: (percent: number) => void) {
   onProgress?.(100);
 }
 
-export function regenerateCatalogCache(
-  onProgress?: (percent: number) => void,
-): Promise<void> {
+export function regenerateCatalogCache(onProgress?: (percent: number) => void): Promise<void> {
   if (activeRegeneration) {
     rerunRequested = true;
     return activeRegeneration;
@@ -72,9 +66,8 @@ function saveBlob(blob: Blob, variant: CatalogVariant) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = variant === "reseller"
-    ? "catalogo-arteno-revendedor.pdf"
-    : "catalogo-arteno.pdf";
+  anchor.download =
+    variant === "reseller" ? "catalogo-arteno-revendedor.pdf" : "catalogo-arteno.pdf";
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }

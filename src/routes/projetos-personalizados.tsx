@@ -119,7 +119,8 @@ function CustomProjectsPage() {
             Do detalhe arquitetônico à peça que organiza o espaço.
           </h2>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-primary/70">
-            Desenvolvemos soluções exclusivas para áreas internas e externas, respeitando estética, uso, escala e viabilidade produtiva.
+            Desenvolvemos soluções exclusivas para áreas internas e externas, respeitando estética,
+            uso, escala e viabilidade produtiva.
           </p>
         </div>
       </section>
@@ -156,7 +157,8 @@ function CustomProjectsPage() {
             </h2>
           </div>
           <p className="max-w-xl text-base leading-relaxed text-primary/70 lg:justify-self-end">
-            O industrial orienta nossa linguagem sem limitar o projeto: superfícies honestas, encontros precisos e materiais que envelhecem com personalidade.
+            O industrial orienta nossa linguagem sem limitar o projeto: superfícies honestas,
+            encontros precisos e materiais que envelhecem com personalidade.
           </p>
         </div>
 
@@ -194,7 +196,9 @@ function CustomProjectsPage() {
               Parceria fiel ao projeto.
             </h2>
             <p className="mt-6 text-base leading-relaxed text-primary/70">
-              Trabalhamos lado a lado com arquitetos e paisagistas, seguindo fielmente desenhos, medidas e especificações. Quando há espaço para evoluir, contribuímos com novas ideias baseadas em nosso know-how de materiais e produção.
+              Trabalhamos lado a lado com arquitetos e paisagistas, seguindo fielmente desenhos,
+              medidas e especificações. Quando há espaço para evoluir, contribuímos com novas ideias
+              baseadas em nosso know-how de materiais e produção.
             </p>
           </div>
         </div>
@@ -209,11 +213,17 @@ function CustomProjectsPage() {
           <ol className="grid gap-8 sm:grid-cols-3">
             {[
               ["01", "Entendimento", "Escopo, referências, medidas e necessidades do espaço."],
-              ["02", "Desenvolvimento", "Materiais, soluções construtivas, acabamento e validação."],
+              [
+                "02",
+                "Desenvolvimento",
+                "Materiais, soluções construtivas, acabamento e validação.",
+              ],
               ["03", "Produção", "Execução cuidadosa e acompanhamento até a entrega."],
             ].map(([number, title, text]) => (
               <li key={number} className="border-t border-primary/15 pt-5">
-                <span className="text-xs font-semibold tracking-widest text-primary/45">{number}</span>
+                <span className="text-xs font-semibold tracking-widest text-primary/45">
+                  {number}
+                </span>
                 <h3 className="mt-5 font-display text-2xl font-semibold text-primary">{title}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-primary/65">{text}</p>
               </li>
@@ -223,22 +233,36 @@ function CustomProjectsPage() {
       </section>
 
       <section className="px-4 pb-20 sm:px-8 sm:pb-28 lg:px-[50px]">
-        <div className="flex flex-col items-start justify-between gap-8 rounded-3xl bg-[#2a2f2c] px-6 py-12 text-white sm:px-12 sm:py-16 lg:flex-row lg:items-end">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/55">Seu projeto, nossa matéria</p>
-            <h2 className="mt-4 max-w-3xl font-display text-4xl leading-tight sm:text-5xl">
+        <div className="group relative min-h-[520px] overflow-hidden rounded-3xl bg-[#2a2f2c] text-white sm:min-h-[560px]">
+          <img
+            src="/images/projetos-personalizados/cta-casa-vasos-v1.png"
+            alt="Casa contemporânea com vasos de concreto em projeto paisagístico"
+            loading="lazy"
+            className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-[1800ms] ease-out group-hover:scale-[1.025]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#26352d] from-0% via-[#26352d]/95 via-35% to-transparent to-78%" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10" />
+          <div className="relative z-10 flex min-h-[520px] max-w-2xl flex-col items-start justify-end px-6 py-12 sm:min-h-[560px] sm:px-12 sm:py-16 lg:px-16 lg:py-20">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/65">
+              Seu projeto, nossa matéria
+            </p>
+            <h2 className="mt-4 font-display text-4xl leading-tight sm:text-5xl lg:text-6xl">
               Vamos transformar uma ideia em uma peça única?
             </h2>
+            <p className="mt-5 max-w-lg text-sm leading-relaxed text-white/75 sm:text-base">
+              Conte sobre o espaço, as medidas e a intenção do projeto. Desenvolvemos a solução
+              junto com você.
+            </p>
+            <a
+              href={projectWhatsAppUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-8 inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#2a2f2c] transition hover:-translate-y-0.5 hover:shadow-xl"
+            >
+              Solicitar projeto
+              <ArrowRight className="h-4 w-4" />
+            </a>
           </div>
-          <a
-            href={projectWhatsAppUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#2a2f2c] transition hover:-translate-y-0.5 hover:shadow-xl"
-          >
-            Solicitar projeto
-            <ArrowRight className="h-4 w-4" />
-          </a>
         </div>
       </section>
     </main>

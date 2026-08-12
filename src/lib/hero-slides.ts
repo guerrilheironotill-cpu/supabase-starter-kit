@@ -18,7 +18,7 @@ export const DEFAULT_SLIDES: HeroSlide[] = [
     title: "Vasos que transformam ambientes",
     description: "Peças exclusivas em cimento e fibra, feitas à mão para o seu jardim.",
     ctaLabel: "Ver vasos",
-    ctaHref: "/",
+    ctaHref: "/categoria/vasos-de-concreto",
   },
   {
     image:
@@ -56,7 +56,11 @@ export async function fetchHeroSlides(): Promise<HeroSlide[]> {
     if (!r.ok) return DEFAULT_SLIDES;
     const json = (await r.json()) as HeroSlide[];
     if (!Array.isArray(json) || json.length === 0) return DEFAULT_SLIDES;
-    return json;
+    return json.map((slide) =>
+      slide.ctaLabel.trim().toLocaleLowerCase("pt-BR") === "ver vasos" && slide.ctaHref === "/"
+        ? { ...slide, ctaHref: "/categoria/vasos-de-concreto" }
+        : slide,
+    );
   } catch {
     return DEFAULT_SLIDES;
   }
