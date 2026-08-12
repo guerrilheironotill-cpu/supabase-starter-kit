@@ -13,6 +13,7 @@ import { Route as Api_rootRouteImport } from './routes/api/__root'
 import { Route as VasosParaEmpresasRouteImport } from './routes/vasos-para-empresas'
 import { Route as SupabaseCheckRouteImport } from './routes/supabase-check'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ProjetosPersonalizadosRouteImport } from './routes/projetos-personalizados'
 import { Route as PoliticaDeCookiesRouteImport } from './routes/politica-de-cookies'
 import { Route as PiasECubasDeConcretoRouteImport } from './routes/pias-e-cubas-de-concreto'
@@ -80,6 +81,11 @@ const SupabaseCheckRoute = SupabaseCheckRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjetosPersonalizadosRoute = ProjetosPersonalizadosRouteImport.update({
@@ -344,6 +350,7 @@ export interface FileRoutesByFullPath {
   '/pias-e-cubas-de-concreto': typeof PiasECubasDeConcretoRoute
   '/politica-de-cookies': typeof PoliticaDeCookiesRoute
   '/projetos-personalizados': typeof ProjetosPersonalizadosRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
   '/vasos-para-empresas': typeof VasosParaEmpresasRoute
@@ -398,6 +405,7 @@ export interface FileRoutesByTo {
   '/pias-e-cubas-de-concreto': typeof PiasECubasDeConcretoRoute
   '/politica-de-cookies': typeof PoliticaDeCookiesRoute
   '/projetos-personalizados': typeof ProjetosPersonalizadosRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
   '/vasos-para-empresas': typeof VasosParaEmpresasRoute
@@ -453,6 +461,7 @@ export interface FileRoutesById {
   '/pias-e-cubas-de-concreto': typeof PiasECubasDeConcretoRoute
   '/politica-de-cookies': typeof PoliticaDeCookiesRoute
   '/projetos-personalizados': typeof ProjetosPersonalizadosRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/supabase-check': typeof SupabaseCheckRoute
   '/vasos-para-empresas': typeof VasosParaEmpresasRoute
@@ -510,6 +519,7 @@ export interface FileRouteTypes {
     | '/pias-e-cubas-de-concreto'
     | '/politica-de-cookies'
     | '/projetos-personalizados'
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/supabase-check'
     | '/vasos-para-empresas'
@@ -564,6 +574,7 @@ export interface FileRouteTypes {
     | '/pias-e-cubas-de-concreto'
     | '/politica-de-cookies'
     | '/projetos-personalizados'
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/supabase-check'
     | '/vasos-para-empresas'
@@ -618,6 +629,7 @@ export interface FileRouteTypes {
     | '/pias-e-cubas-de-concreto'
     | '/politica-de-cookies'
     | '/projetos-personalizados'
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/supabase-check'
     | '/vasos-para-empresas'
@@ -674,6 +686,7 @@ export interface RootRouteChildren {
   PiasECubasDeConcretoRoute: typeof PiasECubasDeConcretoRoute
   PoliticaDeCookiesRoute: typeof PoliticaDeCookiesRoute
   ProjetosPersonalizadosRoute: typeof ProjetosPersonalizadosRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SupabaseCheckRoute: typeof SupabaseCheckRoute
   VasosParaEmpresasRoute: typeof VasosParaEmpresasRoute
@@ -723,6 +736,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projetos-personalizados': {
@@ -1157,6 +1177,7 @@ const rootRouteChildren: RootRouteChildren = {
   PiasECubasDeConcretoRoute: PiasECubasDeConcretoRoute,
   PoliticaDeCookiesRoute: PoliticaDeCookiesRoute,
   ProjetosPersonalizadosRoute: ProjetosPersonalizadosRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SupabaseCheckRoute: SupabaseCheckRoute,
   VasosParaEmpresasRoute: VasosParaEmpresasRoute,

@@ -17,7 +17,7 @@ import { SiteFooter } from "../components/site-footer";
 import { DashboardHeader } from "../components/dashboard-header";
 import { useRouterState } from "@tanstack/react-router";
 import { useApplySiteSeo } from "../lib/site-seo-store";
-import { absoluteUrl, SITE_NAME, SITE_URL } from "../lib/site-config";
+import { absoluteUrl, IS_STAGING, SITE_NAME, SITE_URL } from "../lib/site-config";
 import { CookieConsentBanner } from "../components/cookie-consent-banner";
 
 function NotFoundComponent() {
@@ -88,20 +88,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Arteno - Vasos de concreto e mobiliário estilo industrial" },
       {
         name: "description",
-        content:
-          "Peças artesanais em concreto e mobiliário estilo industrial com design autoral.",
+        content: "Peças artesanais em concreto e mobiliário estilo industrial com design autoral.",
       },
-      { property: "og:title", content: "Arteno - Vasos de concreto e mobiliário estilo industrial" },
+      {
+        property: "og:title",
+        content: "Arteno - Vasos de concreto e mobiliário estilo industrial",
+      },
       {
         property: "og:description",
-        content:
-          "Peças artesanais em concreto e mobiliário estilo industrial com design autoral.",
+        content: "Peças artesanais em concreto e mobiliário estilo industrial com design autoral.",
       },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "Arteno" },
       { property: "og:locale", content: "pt_BR" },
       { property: "og:url", content: SITE_URL },
       { name: "twitter:card", content: "summary_large_image" },
+      ...(IS_STAGING ? [{ name: "robots", content: "noindex, nofollow, noarchive" }] : []),
     ],
     links: [
       {

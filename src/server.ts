@@ -50,10 +50,15 @@ function withNoStoreForHtml(response: Response): Response {
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.includes("text/html")) return response;
 
+  const headers = noStoreHtmlHeaders(response.headers);
+  if (process.env.APP_ENV === "staging") {
+    headers.set("x-robots-tag", "noindex, nofollow, noarchive");
+  }
+
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
-    headers: noStoreHtmlHeaders(response.headers),
+    headers,
   });
 }
 
