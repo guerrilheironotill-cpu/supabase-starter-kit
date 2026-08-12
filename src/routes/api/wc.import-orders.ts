@@ -39,15 +39,8 @@ function documentFrom(order: WcOrder) {
   return values.map(digits).find((v) => v.length === 11 || v.length === 14) ?? null;
 }
 
-function splitName(value: string) {
-  const parts = value.trim().split(/\s+/).filter(Boolean);
-  return { first_name: parts.shift() || "Cliente", last_name: parts.join(" ") };
-}
-
 async function ensurePerson(admin: SupabaseClient, order: WcOrder, approved: boolean) {
   const billing = order.billing ?? {};
-  const name =
-    `${billing.first_name ?? ""} ${billing.last_name ?? ""}`.trim() || `Cliente ${order.number}`;
   const email = emailKey(billing.email) || null;
   const phone = String(billing.phone ?? "").trim() || null;
   const phoneDigits = digits(phone);
@@ -67,25 +60,7 @@ async function ensurePerson(admin: SupabaseClient, order: WcOrder, approved: boo
         (phoneDigits && digits(row.phone) === phoneDigits),
       );
     });
-    if (found) return { customerId: found.id as string, leadId: null };
-
-    const names = splitName(name);
-    const { data, error: insertError } = await admin
-      .from("customers")
-      .insert({
-        ...names,
-        email,
-        phone,
-        cpf: document?.length === 11 ? document : null,
-        cnpj: document?.length === 14 ? document : null,
-        status: "active",
-        origin: "woocommerce_import",
-        wc_id: order.id,
-      })
-      .select("id")
-      .single();
-    if (insertError) throw insertError;
-    return { customerId: data.id as string, leadId: null };
+    return { customerId: (found?.id as string | undefined) ?? null, leadId: null };
   }
 
   const { data: leads, error } = await admin
@@ -104,26 +79,7 @@ async function ensurePerson(admin: SupabaseClient, order: WcOrder, approved: boo
       (phoneDigits && digits(lead.phone) === phoneDigits),
     );
   });
-  if (found) return { customerId: null, leadId: found.id as string };
-
-  const { data, error: insertError } = await admin
-    .from("leads")
-    .insert({
-      name,
-      email,
-      phone,
-      source: "woocommerce_import",
-      items: order.line_items ?? [],
-      contact_info: {
-        document,
-        document_type: document?.length === 11 ? "cpf" : document?.length === 14 ? "cnpj" : null,
-        wc_order_id: order.id,
-      },
-    })
-    .select("id")
-    .single();
-  if (insertError) throw insertError;
-  return { customerId: null, leadId: data.id as string };
+  return { customerId: null, leadId: (found?.id as string | undefined) ?? null };
 }
 
 export const Route = createFileRoute("/api/wc/import-orders")({
