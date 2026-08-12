@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Loader2, Star, Trash2, Upload, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { uploadOptimizedImage, type MediaFolder } from "@/lib/vps-media";
 
 type Props = {
   label: string;
@@ -17,7 +17,7 @@ type Props = {
   showDescription?: boolean;
   showGallery?: boolean;
   maxGallery?: number;
-  bucketFolder: string;
+  bucketFolder: MediaFolder;
   onSave: (values: {
     name: string;
     image_url: string | null;
@@ -31,9 +31,15 @@ type Props = {
 function getSaveErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
   if (error && typeof error === "object") {
-    const details = error as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown };
-    const parts = [details.message, details.details, details.hint]
-      .filter((part): part is string => typeof part === "string" && part.trim().length > 0);
+    const details = error as {
+      message?: unknown;
+      details?: unknown;
+      hint?: unknown;
+      code?: unknown;
+    };
+    const parts = [details.message, details.details, details.hint].filter(
+      (part): part is string => typeof part === "string" && part.trim().length > 0,
+    );
     if (parts.length > 0) {
       const code = typeof details.code === "string" ? ` [${details.code}]` : "";
       return `${parts.join(" — ")}${code}`;
@@ -72,14 +78,7 @@ export function DashboardGalleryEditor({
   const galInput = useRef<HTMLInputElement>(null);
 
   async function uploadOne(file: File): Promise<string> {
-    const ext = file.name.split(".").pop() || "jpg";
-    const path = `${bucketFolder}/${crypto.randomUUID()}.${ext}`;
-    const { error: upErr } = await supabase.storage
-      .from("catalog-media")
-      .upload(path, file, { upsert: false, contentType: file.type });
-    if (upErr) throw upErr;
-    const { data } = supabase.storage.from("catalog-media").getPublicUrl(path);
-    return data.publicUrl;
+    return uploadOptimizedImage(file, bucketFolder);
   }
 
   async function handleMain(file: File) {
@@ -190,7 +189,10 @@ export function DashboardGalleryEditor({
             {editableLabel ? (
               <input
                 value={editName}
-                onChange={(event) => { setEditName(event.target.value); setDirty(true); }}
+                onChange={(event) => {
+                  setEditName(event.target.value);
+                  setDirty(true);
+                }}
                 aria-label="Nome"
                 className="w-full max-w-md rounded-lg border border-border bg-background px-3 py-2 pr-12 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
               />
@@ -270,7 +272,11 @@ export function DashboardGalleryEditor({
               disabled={busy}
               className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
             >
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+              {busy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Upload className="h-3.5 w-3.5" />
+              )}
               Imagem principal
             </button>
           </div>

@@ -47,6 +47,7 @@ import { Route as DashboardClientesRouteImport } from './routes/dashboard.client
 import { Route as DashboardCategoriasRouteImport } from './routes/dashboard.categorias'
 import { Route as DashboardAcabamentosRouteImport } from './routes/dashboard.acabamentos'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
+import { Route as ApiUploadMediaRouteImport } from './routes/api/upload-media'
 import { Route as ApiStorageUsageRouteImport } from './routes/api/storage-usage'
 import { Route as ApiServerStorageRouteImport } from './routes/api/server-storage'
 import { Route as ApiProductImageSourcesRouteImport } from './routes/api/product-image-sources'
@@ -255,6 +256,11 @@ const CategoriaSlugRoute = CategoriaSlugRouteImport.update({
   path: '/categoria/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiUploadMediaRoute = ApiUploadMediaRouteImport.update({
+  id: '/api/upload-media',
+  path: '/api/upload-media',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStorageUsageRoute = ApiStorageUsageRouteImport.update({
   id: '/api/storage-usage',
   path: '/api/storage-usage',
@@ -369,6 +375,7 @@ export interface FileRoutesByFullPath {
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
   '/api/server-storage': typeof ApiServerStorageRoute
   '/api/storage-usage': typeof ApiStorageUsageRoute
+  '/api/upload-media': typeof ApiUploadMediaRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
@@ -425,6 +432,7 @@ export interface FileRoutesByTo {
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
   '/api/server-storage': typeof ApiServerStorageRoute
   '/api/storage-usage': typeof ApiStorageUsageRoute
+  '/api/upload-media': typeof ApiUploadMediaRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
@@ -482,6 +490,7 @@ export interface FileRoutesById {
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
   '/api/server-storage': typeof ApiServerStorageRoute
   '/api/storage-usage': typeof ApiStorageUsageRoute
+  '/api/upload-media': typeof ApiUploadMediaRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
@@ -541,6 +550,7 @@ export interface FileRouteTypes {
     | '/api/product-image-sources'
     | '/api/server-storage'
     | '/api/storage-usage'
+    | '/api/upload-media'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
     | '/dashboard/categorias'
@@ -597,6 +607,7 @@ export interface FileRouteTypes {
     | '/api/product-image-sources'
     | '/api/server-storage'
     | '/api/storage-usage'
+    | '/api/upload-media'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
     | '/dashboard/categorias'
@@ -653,6 +664,7 @@ export interface FileRouteTypes {
     | '/api/product-image-sources'
     | '/api/server-storage'
     | '/api/storage-usage'
+    | '/api/upload-media'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
     | '/dashboard/categorias'
@@ -711,6 +723,7 @@ export interface RootRouteChildren {
   ApiProductImageSourcesRoute: typeof ApiProductImageSourcesRoute
   ApiServerStorageRoute: typeof ApiServerStorageRoute
   ApiStorageUsageRoute: typeof ApiStorageUsageRoute
+  ApiUploadMediaRoute: typeof ApiUploadMediaRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
   FeedsGoogleMerchantDotxmlRoute: typeof FeedsGoogleMerchantDotxmlRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
@@ -989,6 +1002,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriaSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/upload-media': {
+      id: '/api/upload-media'
+      path: '/api/upload-media'
+      fullPath: '/api/upload-media'
+      preLoaderRoute: typeof ApiUploadMediaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/storage-usage': {
       id: '/api/storage-usage'
       path: '/api/storage-usage'
@@ -1210,6 +1230,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiProductImageSourcesRoute: ApiProductImageSourcesRoute,
   ApiServerStorageRoute: ApiServerStorageRoute,
   ApiStorageUsageRoute: ApiStorageUsageRoute,
+  ApiUploadMediaRoute: ApiUploadMediaRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
   FeedsGoogleMerchantDotxmlRoute: FeedsGoogleMerchantDotxmlRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,

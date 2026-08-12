@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Loader2, Upload, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { uploadOptimizedImage, type MediaFolder } from "@/lib/vps-media";
 
 type Props = {
   label: string;
@@ -9,7 +9,7 @@ type Props = {
   imageUrl: string | null;
   description?: string | null;
   descriptionEditable?: boolean;
-  bucketFolder: string;
+  bucketFolder: MediaFolder;
   onSave: (values: { image_url: string | null; description?: string | null }) => Promise<void>;
 };
 
@@ -33,14 +33,7 @@ export function DashboardMediaEditor({
     setBusy(true);
     setError(null);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `${bucketFolder}/${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("catalog-media")
-        .upload(path, file, { upsert: false, contentType: file.type });
-      if (upErr) throw upErr;
-      const { data } = supabase.storage.from("catalog-media").getPublicUrl(path);
-      setImg(data.publicUrl);
+      setImg(await uploadOptimizedImage(file, bucketFolder));
       setDirty(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha no upload");
@@ -124,7 +117,11 @@ export function DashboardMediaEditor({
             disabled={busy}
             className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
           >
-            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+            {busy ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Upload className="h-3.5 w-3.5" />
+            )}
             Enviar imagem
           </button>
           <button

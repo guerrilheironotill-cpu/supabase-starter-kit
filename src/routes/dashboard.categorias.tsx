@@ -9,17 +9,24 @@ import { fetchCategoryTerms, type CategoryTerm } from "@/lib/dashboard-taxonomie
 import { slugify } from "@/lib/products";
 import { toast } from "sonner";
 import { schedulePreparedCatalogRefresh } from "@/lib/catalog-refresh";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { uploadOptimizedImage } from "@/lib/vps-media";
 
 const UNCATEGORIZED_NAME = "Sem categoria";
 const UNCATEGORIZED_SLUG = "sem-categoria";
 
 export const Route = createFileRoute("/dashboard/categorias")({
   head: () => ({
-    meta: [
-      { title: "Categorias — Dashboard" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Categorias — Dashboard" }, { name: "robots", content: "noindex" }],
   }),
   component: DashboardCategoriesPage,
 });
@@ -36,9 +43,14 @@ function DashboardCategoriesPage() {
   });
 
   const selectedCategories = data.filter((category) => selectedSlugs.has(category.slug));
-  const movableProductCount = selectedCategories.reduce((total, category) => total + category.count, 0);
+  const movableProductCount = selectedCategories.reduce(
+    (total, category) => total + category.count,
+    0,
+  );
   const selectableCategories = data.filter((category) => category.slug !== UNCATEGORIZED_SLUG);
-  const allSelected = selectableCategories.length > 0 && selectableCategories.every((category) => selectedSlugs.has(category.slug));
+  const allSelected =
+    selectableCategories.length > 0 &&
+    selectableCategories.every((category) => selectedSlugs.has(category.slug));
 
   function toggleCategory(slug: string) {
     if (slug === UNCATEGORIZED_SLUG) return;
@@ -51,22 +63,26 @@ function DashboardCategoriesPage() {
   }
 
   function toggleAll() {
-    setSelectedSlugs(allSelected ? new Set() : new Set(selectableCategories.map((category) => category.slug)));
+    setSelectedSlugs(
+      allSelected ? new Set() : new Set(selectableCategories.map((category) => category.slug)),
+    );
   }
 
   async function deleteSelectedCategories() {
     if (selectedCategories.length === 0 || deleting) return;
-    const ids = selectedCategories.flatMap((category) => category.id ? [category.id] : []);
+    const ids = selectedCategories.flatMap((category) => (category.id ? [category.id] : []));
     if (ids.length !== selectedCategories.length) {
       toast.error("Uma das categorias não possui um cadastro removível.");
       return;
     }
     setDeleting(true);
     try {
-      const { error: defaultCategoryError } = await supabase.from("categories").upsert(
-        { name: UNCATEGORIZED_NAME, slug: UNCATEGORIZED_SLUG, sort_order: 9999 },
-        { onConflict: "slug" },
-      );
+      const { error: defaultCategoryError } = await supabase
+        .from("categories")
+        .upsert(
+          { name: UNCATEGORIZED_NAME, slug: UNCATEGORIZED_SLUG, sort_order: 9999 },
+          { onConflict: "slug" },
+        );
       if (defaultCategoryError) throw defaultCategoryError;
 
       const categoryNames = selectedCategories.map((category) => category.name);
@@ -82,11 +98,14 @@ function DashboardCategoriesPage() {
       setConfirmDelete(false);
       await qc.invalidateQueries({ queryKey: ["dashboard", "categorias"] });
       schedulePreparedCatalogRefresh();
-      toast.success(`${ids.length} categoria${ids.length === 1 ? " excluída" : "s excluídas"} com sucesso.`);
+      toast.success(
+        `${ids.length} categoria${ids.length === 1 ? " excluída" : "s excluídas"} com sucesso.`,
+      );
     } catch (error) {
-      const message = error && typeof error === "object" && "message" in error
-        ? String(error.message)
-        : "Não foi possível excluir as categorias selecionadas.";
+      const message =
+        error && typeof error === "object" && "message" in error
+          ? String(error.message)
+          : "Não foi possível excluir as categorias selecionadas.";
       toast.error(message);
     } finally {
       setDeleting(false);
@@ -96,9 +115,7 @@ function DashboardCategoriesPage() {
   return (
     <>
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Categorias
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Categorias</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Edite capa e ícone (SVG) de cada categoria.
         </p>
@@ -116,16 +133,26 @@ function DashboardCategoriesPage() {
         {selectedSlugs.size > 0 && (
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3">
             <span className="text-sm font-medium text-foreground">
-              {selectedSlugs.size} categoria{selectedSlugs.size === 1 ? " selecionada" : "s selecionadas"}
+              {selectedSlugs.size} categoria
+              {selectedSlugs.size === 1 ? " selecionada" : "s selecionadas"}
             </span>
-            <button type="button" onClick={() => setConfirmDelete(true)} className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90">
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90"
+            >
               <Trash2 className="h-4 w-4" /> Excluir selecionadas
             </button>
           </div>
         )}
         {!isLoading && data.length > 0 && (
           <label className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-foreground">
-            <input type="checkbox" checked={allSelected} onChange={toggleAll} className="h-4 w-4 accent-primary" />
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={toggleAll}
+              className="h-4 w-4 accent-primary"
+            />
             Selecionar todas
           </label>
         )}
@@ -136,8 +163,23 @@ function DashboardCategoriesPage() {
         ) : (
           <div className="grid gap-3">
             {data.map((c) => (
-              <div key={c.slug} className={`relative rounded-2xl ${selectedSlugs.has(c.slug) ? "ring-2 ring-primary/30" : ""}`}>
-                <input type="checkbox" checked={selectedSlugs.has(c.slug)} onChange={() => toggleCategory(c.slug)} disabled={c.slug === UNCATEGORIZED_SLUG} aria-label={c.slug === UNCATEGORIZED_SLUG ? "Sem categoria é protegida" : `Selecionar ${c.name}`} title={c.slug === UNCATEGORIZED_SLUG ? "Categoria protegida" : undefined} className="absolute right-4 top-4 z-10 h-4 w-4 accent-primary disabled:cursor-not-allowed disabled:opacity-35" />
+              <div
+                key={c.slug}
+                className={`relative rounded-2xl ${selectedSlugs.has(c.slug) ? "ring-2 ring-primary/30" : ""}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedSlugs.has(c.slug)}
+                  onChange={() => toggleCategory(c.slug)}
+                  disabled={c.slug === UNCATEGORIZED_SLUG}
+                  aria-label={
+                    c.slug === UNCATEGORIZED_SLUG
+                      ? "Sem categoria é protegida"
+                      : `Selecionar ${c.name}`
+                  }
+                  title={c.slug === UNCATEGORIZED_SLUG ? "Categoria protegida" : undefined}
+                  className="absolute right-4 top-4 z-10 h-4 w-4 accent-primary disabled:cursor-not-allowed disabled:opacity-35"
+                />
                 <CategoryEditor
                   row={c}
                   onSaved={() => {
@@ -151,18 +193,31 @@ function DashboardCategoriesPage() {
         )}
       </DashboardSection>
 
-      <AlertDialog open={confirmDelete} onOpenChange={(open) => !deleting && setConfirmDelete(open)}>
+      <AlertDialog
+        open={confirmDelete}
+        onOpenChange={(open) => !deleting && setConfirmDelete(open)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir categorias selecionadas?</AlertDialogTitle>
             <AlertDialogDescription>
-              {selectedCategories.length} categoria{selectedCategories.length === 1 ? " será excluída" : "s serão excluídas"} permanentemente.
-              {movableProductCount > 0 && ` ${movableProductCount} produto${movableProductCount === 1 ? " será movido" : "s serão movidos"} automaticamente para “Sem categoria”.`}
+              {selectedCategories.length} categoria
+              {selectedCategories.length === 1 ? " será excluída" : "s serão excluídas"}{" "}
+              permanentemente.
+              {movableProductCount > 0 &&
+                ` ${movableProductCount} produto${movableProductCount === 1 ? " será movido" : "s serão movidos"} automaticamente para “Sem categoria”.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={(event) => { event.preventDefault(); void deleteSelectedCategories(); }} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50">
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                void deleteSelectedCategories();
+              }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+            >
               {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Excluir e mover produtos
             </AlertDialogAction>
@@ -184,10 +239,9 @@ function CreateCategoryForm({ onCreated }: { onCreated: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      const { error: upErr } = await supabase.from("categories").upsert(
-        { name: trimmed, slug: slugify(trimmed) },
-        { onConflict: "slug" },
-      );
+      const { error: upErr } = await supabase
+        .from("categories")
+        .upsert({ name: trimmed, slug: slugify(trimmed) }, { onConflict: "slug" });
       if (upErr) throw upErr;
       setName("");
       onCreated();
@@ -234,14 +288,7 @@ function CategoryEditor({ row, onSaved }: { row: CategoryTerm; onSaved: () => vo
     setBusy(true);
     setError(null);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `categories/${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("catalog-media")
-        .upload(path, file, { upsert: false, contentType: file.type });
-      if (upErr) throw upErr;
-      const { data } = supabase.storage.from("catalog-media").getPublicUrl(path);
-      setCover(data.publicUrl);
+      setCover(await uploadOptimizedImage(file, "categories"));
       setDirty(true);
       toast.success("Imagem enviada! Clique em Salvar para confirmar.");
     } catch (e) {
@@ -260,10 +307,9 @@ function CategoryEditor({ row, onSaved }: { row: CategoryTerm; onSaved: () => vo
       const payload = { cover_image: cover, icon_svg: icon.trim() || null };
       const { error: upErr } = row.id
         ? await supabase.from("categories").update(payload).eq("id", row.id)
-        : await supabase.from("categories").upsert(
-            { name: row.name, slug: row.slug, ...payload },
-            { onConflict: "slug" },
-          );
+        : await supabase
+            .from("categories")
+            .upsert({ name: row.name, slug: row.slug, ...payload }, { onConflict: "slug" });
       if (upErr) throw upErr;
       setDirty(false);
       onSaved();
@@ -290,7 +336,9 @@ function CategoryEditor({ row, onSaved }: { row: CategoryTerm; onSaved: () => vo
       </div>
       <div
         className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-background p-3 text-foreground [&>svg]:h-full [&>svg]:w-full"
-        dangerouslySetInnerHTML={{ __html: icon || '<span class="text-xs text-muted-foreground">Sem ícone</span>' }}
+        dangerouslySetInnerHTML={{
+          __html: icon || '<span class="text-xs text-muted-foreground">Sem ícone</span>',
+        }}
       />
       <div className="min-w-0 flex-1 space-y-2">
         <div>
@@ -299,9 +347,7 @@ function CategoryEditor({ row, onSaved }: { row: CategoryTerm; onSaved: () => vo
             /{row.slug} · {row.count} produto{row.count === 1 ? "" : "s"}
           </p>
         </div>
-        <label className="block text-xs font-medium text-muted-foreground">
-          Ícone (SVG)
-        </label>
+        <label className="block text-xs font-medium text-muted-foreground">Ícone (SVG)</label>
         <textarea
           value={icon}
           onChange={(e) => {
@@ -314,7 +360,11 @@ function CategoryEditor({ row, onSaved }: { row: CategoryTerm; onSaved: () => vo
         />
         <div className="flex flex-wrap items-center gap-2">
           <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted">
-            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+            {busy ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Upload className="h-3.5 w-3.5" />
+            )}
             Enviar capa
             <input
               type="file"
