@@ -691,6 +691,10 @@ function StatusSelect({ order }: { order: OrderRow }) {
           .from("app_orders" as never)
           .update({
             customer_id: customerId,
+            customer_name: order.customer_name || "Cliente",
+            customer_email: email,
+            customer_phone: phone,
+            customer_document: (meta.cpf || meta.cnpj || "").replace(/\D/g, "") || null,
             status: "pending",
             subtotal,
             shipping_total: shipping,
@@ -710,6 +714,10 @@ function StatusSelect({ order }: { order: OrderRow }) {
           .from("app_orders" as never)
           .insert({
             customer_id: customerId,
+            customer_name: order.customer_name || "Cliente",
+            customer_email: email,
+            customer_phone: phone,
+            customer_document: (meta.cpf || meta.cnpj || "").replace(/\D/g, "") || null,
             status: "pending",
             currency: "BRL",
             subtotal,

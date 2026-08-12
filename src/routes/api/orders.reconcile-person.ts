@@ -26,7 +26,10 @@ export const Route = createFileRoute("/api/orders/reconcile-person")({
           _role: "admin",
         });
         if (!isAdmin) return Response.json({ ok: false, error: "Acesso negado." }, { status: 403 });
-        const { orderId } = (await request.json()) as { orderId?: string };
+        const { orderId, status: requestedStatus } = (await request.json()) as {
+          orderId?: string;
+          status?: string;
+        };
         const admin = createClient(url, serviceKey);
         const { data: order, error } = await admin
           .from("app_orders")
@@ -39,7 +42,8 @@ export const Route = createFileRoute("/api/orders/reconcile-person")({
             { status: 404 },
           );
 
-        const approved = paidStatuses.has(order.status);
+        const nextStatus = requestedStatus || order.status;
+        const approved = paidStatuses.has(nextStatus);
         const document = digits(order.customer_document);
         const email = String(order.customer_email ?? "")
           .trim()
@@ -81,7 +85,7 @@ export const Route = createFileRoute("/api/orders/reconcile-person")({
           }
           const { error: linkError } = await admin
             .from("app_orders")
-            .update({ customer_id: person.id, lead_id: null })
+            .update({ customer_id: person.id, lead_id: null, status: nextStatus })
             .eq("id", order.id);
           if (linkError)
             return Response.json({ ok: false, error: linkError.message }, { status: 500 });
@@ -126,7 +130,7 @@ export const Route = createFileRoute("/api/orders/reconcile-person")({
         }
         const { error: linkError } = await admin
           .from("app_orders")
-          .update({ lead_id: person.id })
+          .update({ lead_id: person.id, status: nextStatus })
           .eq("id", order.id);
         if (linkError)
           return Response.json({ ok: false, error: linkError.message }, { status: 500 });

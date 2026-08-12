@@ -5,6 +5,7 @@ const BUCKET = "catalog-media";
 const CATALOG_LAYOUT_VERSION = "v5";
 const PATHS: Record<CatalogVariant, string> = {
   standard: `generated/${CATALOG_LAYOUT_VERSION}/catalogo-arteno.pdf`,
+  professional: `generated/${CATALOG_LAYOUT_VERSION}/catalogo-arteno-profissional.pdf`,
   reseller: `generated/${CATALOG_LAYOUT_VERSION}/catalogo-arteno-revendedor.pdf`,
 };
 
@@ -26,14 +27,21 @@ async function regenerateOnce(onProgress?: (percent: number) => void) {
   const standard = await buildCatalogPDF(
     snapshot,
     "standard",
-    (value) => onProgress?.(Math.round(value / 2)),
+    (value) => onProgress?.(Math.round(value / 3)),
     imageCache,
   );
   await uploadCatalog(PATHS.standard, standard);
+  const professional = await buildCatalogPDF(
+    snapshot,
+    "professional",
+    (value) => onProgress?.(33 + Math.round(value / 3)),
+    imageCache,
+  );
+  await uploadCatalog(PATHS.professional, professional);
   const reseller = await buildCatalogPDF(
     snapshot,
     "reseller",
-    (value) => onProgress?.(50 + Math.round(value / 2)),
+    (value) => onProgress?.(66 + Math.round(value / 3)),
     imageCache,
   );
   await uploadCatalog(PATHS.reseller, reseller);
@@ -67,7 +75,11 @@ function saveBlob(blob: Blob, variant: CatalogVariant) {
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download =
-    variant === "reseller" ? "catalogo-arteno-revendedor.pdf" : "catalogo-arteno.pdf";
+    variant === "reseller"
+      ? "catalogo-arteno-revendedor.pdf"
+      : variant === "professional"
+        ? "catalogo-arteno-profissional.pdf"
+        : "catalogo-arteno.pdf";
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }

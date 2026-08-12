@@ -1,7 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, ArrowUpDown, Download, Upload, Pencil, Save, X, Trash2, ExternalLink } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Download,
+  Upload,
+  Pencil,
+  Save,
+  X,
+  Trash2,
+  ExternalLink,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,10 +20,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard/crm/leads")({
   head: () => ({
-    meta: [
-      { title: "Leads — CRM" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Leads — CRM" }, { name: "robots", content: "noindex" }],
   }),
   component: LeadsPage,
 });
@@ -28,9 +36,14 @@ type LeadRow = {
   list_name?: string | null;
   created_at: string;
   contact_info?: unknown;
+  client_type?: string | null;
+  lead_interest?: string | null;
+  professional_type?: string | null;
+  cnpj?: string | null;
 };
 
-type SortKey = "name" | "phone" | "email" | "orders" | "list_name" | "source" | "status" | "created_at";
+type SortKey =
+  "name" | "phone" | "email" | "orders" | "list_name" | "source" | "status" | "created_at";
 type SortDirection = "asc" | "desc";
 type LeadOrder = {
   id: string;
@@ -55,7 +68,9 @@ function leadDocument(lead: LeadRow): string {
     try {
       const record = JSON.parse(info) as Record<string, unknown>;
       return digits(record.document ?? record.cpf ?? record.cnpj);
-    } catch { return ""; }
+    } catch {
+      return "";
+    }
   }
   return "";
 }
@@ -65,18 +80,24 @@ function orderDocument(order: LeadOrder): string {
   try {
     const meta = JSON.parse(order.notes) as Record<string, unknown>;
     return digits(meta.cpf ?? meta.cnpj);
-  } catch { return ""; }
+  } catch {
+    return "";
+  }
 }
 
 function ordersForLead(lead: LeadRow, orders: LeadOrder[]): LeadOrder[] {
   const document = leadDocument(lead);
   const phone = digits(lead.phone);
-  const email = String(lead.email ?? "").trim().toLowerCase();
+  const email = String(lead.email ?? "")
+    .trim()
+    .toLowerCase();
   return orders.filter((order) => {
     const orderDoc = orderDocument(order);
     if (document && orderDoc) return document === orderDoc;
     const orderPhone = digits(order.customer_phone);
-    const orderEmail = String(order.customer_email ?? "").trim().toLowerCase();
+    const orderEmail = String(order.customer_email ?? "")
+      .trim()
+      .toLowerCase();
     return Boolean((phone && phone === orderPhone) || (email && email === orderEmail));
   });
 }
@@ -109,12 +130,39 @@ function leadStatus(lead: LeadRow): string {
     return String((info as { status?: unknown }).status || "Novo");
   }
   if (typeof info === "string") {
-    try { return String((JSON.parse(info) as { status?: unknown }).status || "Novo"); } catch { return "Novo"; }
+    try {
+      return String((JSON.parse(info) as { status?: unknown }).status || "Novo");
+    } catch {
+      return "Novo";
+    }
   }
   return "Novo";
 }
 
-function SortableHeader({ label, sortKey, activeKey, direction, onSort }: {
+function leadProfile(lead: LeadRow): string {
+  const value = lead.lead_interest || lead.client_type;
+  if (value === "professional" || value === "architect") {
+    const professions: Record<string, string> = {
+      architect: "Arquiteto",
+      landscaper: "Paisagista",
+      interior_designer: "Designer de interiores",
+      gardener: "Jardineiro",
+      other: "Outro profissional",
+    };
+    return `Profissional${lead.professional_type ? ` · ${professions[lead.professional_type] || lead.professional_type}` : ""}`;
+  }
+  if (value === "reseller") return "Revendedor / Lojista";
+  if (value === "final") return "Cliente final";
+  return "Não informado";
+}
+
+function SortableHeader({
+  label,
+  sortKey,
+  activeKey,
+  direction,
+  onSort,
+}: {
   label: string;
   sortKey: SortKey;
   activeKey: SortKey;
@@ -124,9 +172,17 @@ function SortableHeader({ label, sortKey, activeKey, direction, onSort }: {
   const active = activeKey === sortKey;
   const Icon = active ? (direction === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
   return (
-    <th className="px-3 py-3" aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}>
-      <button type="button" onClick={() => onSort(sortKey)} className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground">
-        {label}<Icon className={`h-3.5 w-3.5 ${active ? "text-foreground" : "opacity-40"}`} />
+    <th
+      className="px-3 py-3"
+      aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+      >
+        {label}
+        <Icon className={`h-3.5 w-3.5 ${active ? "text-foreground" : "opacity-40"}`} />
       </button>
     </th>
   );
@@ -140,7 +196,13 @@ function StatusBadge({ status }: { status: string }) {
     Fechado: "bg-emerald-500/15 text-emerald-700",
     Descartado: "bg-red-500/15 text-red-700",
   };
-  return <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${styles[status] ?? styles.Novo}`}>{status}</span>;
+  return (
+    <span
+      className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${styles[status] ?? styles.Novo}`}
+    >
+      {status}
+    </span>
+  );
 }
 function LeadsPage() {
   const qc = useQueryClient();
@@ -154,7 +216,11 @@ function LeadsPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const { data: leads = [], isLoading, error } = useQuery({
+  const {
+    data: leads = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["crm-leads"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -186,7 +252,18 @@ function LeadsPage() {
     const q = search.trim().toLowerCase();
     if (!q) return leads;
     return leads.filter((l) =>
-      [l.name, l.phone, l.email, l.tag, l.list_name, l.source]
+      [
+        l.name,
+        l.phone,
+        l.email,
+        l.tag,
+        l.list_name,
+        l.source,
+        l.lead_interest,
+        l.client_type,
+        l.professional_type,
+        l.cnpj,
+      ]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q)),
     );
@@ -195,23 +272,29 @@ function LeadsPage() {
   const sorted = useMemo(() => {
     const direction = sortDirection === "asc" ? 1 : -1;
     return [...filtered].sort((a, b) => {
-      const aValue = sortKey === "status"
-        ? leadStatus(a)
-        : sortKey === "orders"
-          ? ordersForLead(a, leadOrders).length
-          : a[sortKey];
-      const bValue = sortKey === "status"
-        ? leadStatus(b)
-        : sortKey === "orders"
-          ? ordersForLead(b, leadOrders).length
-          : b[sortKey];
+      const aValue =
+        sortKey === "status"
+          ? leadStatus(a)
+          : sortKey === "orders"
+            ? ordersForLead(a, leadOrders).length
+            : a[sortKey];
+      const bValue =
+        sortKey === "status"
+          ? leadStatus(b)
+          : sortKey === "orders"
+            ? ordersForLead(b, leadOrders).length
+            : b[sortKey];
       if (sortKey === "created_at") {
-        return (new Date(String(aValue)).getTime() - new Date(String(bValue)).getTime()) * direction;
+        return (
+          (new Date(String(aValue)).getTime() - new Date(String(bValue)).getTime()) * direction
+        );
       }
-      return String(aValue ?? "").localeCompare(String(bValue ?? ""), "pt-BR", {
-        sensitivity: "base",
-        numeric: true,
-      }) * direction;
+      return (
+        String(aValue ?? "").localeCompare(String(bValue ?? ""), "pt-BR", {
+          sensitivity: "base",
+          numeric: true,
+        }) * direction
+      );
     });
   }, [filtered, leadOrders, sortDirection, sortKey]);
 
@@ -253,7 +336,11 @@ function LeadsPage() {
   };
 
   const deleteSelected = async () => {
-    if (!selected.size || !window.confirm(`Excluir ${selected.size} lead${selected.size === 1 ? "" : "s"}?`)) return;
+    if (
+      !selected.size ||
+      !window.confirm(`Excluir ${selected.size} lead${selected.size === 1 ? "" : "s"}?`)
+    )
+      return;
     setBulkSaving(true);
     try {
       await callBulkApi("DELETE", { ids: Array.from(selected) });
@@ -292,7 +379,9 @@ function LeadsPage() {
     let err = await attempt(patch as Record<string, unknown>);
     if (err) {
       const { tag, list_name, email, ...rest } = patch as Record<string, unknown>;
-      void tag; void list_name; void email;
+      void tag;
+      void list_name;
+      void email;
       err = await attempt(rest);
     }
     if (err) {
@@ -318,12 +407,14 @@ function LeadsPage() {
   const exportCsv = () => {
     const headers = ["id", "name", "phone", "email", "tag", "list_name", "source", "created_at"];
     const rows = leads.map((l) =>
-      headers.map((h) => {
-        const v = (l as unknown as Record<string, unknown>)[h];
-        if (v == null) return "";
-        const s = typeof v === "string" ? v : JSON.stringify(v);
-        return `"${s.replace(/"/g, '""')}"`;
-      }).join(","),
+      headers
+        .map((h) => {
+          const v = (l as unknown as Record<string, unknown>)[h];
+          if (v == null) return "";
+          const s = typeof v === "string" ? v : JSON.stringify(v);
+          return `"${s.replace(/"/g, '""')}"`;
+        })
+        .join(","),
     );
     const csv = [headers.join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -349,30 +440,37 @@ function LeadsPage() {
       for (let i = 0; i < line.length; i++) {
         const c = line[i];
         if (inQ) {
-          if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
-          else if (c === '"') inQ = false;
+          if (c === '"' && line[i + 1] === '"') {
+            cur += '"';
+            i++;
+          } else if (c === '"') inQ = false;
           else cur += c;
         } else {
           if (c === '"') inQ = true;
-          else if (c === ",") { out.push(cur); cur = ""; }
-          else cur += c;
+          else if (c === ",") {
+            out.push(cur);
+            cur = "";
+          } else cur += c;
         }
       }
       out.push(cur);
       return out;
     };
     const headers = parseLine(lines[0]).map((h) => h.trim().toLowerCase());
-    const rows = lines.slice(1).map((line) => {
-      const cols = parseLine(line);
-      const obj: Record<string, unknown> = {};
-      headers.forEach((h, i) => {
-        const v = cols[i]?.trim();
-        if (v === undefined || v === "") return;
-        if (h === "id" || h === "created_at") return; // don't overwrite
-        obj[h] = v;
-      });
-      return obj;
-    }).filter((r) => Object.keys(r).length > 0);
+    const rows = lines
+      .slice(1)
+      .map((line) => {
+        const cols = parseLine(line);
+        const obj: Record<string, unknown> = {};
+        headers.forEach((h, i) => {
+          const v = cols[i]?.trim();
+          if (v === undefined || v === "") return;
+          if (h === "id" || h === "created_at") return; // don't overwrite
+          obj[h] = v;
+        });
+        return obj;
+      })
+      .filter((r) => Object.keys(r).length > 0);
 
     if (rows.length === 0) {
       toast.error("Nenhum lead válido no CSV");
@@ -386,7 +484,9 @@ function LeadsPage() {
     if (error) {
       const stripped = rows.map((r) => {
         const { tag, list_name, email, ...rest } = r;
-        void tag; void list_name; void email;
+        void tag;
+        void list_name;
+        void email;
         return rest;
       });
       ({ error } = await attempt(stripped));
@@ -438,21 +538,38 @@ function LeadsPage() {
 
       {selected.size > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted/40 p-3">
-          <span className="text-sm font-medium">{selected.size} selecionado{selected.size === 1 ? "" : "s"}</span>
+          <span className="text-sm font-medium">
+            {selected.size} selecionado{selected.size === 1 ? "" : "s"}
+          </span>
           <select
             value={bulkStatus}
             onChange={(event) => setBulkStatus(event.target.value)}
             className="h-9 rounded-md border border-border bg-background px-3 text-sm outline-none"
           >
-            {LEAD_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+            {LEAD_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
           </select>
           <Button size="sm" onClick={() => void updateSelectedStatus()} disabled={bulkSaving}>
             Alterar status
           </Button>
-          <Button size="sm" variant="destructive" onClick={() => void deleteSelected()} disabled={bulkSaving} className="gap-2">
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => void deleteSelected()}
+            disabled={bulkSaving}
+            className="gap-2"
+          >
             <Trash2 className="h-4 w-4" /> Excluir selecionados
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())} disabled={bulkSaving}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setSelected(new Set())}
+            disabled={bulkSaving}
+          >
             Limpar seleção
           </Button>
         </div>
@@ -470,37 +587,104 @@ function LeadsPage() {
                   onChange={(event) => {
                     setSelected((current) => {
                       const next = new Set(current);
-                      for (const lead of sorted) event.target.checked ? next.add(lead.id) : next.delete(lead.id);
+                      for (const lead of sorted) {
+                        if (event.target.checked) next.add(lead.id);
+                        else next.delete(lead.id);
+                      }
                       return next;
                     });
                   }}
                 />
               </th>
-              <SortableHeader label="Nome" sortKey="name" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-              <SortableHeader label="Telefone" sortKey="phone" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-              <SortableHeader label="Email" sortKey="email" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-              <SortableHeader label="Orçamentos" sortKey="orders" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-              <SortableHeader label="Lista" sortKey="list_name" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-              <SortableHeader label="Origem" sortKey="source" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-              <SortableHeader label="Status" sortKey="status" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-              <SortableHeader label="Data" sortKey="created_at" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+              <SortableHeader
+                label="Nome"
+                sortKey="name"
+                activeKey={sortKey}
+                direction={sortDirection}
+                onSort={toggleSort}
+              />
+              <SortableHeader
+                label="Telefone"
+                sortKey="phone"
+                activeKey={sortKey}
+                direction={sortDirection}
+                onSort={toggleSort}
+              />
+              <SortableHeader
+                label="Email"
+                sortKey="email"
+                activeKey={sortKey}
+                direction={sortDirection}
+                onSort={toggleSort}
+              />
+              <th className="px-3 py-3">Perfil</th>
+              <SortableHeader
+                label="Orçamentos"
+                sortKey="orders"
+                activeKey={sortKey}
+                direction={sortDirection}
+                onSort={toggleSort}
+              />
+              <SortableHeader
+                label="Lista"
+                sortKey="list_name"
+                activeKey={sortKey}
+                direction={sortDirection}
+                onSort={toggleSort}
+              />
+              <SortableHeader
+                label="Origem"
+                sortKey="source"
+                activeKey={sortKey}
+                direction={sortDirection}
+                onSort={toggleSort}
+              />
+              <SortableHeader
+                label="Status"
+                sortKey="status"
+                activeKey={sortKey}
+                direction={sortDirection}
+                onSort={toggleSort}
+              />
+              <SortableHeader
+                label="Data"
+                sortKey="created_at"
+                activeKey={sortKey}
+                direction={sortDirection}
+                onSort={toggleSort}
+              />
               <th className="px-3 py-3 text-right">Ações</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">Carregando…</td></tr>
+              <tr>
+                <td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">
+                  Carregando…
+                </td>
+              </tr>
             )}
             {error && (
-              <tr><td colSpan={10} className="px-4 py-8 text-center text-destructive">{(error as Error).message}</td></tr>
+              <tr>
+                <td colSpan={10} className="px-4 py-8 text-center text-destructive">
+                  {(error as Error).message}
+                </td>
+              </tr>
             )}
             {!isLoading && !error && sorted.length === 0 && (
-              <tr><td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">Nenhum lead.</td></tr>
+              <tr>
+                <td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">
+                  Nenhum lead.
+                </td>
+              </tr>
             )}
             {sorted.map((l) => {
               const isEditing = editing === l.id;
               return (
-                <tr key={l.id} className={`border-t border-border ${selected.has(l.id) ? "bg-primary/5" : ""}`}>
+                <tr
+                  key={l.id}
+                  className={`border-t border-border ${selected.has(l.id) ? "bg-primary/5" : ""}`}
+                >
                   <td className="px-3 py-3 align-middle">
                     <input
                       type="checkbox"
@@ -509,7 +693,8 @@ function LeadsPage() {
                       onChange={(event) => {
                         setSelected((current) => {
                           const next = new Set(current);
-                          event.target.checked ? next.add(l.id) : next.delete(l.id);
+                          if (event.target.checked) next.add(l.id);
+                          else next.delete(l.id);
                           return next;
                         });
                       }}
@@ -517,19 +702,57 @@ function LeadsPage() {
                   </td>
                   {isEditing ? (
                     <>
-                      <td className="px-3 py-2"><Input value={String(draft.name ?? "")} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} /></td>
-                      <td className="px-3 py-2"><Input value={String(draft.phone ?? "")} onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))} /></td>
-                      <td className="px-3 py-2"><Input value={String(draft.email ?? "")} onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))} /></td>
-                      <td className="px-3 py-2"><QuoteLinks orders={ordersForLead(l, leadOrders)} /></td>
-                      <td className="px-3 py-2"><Input value={String(draft.list_name ?? "")} onChange={(e) => setDraft((d) => ({ ...d, list_name: e.target.value }))} /></td>
-                      <td className="px-3 py-2"><Input value={String(draft.source ?? "")} onChange={(e) => setDraft((d) => ({ ...d, source: e.target.value }))} /></td>
-                      <td className="px-3 py-2"><StatusBadge status={leadStatus(l)} /></td>
-                      <td className="px-3 py-2 text-muted-foreground">{new Date(l.created_at).toLocaleDateString("pt-BR")}</td>
+                      <td className="px-3 py-2">
+                        <Input
+                          value={String(draft.name ?? "")}
+                          onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input
+                          value={String(draft.phone ?? "")}
+                          onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))}
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input
+                          value={String(draft.email ?? "")}
+                          onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))}
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-xs">{leadProfile(l)}</td>
+                      <td className="px-3 py-2">
+                        <QuoteLinks orders={ordersForLead(l, leadOrders)} />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input
+                          value={String(draft.list_name ?? "")}
+                          onChange={(e) => setDraft((d) => ({ ...d, list_name: e.target.value }))}
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input
+                          value={String(draft.source ?? "")}
+                          onChange={(e) => setDraft((d) => ({ ...d, source: e.target.value }))}
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <StatusBadge status={leadStatus(l)} />
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        {new Date(l.created_at).toLocaleDateString("pt-BR")}
+                      </td>
                       <td className="px-3 py-2 text-right">
-                        <button onClick={() => void saveEdit(l.id)} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted">
+                        <button
+                          onClick={() => void saveEdit(l.id)}
+                          className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
+                        >
                           <Save className="h-3 w-3" /> Salvar
                         </button>
-                        <button onClick={() => setEditing(null)} className="ml-1 inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted">
+                        <button
+                          onClick={() => setEditing(null)}
+                          className="ml-1 inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
+                        >
                           <X className="h-3 w-3" />
                         </button>
                       </td>
@@ -539,16 +762,34 @@ function LeadsPage() {
                       <td className="px-3 py-3 font-medium">{l.name ?? "—"}</td>
                       <td className="px-3 py-3 text-muted-foreground">{l.phone ?? "—"}</td>
                       <td className="px-3 py-3 text-muted-foreground">{l.email ?? "—"}</td>
-                      <td className="px-3 py-3">{l.tag ? <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs text-primary">{l.tag}</span> : "—"}</td>
+                      <td className="px-3 py-3 text-xs">
+                        {leadProfile(l)}
+                        {l.cnpj ? <div className="text-muted-foreground">CNPJ {l.cnpj}</div> : null}
+                      </td>
+                      <td className="px-3 py-3">
+                        <QuoteLinks orders={ordersForLead(l, leadOrders)} />
+                      </td>
                       <td className="px-3 py-3 text-muted-foreground">{l.list_name ?? "—"}</td>
-                      <td className="px-3 py-3 text-xs uppercase text-muted-foreground">{l.source ?? "—"}</td>
-                      <td className="px-3 py-3"><StatusBadge status={leadStatus(l)} /></td>
-                      <td className="px-3 py-3 text-muted-foreground">{new Date(l.created_at).toLocaleDateString("pt-BR")}</td>
+                      <td className="px-3 py-3 text-xs uppercase text-muted-foreground">
+                        {l.source ?? "—"}
+                      </td>
+                      <td className="px-3 py-3">
+                        <StatusBadge status={leadStatus(l)} />
+                      </td>
+                      <td className="px-3 py-3 text-muted-foreground">
+                        {new Date(l.created_at).toLocaleDateString("pt-BR")}
+                      </td>
                       <td className="px-3 py-3 text-right">
-                        <button onClick={() => startEdit(l)} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted">
+                        <button
+                          onClick={() => startEdit(l)}
+                          className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
+                        >
                           <Pencil className="h-3 w-3" /> Editar
                         </button>
-                        <button onClick={() => void removeLead(l.id)} className="ml-1 inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-destructive hover:bg-muted">
+                        <button
+                          onClick={() => void removeLead(l.id)}
+                          className="ml-1 inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-destructive hover:bg-muted"
+                        >
                           <Trash2 className="h-3 w-3" />
                         </button>
                       </td>

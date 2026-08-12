@@ -59,12 +59,9 @@ import { Route as ApiAdminLeadsRouteImport } from './routes/api/admin-leads'
 import { Route as DashboardPaginasIndexRouteImport } from './routes/dashboard.paginas.index'
 import { Route as DashboardPaginasHomeRouteImport } from './routes/dashboard.paginas.home'
 import { Route as DashboardEditarProdutoProductIdRouteImport } from './routes/dashboard.editar-produto.$productId'
+import { Route as DashboardEditarPedidoOrderIdRouteImport } from './routes/dashboard.editar-pedido.$orderId'
+import { Route as DashboardEditarClienteCustomerIdRouteImport } from './routes/dashboard.editar-cliente.$customerId'
 import { Route as DashboardCrmLeadsRouteImport } from './routes/dashboard.crm.leads'
-import { Route as ApiWcUpdateOrderRouteImport } from './routes/api/wc.update-order'
-import { Route as ApiWcOrdersSummaryRouteImport } from './routes/api/wc.orders-summary'
-import { Route as ApiWcListRouteImport } from './routes/api/wc.list'
-import { Route as ApiWcImportOrdersRouteImport } from './routes/api/wc.import-orders'
-import { Route as ApiWcCreateOrderRouteImport } from './routes/api/wc.create-order'
 import { Route as ApiOrdersReconcilePersonRouteImport } from './routes/api/orders.reconcile-person'
 import { Route as ApiGscOverviewRouteImport } from './routes/api/gsc.overview'
 
@@ -320,35 +317,22 @@ const DashboardEditarProdutoProductIdRoute =
     path: '/editar-produto/$productId',
     getParentRoute: () => DashboardRoute,
   } as any)
+const DashboardEditarPedidoOrderIdRoute =
+  DashboardEditarPedidoOrderIdRouteImport.update({
+    id: '/editar-pedido/$orderId',
+    path: '/editar-pedido/$orderId',
+    getParentRoute: () => DashboardRoute,
+  } as any)
+const DashboardEditarClienteCustomerIdRoute =
+  DashboardEditarClienteCustomerIdRouteImport.update({
+    id: '/editar-cliente/$customerId',
+    path: '/editar-cliente/$customerId',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 const DashboardCrmLeadsRoute = DashboardCrmLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
   getParentRoute: () => DashboardCrmRoute,
-} as any)
-const ApiWcUpdateOrderRoute = ApiWcUpdateOrderRouteImport.update({
-  id: '/api/wc/update-order',
-  path: '/api/wc/update-order',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiWcOrdersSummaryRoute = ApiWcOrdersSummaryRouteImport.update({
-  id: '/api/wc/orders-summary',
-  path: '/api/wc/orders-summary',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiWcListRoute = ApiWcListRouteImport.update({
-  id: '/api/wc/list',
-  path: '/api/wc/list',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiWcImportOrdersRoute = ApiWcImportOrdersRouteImport.update({
-  id: '/api/wc/import-orders',
-  path: '/api/wc/import-orders',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiWcCreateOrderRoute = ApiWcCreateOrderRouteImport.update({
-  id: '/api/wc/create-order',
-  path: '/api/wc/create-order',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiOrdersReconcilePersonRoute =
   ApiOrdersReconcilePersonRouteImport.update({
@@ -412,12 +396,9 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof DashboardIndexRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
   '/api/orders/reconcile-person': typeof ApiOrdersReconcilePersonRoute
-  '/api/wc/create-order': typeof ApiWcCreateOrderRoute
-  '/api/wc/import-orders': typeof ApiWcImportOrdersRoute
-  '/api/wc/list': typeof ApiWcListRoute
-  '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
-  '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
   '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
+  '/dashboard/editar-cliente/$customerId': typeof DashboardEditarClienteCustomerIdRoute
+  '/dashboard/editar-pedido/$orderId': typeof DashboardEditarPedidoOrderIdRoute
   '/dashboard/editar-produto/$productId': typeof DashboardEditarProdutoProductIdRoute
   '/dashboard/paginas/home': typeof DashboardPaginasHomeRoute
   '/dashboard/paginas/': typeof DashboardPaginasIndexRoute
@@ -470,12 +451,9 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardIndexRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
   '/api/orders/reconcile-person': typeof ApiOrdersReconcilePersonRoute
-  '/api/wc/create-order': typeof ApiWcCreateOrderRoute
-  '/api/wc/import-orders': typeof ApiWcImportOrdersRoute
-  '/api/wc/list': typeof ApiWcListRoute
-  '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
-  '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
   '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
+  '/dashboard/editar-cliente/$customerId': typeof DashboardEditarClienteCustomerIdRoute
+  '/dashboard/editar-pedido/$orderId': typeof DashboardEditarPedidoOrderIdRoute
   '/dashboard/editar-produto/$productId': typeof DashboardEditarProdutoProductIdRoute
   '/dashboard/paginas/home': typeof DashboardPaginasHomeRoute
   '/dashboard/paginas': typeof DashboardPaginasIndexRoute
@@ -531,12 +509,9 @@ export interface FileRoutesById {
   '/dashboard/': typeof DashboardIndexRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
   '/api/orders/reconcile-person': typeof ApiOrdersReconcilePersonRoute
-  '/api/wc/create-order': typeof ApiWcCreateOrderRoute
-  '/api/wc/import-orders': typeof ApiWcImportOrdersRoute
-  '/api/wc/list': typeof ApiWcListRoute
-  '/api/wc/orders-summary': typeof ApiWcOrdersSummaryRoute
-  '/api/wc/update-order': typeof ApiWcUpdateOrderRoute
   '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
+  '/dashboard/editar-cliente/$customerId': typeof DashboardEditarClienteCustomerIdRoute
+  '/dashboard/editar-pedido/$orderId': typeof DashboardEditarPedidoOrderIdRoute
   '/dashboard/editar-produto/$productId': typeof DashboardEditarProdutoProductIdRoute
   '/dashboard/paginas/home': typeof DashboardPaginasHomeRoute
   '/dashboard/paginas/': typeof DashboardPaginasIndexRoute
@@ -593,12 +568,9 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/api/gsc/overview'
     | '/api/orders/reconcile-person'
-    | '/api/wc/create-order'
-    | '/api/wc/import-orders'
-    | '/api/wc/list'
-    | '/api/wc/orders-summary'
-    | '/api/wc/update-order'
     | '/dashboard/crm/leads'
+    | '/dashboard/editar-cliente/$customerId'
+    | '/dashboard/editar-pedido/$orderId'
     | '/dashboard/editar-produto/$productId'
     | '/dashboard/paginas/home'
     | '/dashboard/paginas/'
@@ -651,12 +623,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/api/gsc/overview'
     | '/api/orders/reconcile-person'
-    | '/api/wc/create-order'
-    | '/api/wc/import-orders'
-    | '/api/wc/list'
-    | '/api/wc/orders-summary'
-    | '/api/wc/update-order'
     | '/dashboard/crm/leads'
+    | '/dashboard/editar-cliente/$customerId'
+    | '/dashboard/editar-pedido/$orderId'
     | '/dashboard/editar-produto/$productId'
     | '/dashboard/paginas/home'
     | '/dashboard/paginas'
@@ -711,12 +680,9 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/api/gsc/overview'
     | '/api/orders/reconcile-person'
-    | '/api/wc/create-order'
-    | '/api/wc/import-orders'
-    | '/api/wc/list'
-    | '/api/wc/orders-summary'
-    | '/api/wc/update-order'
     | '/dashboard/crm/leads'
+    | '/dashboard/editar-cliente/$customerId'
+    | '/dashboard/editar-pedido/$orderId'
     | '/dashboard/editar-produto/$productId'
     | '/dashboard/paginas/home'
     | '/dashboard/paginas/'
@@ -754,11 +720,6 @@ export interface RootRouteChildren {
   ProdutoSlugRoute: typeof ProdutoSlugRoute
   ApiGscOverviewRoute: typeof ApiGscOverviewRoute
   ApiOrdersReconcilePersonRoute: typeof ApiOrdersReconcilePersonRoute
-  ApiWcCreateOrderRoute: typeof ApiWcCreateOrderRoute
-  ApiWcImportOrdersRoute: typeof ApiWcImportOrdersRoute
-  ApiWcListRoute: typeof ApiWcListRoute
-  ApiWcOrdersSummaryRoute: typeof ApiWcOrdersSummaryRoute
-  ApiWcUpdateOrderRoute: typeof ApiWcUpdateOrderRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1113,47 +1074,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardEditarProdutoProductIdRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/editar-pedido/$orderId': {
+      id: '/dashboard/editar-pedido/$orderId'
+      path: '/editar-pedido/$orderId'
+      fullPath: '/dashboard/editar-pedido/$orderId'
+      preLoaderRoute: typeof DashboardEditarPedidoOrderIdRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/editar-cliente/$customerId': {
+      id: '/dashboard/editar-cliente/$customerId'
+      path: '/editar-cliente/$customerId'
+      fullPath: '/dashboard/editar-cliente/$customerId'
+      preLoaderRoute: typeof DashboardEditarClienteCustomerIdRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/crm/leads': {
       id: '/dashboard/crm/leads'
       path: '/leads'
       fullPath: '/dashboard/crm/leads'
       preLoaderRoute: typeof DashboardCrmLeadsRouteImport
       parentRoute: typeof DashboardCrmRoute
-    }
-    '/api/wc/update-order': {
-      id: '/api/wc/update-order'
-      path: '/api/wc/update-order'
-      fullPath: '/api/wc/update-order'
-      preLoaderRoute: typeof ApiWcUpdateOrderRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/wc/orders-summary': {
-      id: '/api/wc/orders-summary'
-      path: '/api/wc/orders-summary'
-      fullPath: '/api/wc/orders-summary'
-      preLoaderRoute: typeof ApiWcOrdersSummaryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/wc/list': {
-      id: '/api/wc/list'
-      path: '/api/wc/list'
-      fullPath: '/api/wc/list'
-      preLoaderRoute: typeof ApiWcListRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/wc/import-orders': {
-      id: '/api/wc/import-orders'
-      path: '/api/wc/import-orders'
-      fullPath: '/api/wc/import-orders'
-      preLoaderRoute: typeof ApiWcImportOrdersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/wc/create-order': {
-      id: '/api/wc/create-order'
-      path: '/api/wc/create-order'
-      fullPath: '/api/wc/create-order'
-      preLoaderRoute: typeof ApiWcCreateOrderRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/api/orders/reconcile-person': {
       id: '/api/orders/reconcile-person'
@@ -1216,6 +1156,8 @@ interface DashboardRouteChildren {
   DashboardProdutosRoute: typeof DashboardProdutosRoute
   DashboardSeoRoute: typeof DashboardSeoRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardEditarClienteCustomerIdRoute: typeof DashboardEditarClienteCustomerIdRoute
+  DashboardEditarPedidoOrderIdRoute: typeof DashboardEditarPedidoOrderIdRoute
   DashboardEditarProdutoProductIdRoute: typeof DashboardEditarProdutoProductIdRoute
 }
 
@@ -1238,6 +1180,8 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardProdutosRoute: DashboardProdutosRoute,
   DashboardSeoRoute: DashboardSeoRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  DashboardEditarClienteCustomerIdRoute: DashboardEditarClienteCustomerIdRoute,
+  DashboardEditarPedidoOrderIdRoute: DashboardEditarPedidoOrderIdRoute,
   DashboardEditarProdutoProductIdRoute: DashboardEditarProdutoProductIdRoute,
 }
 
@@ -1277,11 +1221,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProdutoSlugRoute: ProdutoSlugRoute,
   ApiGscOverviewRoute: ApiGscOverviewRoute,
   ApiOrdersReconcilePersonRoute: ApiOrdersReconcilePersonRoute,
-  ApiWcCreateOrderRoute: ApiWcCreateOrderRoute,
-  ApiWcImportOrdersRoute: ApiWcImportOrdersRoute,
-  ApiWcListRoute: ApiWcListRoute,
-  ApiWcOrdersSummaryRoute: ApiWcOrdersSummaryRoute,
-  ApiWcUpdateOrderRoute: ApiWcUpdateOrderRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

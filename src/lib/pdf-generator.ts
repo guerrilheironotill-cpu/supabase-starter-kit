@@ -9,8 +9,9 @@ import {
 import { fetchAttributeTerms, type AttributeTerm } from "./dashboard-taxonomies";
 import { absoluteUrl } from "./site-config";
 import { fetchHeroSlides } from "./hero-slides";
+import { discountedPrice, PROFESSIONAL_DISCOUNT, RESELLER_TIERS } from "./commercial-rules";
 
-export type CatalogVariant = "standard" | "reseller";
+export type CatalogVariant = "standard" | "professional" | "reseller";
 
 export type CatalogSnapshot = {
   products: ProductWithSizes[];
@@ -21,7 +22,6 @@ export type CatalogSnapshot = {
   generatedAt: Date;
 };
 
-const RESELLER_DISCOUNT = 0.3;
 type ImageCache = Map<string, Promise<string | null>>;
 
 export async function fetchCatalogSnapshot(): Promise<CatalogSnapshot> {
@@ -239,7 +239,7 @@ export async function buildCatalogPDF(
 
     for (const product of products) {
       const sizes = product.product_sizes ?? [];
-      const rowLineHeight = 7;
+      const rowLineHeight = variant === "reseller" ? 17 : variant === "professional" ? 11 : 7;
       const tableHeight = 12 + rowLineHeight * Math.max(1, sizes.length);
       const rowHeight = Math.max(78, 32 + tableHeight);
       if (currentY + rowHeight > pageHeight - 16) {
@@ -341,16 +341,32 @@ export async function buildCatalogPDF(
         const basePrice = size.sale_price ?? size.base_price;
         priceFinishes.forEach((finish, finishIndex) => {
           const fullPrice = basePrice + (Number(finish.extra_price) || 0);
-          const finalPrice =
-            variant === "reseller" ? fullPrice * (1 - RESELLER_DISCOUNT) : fullPrice;
           const priceX =
             tableX + sizeColumnWidth + finishColumnWidth * finishIndex + finishColumnWidth / 2;
-          pdf.text(
-            `R$ ${finalPrice.toFixed(2).replace(".", ",")}`,
-            priceX,
-            rowY + rowLineHeight * 0.68,
-            { align: "center" },
-          );
+          const brl = (value: number) => `R$ ${value.toFixed(2).replace(".", ",")}`;
+          if (variant === "professional") {
+            pdf.text(`Público ${brl(fullPrice)}`, priceX, rowY + 4, { align: "center" });
+            pdf.setFont("helvetica", "bold");
+            pdf.text(
+              `Prof. ${brl(discountedPrice(fullPrice, PROFESSIONAL_DISCOUNT))}`,
+              priceX,
+              rowY + 8.5,
+              { align: "center" },
+            );
+            pdf.setFont("helvetica", "normal");
+          } else if (variant === "reseller") {
+            pdf.text(`Público ${brl(fullPrice)}`, priceX, rowY + 3.5, { align: "center" });
+            RESELLER_TIERS.forEach((tier, tierIndex) =>
+              pdf.text(
+                `${Math.round(tier.discount * 100)}% ${brl(discountedPrice(fullPrice, tier.discount))}`,
+                priceX,
+                rowY + 7.5 + tierIndex * 3.5,
+                { align: "center" },
+              ),
+            );
+          } else {
+            pdf.text(brl(fullPrice), priceX, rowY + rowLineHeight * 0.68, { align: "center" });
+          }
         });
       });
       const buttonWidth = 64;
@@ -456,6 +472,26 @@ export async function buildCatalogPDF(
   colorsPage = await addAttributeSection("Cores disponíveis", snapshot.colors);
   finishesPage = await addAttributeSection("Acabamentos disponíveis", snapshot.finishes);
 
+  if (variant !== "standard") {
+    pdf.insertPage(2);
+    for (const [category, page] of categoryPages) categoryPages.set(category, page + 1);
+    colorsPage += 1;
+    finishesPage += 1;
+    pdf.setPage(2);
+    addPageTitle(
+      pdf,
+      variant === "professional" ? "Condições para profissionais" : "Condições para revendedores",
+    );
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(11);
+    pdf.setTextColor(65, 72, 67);
+    const text =
+      variant === "professional"
+        ? "Condição de 15% destinada a arquitetos, paisagistas, designers, jardineiros e especificadores. O download não representa aprovação automática como parceiro e esta modalidade não caracteriza revenda."
+        : "Condições exclusivas para parceiros aprovados: 25% de R$ 3.000 a R$ 4.999,99; 30% de R$ 5.000 a R$ 9.999,99; e 35% a partir de R$ 10.000 em produtos. Frete não entra no cálculo. Primeiro pedido mínimo de R$ 3.000. Manutenção vinculada a R$ 6.000 em compras a cada seis meses, sujeita a reavaliação. O valor do pedido ou o download deste catálogo não concedem aprovação como revendedor.";
+    pdf.text(pdf.splitTextToSize(text, contentWidth), margin, 42);
+  }
+
   pdf.setPage(1);
   pdf.setFillColor(250, 250, 247);
   pdf.rect(0, 0, pageWidth, pageHeight, "F");
@@ -472,8 +508,10 @@ export async function buildCatalogPDF(
   pdf.setFontSize(10);
   pdf.text(
     variant === "reseller"
-      ? "Tabela para revendedores — 30% de desconto"
-      : "Tabela de preços padrão",
+      ? "Tabela para Revendedores / Lojistas"
+      : variant === "professional"
+        ? "Tabela para Profissionais / Especificadores"
+        : "Tabela de preços padrão",
     pageWidth / 2,
     95,
     { align: "center" },

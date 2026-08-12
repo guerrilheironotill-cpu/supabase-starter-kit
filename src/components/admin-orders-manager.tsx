@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Download, Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { AlertTriangle, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -106,14 +107,22 @@ export function AdminOrdersManager() {
 
   async function changeStatus(ids: string[], nextStatus: string) {
     if (!ids.length) return;
-    const { error } = await supabase
-      .from("app_orders" as never)
-      .update({ status: nextStatus } as never)
-      .in("id", ids);
-    if (error) return toast.error(error.message);
-    setSelected(new Set());
-    await qc.invalidateQueries({ queryKey: ["app-orders"] });
-    toast.success(`${ids.length} pedido(s) atualizado(s)`);
+    setWorking(true);
+    try {
+      await Promise.all(
+        ids.map((orderId) =>
+          authorizedPost("/api/orders/reconcile-person", { orderId, status: nextStatus }),
+        ),
+      );
+      setSelected(new Set());
+      await qc.invalidateQueries({ queryKey: ["app-orders"] });
+      await qc.invalidateQueries({ queryKey: ["local-customers"] });
+      toast.success(`${ids.length} pedido(s) atualizado(s)`);
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setWorking(false);
+    }
   }
 
   async function removeSelected() {
@@ -153,27 +162,6 @@ export function AdminOrdersManager() {
     return json;
   }
 
-  async function importWoo() {
-    if (
-      !window.confirm(
-        "Executar a importação final dos pedidos antigos do WooCommerce? Ela pode ser repetida sem duplicar pedidos.",
-      )
-    )
-      return;
-    setWorking(true);
-    try {
-      const result = await authorizedPost("/api/wc/import-orders");
-      toast.success(
-        `${result.total} pedido(s) processado(s): ${result.imported} novo(s), ${result.updated} atualizado(s).`,
-      );
-      await qc.invalidateQueries({ queryKey: ["app-orders"] });
-    } catch (error) {
-      toast.error((error as Error).message);
-    } finally {
-      setWorking(false);
-    }
-  }
-
   async function reconcile(orderId: string) {
     setWorking(true);
     try {
@@ -192,25 +180,13 @@ export function AdminOrdersManager() {
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+      <div className="mb-6">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Pedidos</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Pedidos locais autônomos. A origem é apenas informativa.
           </p>
         </div>
-        <button
-          disabled={working}
-          onClick={importWoo}
-          className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm hover:bg-muted disabled:opacity-50"
-        >
-          {working ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4" />
-          )}{" "}
-          Importação final WooCommerce
-        </button>
       </div>
       <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <input
@@ -238,7 +214,7 @@ export function AdminOrdersManager() {
         >
           <option value="any">Todas as origens</option>
           <option value="site">Site</option>
-          <option value="woocommerce_import">WooCommerce importado</option>
+          <option value="woocommerce_import">Pedidos históricos</option>
         </select>
         <div className="flex gap-2">
           <input
@@ -315,6 +291,7 @@ export function AdminOrdersManager() {
                 <th className="px-3 py-3">Status</th>
                 <th className="px-3 py-3">Origem</th>
                 <th className="px-3 py-3 text-right">Total</th>
+                <th className="px-3 py-3 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -373,10 +350,19 @@ export function AdminOrdersManager() {
                       </select>
                     </td>
                     <td className="px-3 py-3 text-xs text-muted-foreground">
-                      {order.origin === "woocommerce_import" ? "Importado" : "Site"}
+                      {order.origin === "woocommerce_import" ? "Histórico" : "Site"}
                     </td>
                     <td className="px-3 py-3 text-right font-medium">
                       {money(order.total, order.currency)}
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <Link
+                        to="/dashboard/editar-pedido/$orderId"
+                        params={{ orderId: order.id }}
+                        className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
+                      >
+                        <Pencil className="h-3 w-3" /> Editar
+                      </Link>
                     </td>
                   </tr>
                 );

@@ -9,7 +9,13 @@ export type CustomerConversionInput = {
   cnpj?: string | null;
 };
 
-type CustomerMatch = { id: string; email: string | null; phone: string | null };
+type CustomerMatch = {
+  id: string;
+  email: string | null;
+  phone: string | null;
+  cpf: string | null;
+  cnpj: string | null;
+};
 
 const normalizeEmail = (value: string | null | undefined) =>
   value?.trim().toLocaleLowerCase("pt-BR") || null;
@@ -31,11 +37,24 @@ export async function ensureCustomerForApprovedQuote(
   const phone = input.phone?.trim() || null;
   const normalizedPhone = normalizePhone(phone);
   let existing: CustomerMatch | null = null;
+  const document = (input.cpf || input.cnpj || "").replace(/\D/g, "");
 
-  if (email) {
+  if (document) {
     const { data, error } = await supabase
       .from("customers" as never)
-      .select("id, email, phone")
+      .select("id, email, phone, cpf, cnpj")
+      .limit(5000);
+    if (error) throw new Error(`Não foi possível buscar o cliente por CPF/CNPJ: ${error.message}`);
+    existing =
+      ((data ?? []) as unknown as CustomerMatch[]).find(
+        (customer) => (customer.cpf || customer.cnpj || "").replace(/\D/g, "") === document,
+      ) ?? null;
+  }
+
+  if (!existing && email) {
+    const { data, error } = await supabase
+      .from("customers" as never)
+      .select("id, email, phone, cpf, cnpj")
       .ilike("email", email)
       .limit(1)
       .maybeSingle();
