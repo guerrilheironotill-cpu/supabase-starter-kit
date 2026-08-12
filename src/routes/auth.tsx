@@ -8,7 +8,6 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,14 +18,11 @@ function AuthPage() {
     setLoading(true);
     setMsg(null);
     try {
-      const { error } =
-        mode === "signin"
-          ? await supabase.auth.signInWithPassword({ email, password })
-          : await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       navigate({ to: "/dashboard" });
-    } catch (err: any) {
-      setMsg(err.message ?? "Error");
+    } catch (err: unknown) {
+      setMsg(err instanceof Error ? err.message : "Não foi possível entrar.");
     } finally {
       setLoading(false);
     }
@@ -34,13 +30,8 @@ function AuthPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <form
-        onSubmit={submit}
-        className="w-full max-w-sm space-y-4 rounded-lg border p-6"
-      >
-        <h1 className="text-xl font-semibold">
-          {mode === "signin" ? "Sign in" : "Sign up"}
-        </h1>
+      <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-lg border p-6">
+        <h1 className="text-xl font-semibold">Acesso administrativo</h1>
         <input
           type="email"
           required
@@ -62,16 +53,12 @@ function AuthPage() {
           disabled={loading}
           className="w-full rounded-md bg-primary py-2 text-primary-foreground disabled:opacity-50"
         >
-          {loading ? "..." : mode === "signin" ? "Sign in" : "Sign up"}
+          {loading ? "Entrando..." : "Entrar"}
         </button>
         {msg && <p className="text-sm text-destructive">{msg}</p>}
-        <button
-          type="button"
-          onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-          className="w-full text-sm text-muted-foreground underline"
-        >
-          {mode === "signin" ? "Create account" : "Have an account? Sign in"}
-        </button>
+        <p className="text-center text-xs text-muted-foreground">
+          O cadastro de novos administradores é restrito.
+        </p>
       </form>
     </div>
   );

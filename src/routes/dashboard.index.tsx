@@ -9,16 +9,25 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowUpRight, ArrowDownRight, Clock, Eye, FileText, Package, Database, AlertTriangle, MousePointerClick, Search, HardDrive } from "lucide-react";
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  Clock,
+  Eye,
+  FileText,
+  Package,
+  Database,
+  AlertTriangle,
+  MousePointerClick,
+  Search,
+  HardDrive,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSection } from "@/components/dashboard-layout";
 
 export const Route = createFileRoute("/dashboard/")({
   head: () => ({
-    meta: [
-      { title: "Visão geral — Dashboard" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Visão geral — Dashboard" }, { name: "robots", content: "noindex" }],
   }),
   component: DashboardOverview,
 });
@@ -44,7 +53,11 @@ async function fetchStats(): Promise<Stats> {
   };
 }
 
-type OrdersSummary = { configured: boolean; open: number; done: number };
+type BusinessMetrics = {
+  quotes: number;
+  openOrders: number;
+  monthlyQuotes: Array<{ month: string; quotes: number }>;
+};
 
 type GscOverview = {
   configured: boolean;
@@ -55,7 +68,14 @@ type GscOverview = {
   deltaClicks?: number;
   deltaImpressions?: number;
   topPages?: Array<{ url: string; clicks: number; impressions: number }>;
-  topQueries?: Array<{ query: string; clicks: number; impressions: number; ctr: number; position: number }>;
+  topQueries?: Array<{
+    query: string;
+    clicks: number;
+    impressions: number;
+    ctr: number;
+    position: number;
+  }>;
+  monthlyTraffic?: Array<{ month: string; clicks: number; impressions: number }>;
 };
 
 async function fetchGsc(): Promise<GscOverview> {
@@ -76,7 +96,9 @@ async function fetchDbSize(): Promise<DbSize> {
   if (error) {
     return { configured: false, sizeBytes: 0, limitBytes: 0, error: error.message };
   }
-  const row = Array.isArray(data) ? (data[0] as { size_bytes?: number; limit_bytes?: number } | undefined) : (data as { size_bytes?: number; limit_bytes?: number } | null);
+  const row = Array.isArray(data)
+    ? (data[0] as { size_bytes?: number; limit_bytes?: number } | undefined)
+    : (data as { size_bytes?: number; limit_bytes?: number } | null);
   if (!row || row.size_bytes == null) {
     return { configured: false, sizeBytes: 0, limitBytes: 0 };
   }
@@ -91,11 +113,12 @@ function formatMB(bytes: number) {
   return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
-type StorageUsage = {
+type ServerStorage = {
   configured: boolean;
-  sizeBytes: number;
-  limitBytes: number;
-  buckets: Array<{ name: string; bytes: number }>;
+  usedBytes: number;
+  totalBytes: number;
+  availableBytes: number;
+  uploadsBytes: number;
   error?: string;
 };
 
@@ -107,8 +130,10 @@ type ProductImageSources = {
   productsAllExternal: number;
   productsMixed: number;
   productsAllHosted: number;
-  externalUrls: number;
-  hostedUrls: number;
+  vpsUrls: number;
+  supabaseUrls: number;
+  wordpressUrls: number;
+  otherExternalUrls: number;
   error?: string;
 };
 
@@ -121,8 +146,10 @@ async function fetchProductImageSources(): Promise<ProductImageSources> {
     productsAllExternal: 0,
     productsMixed: 0,
     productsAllHosted: 0,
-    externalUrls: 0,
-    hostedUrls: 0,
+    vpsUrls: 0,
+    supabaseUrls: 0,
+    wordpressUrls: 0,
+    otherExternalUrls: 0,
   };
   try {
     const { data } = await supabase.auth.getSession();
@@ -132,7 +159,10 @@ async function fetchProductImageSources(): Promise<ProductImageSources> {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return { ...empty, error: `HTTP ${res.status}` };
-    const json = (await res.json()) as Partial<ProductImageSources> & { ok?: boolean; error?: string };
+    const json = (await res.json()) as Partial<ProductImageSources> & {
+      ok?: boolean;
+      error?: string;
+    };
     if (!json.ok) return { ...empty, error: json.error };
     return { ...empty, ...json, ok: true, configured: true };
   } catch (e) {
@@ -159,8 +189,8 @@ function ProductImageSourcesCard({ s }: { s?: ProductImageSources }) {
       </div>
     );
   }
-  const totalUrls = s.externalUrls + s.hostedUrls;
-  const extPct = totalUrls > 0 ? (s.externalUrls / totalUrls) * 100 : 0;
+  const totalUrls = s.vpsUrls + s.supabaseUrls + s.wordpressUrls + s.otherExternalUrls;
+  const vpsPct = totalUrls > 0 ? (s.vpsUrls / totalUrls) * 100 : 0;
   return (
     <div className="mb-8 rounded-2xl border border-border bg-card p-5">
       <div className="flex items-center justify-between gap-3">
@@ -176,82 +206,109 @@ function ProductImageSourcesCard({ s }: { s?: ProductImageSources }) {
       </div>
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-lg border border-border/60 bg-background/60 p-3">
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">No Supabase</div>
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Na VPS</div>
           <div className="mt-1 text-lg font-semibold text-foreground">{s.productsAllHosted}</div>
-          <div className="text-[11px] text-muted-foreground">{s.hostedUrls} URLs</div>
+          <div className="text-[11px] text-muted-foreground">{s.vpsUrls} URLs</div>
         </div>
         <div className="rounded-lg border border-border/60 bg-background/60 p-3">
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Só externas</div>
-          <div className="mt-1 text-lg font-semibold text-foreground">{s.productsAllExternal}</div>
-          <div className="text-[11px] text-muted-foreground">{s.externalUrls} URLs externas</div>
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            No Supabase
+          </div>
+          <div className="mt-1 text-lg font-semibold text-foreground">{s.supabaseUrls}</div>
+          <div className="text-[11px] text-muted-foreground">{s.supabaseUrls} URLs</div>
         </div>
         <div className="rounded-lg border border-border/60 bg-background/60 p-3">
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Mistas</div>
-          <div className="mt-1 text-lg font-semibold text-foreground">{s.productsMixed}</div>
-          <div className="text-[11px] text-muted-foreground">host + externo</div>
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            No WordPress
+          </div>
+          <div className="mt-1 text-lg font-semibold text-foreground">{s.wordpressUrls}</div>
+          <div className="text-[11px] text-muted-foreground">URLs legadas</div>
         </div>
         <div className="rounded-lg border border-border/60 bg-background/60 p-3">
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Sem imagem</div>
-          <div className="mt-1 text-lg font-semibold text-foreground">{s.productsWithoutImages}</div>
-          <div className="text-[11px] text-muted-foreground">0 URLs</div>
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Outras/sem imagem
+          </div>
+          <div className="mt-1 text-lg font-semibold text-foreground">{s.otherExternalUrls}</div>
+          <div className="text-[11px] text-muted-foreground">
+            {s.productsWithoutImages} produtos sem imagem
+          </div>
         </div>
       </div>
       {totalUrls > 0 && (
         <p className="mt-3 text-xs text-muted-foreground">
-          {extPct.toFixed(1)}% das URLs de imagem apontam para fora do Supabase — esses arquivos não contam no uso do Storage.
+          {vpsPct.toFixed(1)}% das URLs de imagem já apontam para a VPS. Produtos mistos:{" "}
+          {s.productsMixed}.
         </p>
       )}
     </div>
   );
 }
 
-async function fetchStorageUsage(): Promise<StorageUsage> {
+async function fetchServerStorage(): Promise<ServerStorage> {
   try {
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
     if (!token) {
-      return { configured: false, sizeBytes: 0, limitBytes: 0, buckets: [], error: "Sessão não encontrada." };
+      return {
+        configured: false,
+        usedBytes: 0,
+        totalBytes: 0,
+        availableBytes: 0,
+        uploadsBytes: 0,
+        error: "Sessão não encontrada.",
+      };
     }
-    const res = await fetch("/api/storage-usage", {
+    const res = await fetch("/api/server-storage", {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) {
       return {
         configured: false,
-        sizeBytes: 0,
-        limitBytes: 0,
-        buckets: [],
-        error: `Falha ao consultar Storage (HTTP ${res.status}).`,
+        usedBytes: 0,
+        totalBytes: 0,
+        availableBytes: 0,
+        uploadsBytes: 0,
+        error: `Falha ao consultar o disco da VPS (HTTP ${res.status}).`,
       };
     }
     const json = (await res.json()) as {
       ok: boolean;
-      sizeBytes?: number;
-      limitBytes?: number;
-      buckets?: Array<{ name: string; bytes: number }>;
+      usedBytes?: number;
+      totalBytes?: number;
+      availableBytes?: number;
+      uploadsBytes?: number;
       error?: string;
     };
     if (!json.ok) {
-      return { configured: false, sizeBytes: 0, limitBytes: 0, buckets: [], error: json.error };
+      return {
+        configured: false,
+        usedBytes: 0,
+        totalBytes: 0,
+        availableBytes: 0,
+        uploadsBytes: 0,
+        error: json.error,
+      };
     }
     return {
       configured: true,
-      sizeBytes: json.sizeBytes ?? 0,
-      limitBytes: json.limitBytes ?? 1024 * 1024 * 1024,
-      buckets: json.buckets ?? [],
+      usedBytes: json.usedBytes ?? 0,
+      totalBytes: json.totalBytes ?? 0,
+      availableBytes: json.availableBytes ?? 0,
+      uploadsBytes: json.uploadsBytes ?? 0,
     };
   } catch (e) {
     return {
       configured: false,
-      sizeBytes: 0,
-      limitBytes: 0,
-      buckets: [],
-      error: e instanceof Error ? e.message : "Erro desconhecido ao consultar Storage.",
+      usedBytes: 0,
+      totalBytes: 0,
+      availableBytes: 0,
+      uploadsBytes: 0,
+      error: e instanceof Error ? e.message : "Erro desconhecido ao consultar a VPS.",
     };
   }
 }
 
-function StorageUsageCard({ s }: { s?: StorageUsage }) {
+function StorageUsageCard({ s }: { s?: ServerStorage }) {
   if (!s) return null;
   if (!s.configured) {
     return (
@@ -263,15 +320,14 @@ function StorageUsageCard({ s }: { s?: StorageUsage }) {
               Uso do espaço do servidor — indisponível
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {s.error ??
-                "Não foi possível medir o Storage do Supabase agora. Configure SUPABASE_SERVICE_ROLE_KEY no Vercel/local e tente novamente."}
+              {s.error ?? "Não foi possível medir o disco da VPS agora."}
             </p>
           </div>
         </div>
       </div>
     );
   }
-  const pct = s.limitBytes > 0 ? (s.sizeBytes / s.limitBytes) * 100 : 0;
+  const pct = s.totalBytes > 0 ? (s.usedBytes / s.totalBytes) * 100 : 0;
   const warn = pct >= 80;
   const critical = pct >= 95;
   const barColor = critical ? "bg-destructive" : warn ? "bg-amber-500" : "bg-primary";
@@ -290,7 +346,7 @@ function StorageUsageCard({ s }: { s?: StorageUsage }) {
           </span>
         </div>
         <span className="text-xs text-muted-foreground">
-          {formatMB(s.sizeBytes)} / {formatMB(s.limitBytes)}
+          {formatMB(s.usedBytes)} / {formatMB(s.totalBytes)}
         </span>
       </div>
       <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -312,16 +368,10 @@ function StorageUsageCard({ s }: { s?: StorageUsage }) {
           </span>
         )}
       </div>
-      {s.buckets.length > 0 && (
-        <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground">
-          {s.buckets.map((b) => (
-            <li key={b.name} className="flex items-center justify-between">
-              <span className="truncate">{b.name}</span>
-              <span>{formatMB(b.bytes)}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="mt-3 flex justify-between text-[11px] text-muted-foreground">
+        <span>Uploads da Arteno</span>
+        <span>{formatMB(s.uploadsBytes)}</span>
+      </div>
     </div>
   );
 }
@@ -339,11 +389,10 @@ function DbUsageCard({ db }: { db?: DbSize }) {
               Uso do banco de dados — configuração pendente
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Rode o SQL abaixo no Supabase (SQL Editor) para habilitar o
-              indicador de uso do banco:
+              Rode o SQL abaixo no Supabase (SQL Editor) para habilitar o indicador de uso do banco:
             </p>
             <pre className="mt-3 overflow-auto rounded-md bg-black/80 p-3 text-[11px] leading-relaxed text-emerald-200">
-{`create or replace function public.db_size_info()
+              {`create or replace function public.db_size_info()
 returns table (size_bytes bigint, limit_bytes bigint)
 language sql stable security definer set search_path = public as $$
   select pg_database_size(current_database())::bigint,
@@ -353,11 +402,7 @@ $$;
 revoke all on function public.db_size_info() from public, anon;
 grant execute on function public.db_size_info() to authenticated;`}
             </pre>
-            {db.error && (
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                Erro: {db.error}
-              </p>
-            )}
+            {db.error && <p className="mt-2 text-[11px] text-muted-foreground">Erro: {db.error}</p>}
           </div>
         </div>
       </div>
@@ -367,11 +412,7 @@ grant execute on function public.db_size_info() to authenticated;`}
   const pct = db.limitBytes > 0 ? (db.sizeBytes / db.limitBytes) * 100 : 0;
   const warn = pct >= 80;
   const critical = pct >= 95;
-  const barColor = critical
-    ? "bg-destructive"
-    : warn
-      ? "bg-amber-500"
-      : "bg-primary";
+  const barColor = critical ? "bg-destructive" : warn ? "bg-amber-500" : "bg-primary";
   const borderColor = critical
     ? "border-destructive/50 bg-destructive/5"
     : warn
@@ -398,9 +439,7 @@ grant execute on function public.db_size_info() to authenticated;`}
         />
       </div>
       <div className="mt-2 flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">
-          {pct.toFixed(1)}% utilizado
-        </span>
+        <span className="text-xs text-muted-foreground">{pct.toFixed(1)}% utilizado</span>
         {warn && (
           <span
             className={`inline-flex items-center gap-1 text-xs font-medium ${
@@ -418,26 +457,41 @@ grant execute on function public.db_size_info() to authenticated;`}
   );
 }
 
-async function fetchOrdersSummary(): Promise<OrdersSummary> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) return { configured: false, open: 0, done: 0 };
-  const res = await fetch("/api/wc/orders-summary", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) return { configured: false, open: 0, done: 0 };
-  const json = (await res.json()) as OrdersSummary & { error?: string };
-  if (json.error) console.warn("[wc/orders-summary]", json.error);
-  return json;
+async function fetchBusinessMetrics(): Promise<BusinessMetrics> {
+  const start = new Date();
+  start.setMonth(start.getMonth() - 11, 1);
+  start.setHours(0, 0, 0, 0);
+  const [quotesResult, appOrdersResult] = await Promise.all([
+    supabase
+      .from("orders" as never)
+      .select("created_at")
+      .gte("created_at", start.toISOString()),
+    supabase.from("app_orders" as never).select("status"),
+  ]);
+  if (quotesResult.error) throw new Error(quotesResult.error.message);
+  if (appOrdersResult.error) throw new Error(appOrdersResult.error.message);
+
+  const monthly = new Map<string, number>();
+  for (const row of (quotesResult.data ?? []) as unknown as Array<{ created_at: string }>) {
+    const month = row.created_at.slice(0, 7);
+    monthly.set(month, (monthly.get(month) ?? 0) + 1);
+  }
+  const appOrders = (appOrdersResult.data ?? []) as unknown as Array<{ status: string }>;
+  return {
+    quotes: (quotesResult.data ?? []).length,
+    openOrders: appOrders.filter(
+      (row) => !["completed", "cancelled", "refunded", "failed"].includes(row.status),
+    ).length,
+    monthlyQuotes: Array.from(monthly, ([month, quotes]) => ({ month, quotes })),
+  };
 }
 
-const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-
-const trafficData = MONTHS.map((m, i) => ({
-  month: m,
-  views: Math.round(1200 + Math.sin(i / 1.6) * 380 + i * 90),
-  quotes: Math.round(40 + Math.cos(i / 1.4) * 18 + i * 3),
-}));
+function monthLabel(month: string) {
+  const [year, value] = month.split("-");
+  return new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(
+    new Date(Number(year), Number(value) - 1, 1),
+  );
+}
 
 function Kpi({
   label,
@@ -463,16 +517,10 @@ function Kpi({
         </span>
       </div>
       <div className="mt-4 flex items-end justify-between">
-        <span className="text-3xl font-semibold tracking-tight text-foreground">
-          {value}
-        </span>
+        <span className="text-3xl font-semibold tracking-tight text-foreground">{value}</span>
         <span
           className={`inline-flex items-center gap-1 text-xs font-medium ${
-            isNeutral
-              ? "text-muted-foreground"
-              : isNegative
-                ? "text-red-600"
-                : "text-emerald-600"
+            isNeutral ? "text-muted-foreground" : isNegative ? "text-red-600" : "text-emerald-600"
           }`}
         >
           {isNeutral ? null : isNegative ? (
@@ -493,9 +541,9 @@ function DashboardOverview() {
     queryFn: fetchStats,
     staleTime: 60_000,
   });
-  const { data: orders } = useQuery({
-    queryKey: ["dashboard", "wc-orders"],
-    queryFn: fetchOrdersSummary,
+  const { data: business } = useQuery({
+    queryKey: ["dashboard", "business-metrics"],
+    queryFn: fetchBusinessMetrics,
     staleTime: 60_000,
   });
   const { data: dbSize } = useQuery({
@@ -504,8 +552,8 @@ function DashboardOverview() {
     staleTime: 5 * 60_000,
   });
   const { data: storageUsage } = useQuery({
-    queryKey: ["dashboard", "storage-usage"],
-    queryFn: fetchStorageUsage,
+    queryKey: ["dashboard", "server-storage"],
+    queryFn: fetchServerStorage,
     staleTime: 5 * 60_000,
   });
   const { data: imageSources } = useQuery({
@@ -522,13 +570,24 @@ function DashboardOverview() {
   const fmt = (n?: number) => (typeof n === "number" ? n.toLocaleString("pt-BR") : "—");
   const fmtDelta = (d?: number) =>
     typeof d === "number" ? `${d > 0 ? "+" : ""}${d.toFixed(1)}%` : "—";
+  const chartMonths = Array.from({ length: 12 }, (_, index) => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - (11 - index), 1);
+    const month = date.toISOString().slice(0, 7);
+    const traffic = gsc?.monthlyTraffic?.find((row) => row.month === month);
+    const quotes = business?.monthlyQuotes.find((row) => row.month === month)?.quotes ?? 0;
+    return {
+      month: monthLabel(month),
+      clicks: traffic?.clicks ?? null,
+      impressions: traffic?.impressions ?? null,
+      quotes,
+    };
+  });
 
   return (
     <>
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Visão geral
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Visão geral</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {gsc?.configured
             ? "Últimos 30 dias — dados reais do Google Search Console."
@@ -549,8 +608,8 @@ function DashboardOverview() {
           delta={gsc?.configured ? fmtDelta(gsc.deltaImpressions) : "—"}
           icon={Search}
         />
-        <Kpi label="Orçamentos" value="238" delta="+8,1%" icon={FileText} />
-        <Kpi label="Pedidos em aberto" value={orders?.open ?? "—"} delta={orders?.configured ? "WC" : "—"} icon={Clock} />
+        <Kpi label="Orçamentos (12m)" value={business?.quotes ?? "—"} delta="—" icon={FileText} />
+        <Kpi label="Pedidos em aberto" value={business?.openOrders ?? "—"} delta="—" icon={Clock} />
         <Kpi label="Produtos ativos" value={stats?.products ?? "—"} delta="—" icon={Package} />
       </div>
 
@@ -576,7 +635,8 @@ function DashboardOverview() {
                   {p.url.replace(/^https?:\/\/[^/]+/, "")}
                 </a>
                 <span className="shrink-0 text-xs text-muted-foreground">
-                  {p.clicks.toLocaleString("pt-BR")} cliques · {p.impressions.toLocaleString("pt-BR")} impr.
+                  {p.clicks.toLocaleString("pt-BR")} cliques ·{" "}
+                  {p.impressions.toLocaleString("pt-BR")} impr.
                 </span>
               </li>
             ))}
@@ -588,14 +648,11 @@ function DashboardOverview() {
       <StorageUsageCard s={storageUsage} />
       <ProductImageSourcesCard s={imageSources} />
 
-      <DashboardSection
-        title="Tráfego e orçamentos"
-        description="Últimos 12 meses"
-      >
+      <DashboardSection title="Tráfego e orçamentos" description="Últimos 12 meses">
         <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
           <div className="h-[320px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trafficData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <AreaChart data={chartMonths} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="views" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#2a4a2f" stopOpacity={0.35} />
@@ -607,8 +664,19 @@ function DashboardOverview() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                <XAxis
+                  dataKey="month"
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
                 <Tooltip
                   contentStyle={{
                     background: "hsl(var(--card))",
@@ -617,8 +685,23 @@ function DashboardOverview() {
                     fontSize: 12,
                   }}
                 />
-                <Area type="monotone" dataKey="views" name="Visitas" stroke="#2a4a2f" strokeWidth={2} fill="url(#views)" />
-                <Area type="monotone" dataKey="quotes" name="Orçamentos" stroke="#5a8c3a" strokeWidth={2} fill="url(#quotes)" />
+                <Area
+                  type="monotone"
+                  dataKey="clicks"
+                  name="Cliques no Google"
+                  stroke="#2a4a2f"
+                  strokeWidth={2}
+                  fill="url(#views)"
+                  connectNulls={false}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="quotes"
+                  name="Orçamentos"
+                  stroke="#5a8c3a"
+                  strokeWidth={2}
+                  fill="url(#quotes)"
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -649,7 +732,9 @@ function DashboardOverview() {
                         <tr key={q.query} className="border-t border-border/60">
                           <td className="py-2 text-foreground">{q.query}</td>
                           <td className="py-2 text-right">{q.clicks.toLocaleString("pt-BR")}</td>
-                          <td className="py-2 text-right">{q.impressions.toLocaleString("pt-BR")}</td>
+                          <td className="py-2 text-right">
+                            {q.impressions.toLocaleString("pt-BR")}
+                          </td>
                           <td className="py-2 text-right">{q.ctr.toFixed(1)}%</td>
                           <td className="py-2 text-right">{q.position.toFixed(1)}</td>
                         </tr>
@@ -662,7 +747,6 @@ function DashboardOverview() {
           </div>
         )}
       </div>
-
     </>
   );
 }

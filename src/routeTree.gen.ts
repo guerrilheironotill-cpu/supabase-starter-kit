@@ -48,6 +48,7 @@ import { Route as DashboardCategoriasRouteImport } from './routes/dashboard.cate
 import { Route as DashboardAcabamentosRouteImport } from './routes/dashboard.acabamentos'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 import { Route as ApiStorageUsageRouteImport } from './routes/api/storage-usage'
+import { Route as ApiServerStorageRouteImport } from './routes/api/server-storage'
 import { Route as ApiProductImageSourcesRouteImport } from './routes/api/product-image-sources'
 import { Route as ApiImportProductImagesRouteImport } from './routes/api/import-product-images'
 import { Route as ApiHealthEnvRouteImport } from './routes/api/health-env'
@@ -259,6 +260,11 @@ const ApiStorageUsageRoute = ApiStorageUsageRouteImport.update({
   path: '/api/storage-usage',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiServerStorageRoute = ApiServerStorageRouteImport.update({
+  id: '/api/server-storage',
+  path: '/api/server-storage',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiProductImageSourcesRoute = ApiProductImageSourcesRouteImport.update({
   id: '/api/product-image-sources',
   path: '/api/product-image-sources',
@@ -361,6 +367,7 @@ export interface FileRoutesByFullPath {
   '/api/health-env': typeof ApiHealthEnvRoute
   '/api/import-product-images': typeof ApiImportProductImagesRoute
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
+  '/api/server-storage': typeof ApiServerStorageRoute
   '/api/storage-usage': typeof ApiStorageUsageRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
@@ -416,6 +423,7 @@ export interface FileRoutesByTo {
   '/api/health-env': typeof ApiHealthEnvRoute
   '/api/import-product-images': typeof ApiImportProductImagesRoute
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
+  '/api/server-storage': typeof ApiServerStorageRoute
   '/api/storage-usage': typeof ApiStorageUsageRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
@@ -472,6 +480,7 @@ export interface FileRoutesById {
   '/api/health-env': typeof ApiHealthEnvRoute
   '/api/import-product-images': typeof ApiImportProductImagesRoute
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
+  '/api/server-storage': typeof ApiServerStorageRoute
   '/api/storage-usage': typeof ApiStorageUsageRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
@@ -530,6 +539,7 @@ export interface FileRouteTypes {
     | '/api/health-env'
     | '/api/import-product-images'
     | '/api/product-image-sources'
+    | '/api/server-storage'
     | '/api/storage-usage'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
@@ -585,6 +595,7 @@ export interface FileRouteTypes {
     | '/api/health-env'
     | '/api/import-product-images'
     | '/api/product-image-sources'
+    | '/api/server-storage'
     | '/api/storage-usage'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
@@ -640,6 +651,7 @@ export interface FileRouteTypes {
     | '/api/health-env'
     | '/api/import-product-images'
     | '/api/product-image-sources'
+    | '/api/server-storage'
     | '/api/storage-usage'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
@@ -697,6 +709,7 @@ export interface RootRouteChildren {
   ApiHealthEnvRoute: typeof ApiHealthEnvRoute
   ApiImportProductImagesRoute: typeof ApiImportProductImagesRoute
   ApiProductImageSourcesRoute: typeof ApiProductImageSourcesRoute
+  ApiServerStorageRoute: typeof ApiServerStorageRoute
   ApiStorageUsageRoute: typeof ApiStorageUsageRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
   FeedsGoogleMerchantDotxmlRoute: typeof FeedsGoogleMerchantDotxmlRoute
@@ -983,6 +996,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStorageUsageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/server-storage': {
+      id: '/api/server-storage'
+      path: '/api/server-storage'
+      fullPath: '/api/server-storage'
+      preLoaderRoute: typeof ApiServerStorageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/product-image-sources': {
       id: '/api/product-image-sources'
       path: '/api/product-image-sources'
@@ -1188,6 +1208,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHealthEnvRoute: ApiHealthEnvRoute,
   ApiImportProductImagesRoute: ApiImportProductImagesRoute,
   ApiProductImageSourcesRoute: ApiProductImageSourcesRoute,
+  ApiServerStorageRoute: ApiServerStorageRoute,
   ApiStorageUsageRoute: ApiStorageUsageRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
   FeedsGoogleMerchantDotxmlRoute: FeedsGoogleMerchantDotxmlRoute,

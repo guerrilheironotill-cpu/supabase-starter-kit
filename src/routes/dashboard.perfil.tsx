@@ -5,10 +5,7 @@ import { Loader2, Save, ShieldAlert, UserCog, Mail, KeyRound } from "lucide-reac
 
 export const Route = createFileRoute("/dashboard/perfil")({
   head: () => ({
-    meta: [
-      { title: "Meu perfil — Dashboard" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Meu perfil — Dashboard" }, { name: "robots", content: "noindex" }],
   }),
   component: DashboardProfilePage,
 });
@@ -95,6 +92,13 @@ function DashboardProfilePage() {
       setPwdMsg({ kind: "err", text: "As senhas não coincidem." });
       return;
     }
+    if (!/[a-z]/.test(newPassword) || !/[A-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
+      setPwdMsg({
+        kind: "err",
+        text: "Use ao menos uma letra maiúscula, uma minúscula e um número.",
+      });
+      return;
+    }
     setPwdSaving(true);
     setPwdMsg(null);
     const { error } = await supabase.auth.updateUser({ password: newPassword });
@@ -138,9 +142,7 @@ function DashboardProfilePage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 space-y-10">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-primary">
-          Meu perfil
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-primary">Meu perfil</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Atualize seus dados pessoais, e-mail de acesso e senha.
         </p>
@@ -162,7 +164,9 @@ function DashboardProfilePage() {
           />
         </label>
         {profileMsg && (
-          <p className={`text-xs ${profileMsg.kind === "ok" ? "text-primary" : "text-destructive"}`}>
+          <p
+            className={`text-xs ${profileMsg.kind === "ok" ? "text-primary" : "text-destructive"}`}
+          >
             {profileMsg.text}
           </p>
         )}
@@ -171,7 +175,11 @@ function DashboardProfilePage() {
           disabled={profileSaving}
           className="inline-flex items-center gap-2 bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
         >
-          {profileSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {profileSaving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
           Salvar perfil
         </button>
       </form>
@@ -204,7 +212,11 @@ function DashboardProfilePage() {
           disabled={emailSaving}
           className="inline-flex items-center gap-2 bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
         >
-          {emailSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {emailSaving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
           Alterar e-mail
         </button>
       </form>
@@ -213,6 +225,10 @@ function DashboardProfilePage() {
         <h2 className="flex items-center gap-2 text-sm font-medium uppercase tracking-widest text-primary">
           <KeyRound className="h-4 w-4" /> Senha
         </h2>
+        <p className="text-xs text-muted-foreground">
+          Use pelo menos 8 caracteres, com letra maiúscula, minúscula e número. A alteração vale
+          imediatamente.
+        </p>
         <label className="block">
           <span className="block text-xs font-medium uppercase tracking-widest text-muted-foreground">
             Nova senha
