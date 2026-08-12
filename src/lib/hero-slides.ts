@@ -56,11 +56,16 @@ export async function fetchHeroSlides(): Promise<HeroSlide[]> {
     if (!r.ok) return DEFAULT_SLIDES;
     const json = (await r.json()) as HeroSlide[];
     if (!Array.isArray(json) || json.length === 0) return DEFAULT_SLIDES;
-    return json.map((slide) =>
-      slide.ctaLabel.trim().toLocaleLowerCase("pt-BR") === "ver vasos" && slide.ctaHref === "/"
+    return json.map((slide) => {
+      const normalizedLabel = slide.ctaLabel
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toLocaleLowerCase("pt-BR");
+      return normalizedLabel.includes("vasos")
         ? { ...slide, ctaHref: "/categoria/vasos-de-concreto" }
-        : slide,
-    );
+        : slide;
+    });
   } catch {
     return DEFAULT_SLIDES;
   }

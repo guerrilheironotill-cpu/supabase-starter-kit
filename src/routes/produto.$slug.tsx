@@ -10,8 +10,6 @@ import {
 } from "@/lib/products";
 import { ChevronLeft, ChevronRight, Download, MessageCircle, Minus, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { useQuoteStore } from "@/lib/quote-store";
 import { AdminEditBar } from "@/components/admin-edit-bar";
 import {
@@ -22,7 +20,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ProductRelatedSection } from "@/components/ProductRelatedSection";
-import { AvailableColorsSection, AvailableFinishesSection } from "@/components/available-finishes-section";
+import {
+  AvailableColorsSection,
+  AvailableFinishesSection,
+} from "@/components/available-finishes-section";
 import { openCatalogDownload } from "@/components/catalog-download-dialog";
 import { absoluteUrl } from "@/lib/site-config";
 import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
@@ -36,9 +37,7 @@ export const Route = createFileRoute("/produto/$slug")({
   head: ({ loaderData }) => ({
     meta: [
       {
-        title: loaderData
-          ? `${loaderData.product.name} — Arteno`
-          : "Produto — Arteno",
+        title: loaderData ? `${loaderData.product.name} — Arteno` : "Produto — Arteno",
       },
       {
         name: "description",
@@ -63,17 +62,17 @@ export const Route = createFileRoute("/produto/$slug")({
       ? [{ rel: "canonical", href: absoluteUrl(`/produto/${loaderData.product.slug}`) }]
       : [],
     scripts: loaderData
-      ? [{
-          type: "application/ld+json",
-          children: JSON.stringify(productStructuredData(loaderData.product)),
-        }]
+      ? [
+          {
+            type: "application/ld+json",
+            children: JSON.stringify(productStructuredData(loaderData.product)),
+          },
+        ]
       : [],
   }),
   notFoundComponent: () => (
     <div className="mx-auto max-w-4xl px-4 py-20 text-center">
-      <h1 className="font-display text-3xl text-primary">
-        Produto não encontrado
-      </h1>
+      <h1 className="font-display text-3xl text-primary">Produto não encontrado</h1>
       <Link
         to="/"
         className="mt-6 inline-flex rounded-full bg-primary px-5 py-2 text-sm text-primary-foreground"
@@ -98,24 +97,10 @@ export const Route = createFileRoute("/produto/$slug")({
 
 function productStructuredData(product: ProductDetail) {
   const url = absoluteUrl(`/produto/${product.slug}`);
-  const prices = product.product_sizes
-    .map((size) => size.sale_price ?? size.base_price)
-    .filter((price) => Number.isFinite(price) && price > 0);
   const images = product.images
     .filter(Boolean)
-    .map((image) => image.startsWith("http") ? image : absoluteUrl(image));
+    .map((image) => (image.startsWith("http") ? image : absoluteUrl(image)));
   const description = productDescriptionToText(product.description ?? "").slice(0, 5000);
-  const offers = prices.length
-    ? {
-        "@type": "AggregateOffer",
-        priceCurrency: "BRL",
-        lowPrice: Math.min(...prices),
-        highPrice: Math.max(...prices),
-        offerCount: product.product_sizes.length,
-        availability: "https://schema.org/InStock",
-        url,
-      }
-    : undefined;
 
   return {
     "@context": "https://schema.org",
@@ -129,7 +114,6 @@ function productStructuredData(product: ProductDetail) {
         category: product.category,
         brand: { "@type": "Brand", name: "Arteno" },
         url,
-        offers,
       },
       {
         "@type": "BreadcrumbList",
@@ -159,18 +143,7 @@ function productStructuredData(product: ProductDetail) {
   };
 }
 
-function formatBRL(n: number) {
-  return n.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
-}
-
-function parseDims(
-  name: string,
-): { altura: string; largura: string; comprimento: string } | null {
+function parseDims(name: string): { altura: string; largura: string; comprimento: string } | null {
   // Accept formats like "50x40x30 cm" or "50 cm × 40 cm × 30 cm".
   const m = name.match(
     /(\d+(?:[.,]\d+)?)(?:\s*cm)?\s*[×x]\s*(\d+(?:[.,]\d+)?)(?:\s*cm)?\s*[×x]\s*(\d+(?:[.,]\d+)?)(?:\s*cm)?/i,
@@ -262,16 +235,6 @@ function ProductPage() {
   const sizes: ProductSize[] = [...(p.product_sizes ?? [])].sort(
     (a, b) => a.sort_order - b.sort_order,
   );
-  const effectivePrices = sizes.map((s) => s.sale_price ?? s.base_price);
-  const priceMin = effectivePrices.length ? Math.min(...effectivePrices) : null;
-  const priceMax = effectivePrices.length ? Math.max(...effectivePrices) : null;
-  const hasDiscount = sizes.some(
-    (s) => s.sale_price !== null && s.sale_price < s.base_price,
-  );
-  const basePrices = sizes.map((s) => s.base_price);
-  const baseMin = basePrices.length ? Math.min(...basePrices) : null;
-  const baseMax = basePrices.length ? Math.max(...basePrices) : null;
-
   const images = p.images ?? [];
   const description = productDescriptionToText(p.description);
 
@@ -286,38 +249,19 @@ function ProductPage() {
       ...finish,
       extra_price: finishCatalog.find((term) => term.name === finish.name)?.extra_price ?? 0,
     }));
-  const colors = [...(p.product_colors ?? [])].sort(
-    (a, b) => a.sort_order - b.sort_order,
-  );
+  const colors = [...(p.product_colors ?? [])].sort((a, b) => a.sort_order - b.sort_order);
 
   const addItem = useQuoteStore((s) => s.addItem);
-  const [selectedSizeId, setSelectedSizeId] = useState<string>(
-    sizes[0]?.id ?? "",
-  );
+  const [selectedSizeId, setSelectedSizeId] = useState<string>(sizes[0]?.id ?? "");
   const [selectedFinish, setSelectedFinish] = useState<string>("");
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [qty, setQty] = useState<number>(1);
   const [open, setOpen] = useState(false);
+  const [addedOpen, setAddedOpen] = useState(false);
+  const [addedDescription, setAddedDescription] = useState("");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const selectedSize = sizes.find((size) => size.id === selectedSizeId);
   const selectedFinishExtra =
     finishes.find((finish) => finish.name === selectedFinish)?.extra_price ?? 0;
-  const selectedUnitPrice = selectedSize
-    ? (selectedSize.sale_price ?? selectedSize.base_price) + selectedFinishExtra
-    : 0;
-
-  useEffect(() => {
-    (async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return;
-      const { data } = await supabase.rpc("has_role", {
-        _user_id: userData.user.id,
-        _role: "admin",
-      });
-      setIsAdmin(!!data);
-    })();
-  }, []);
 
   function openProductConfiguration(sizeId: string) {
     setSelectedSizeId(sizeId);
@@ -343,13 +287,20 @@ function ProductPage() {
       color: selectedColor || undefined,
       unitPrice: (s.sale_price ?? s.base_price) + selectedFinishExtra,
     });
+    setAddedDescription(
+      `${p.name}, tamanho ${sizeCode(idx, sizes.length)}${selectedFinish ? `, acabamento ${selectedFinish}` : ""}`,
+    );
     setOpen(false);
-    toast.success(`${p.name} adicionado ao orçamento.`, { duration: 3500 });
+    setAddedOpen(true);
   }
 
   return (
     <>
-      <AdminEditBar label="Editar produto" to="/dashboard/editar-produto/$productId" params={{ productId: p.id }} />
+      <AdminEditBar
+        label="Editar produto"
+        to="/dashboard/editar-produto/$productId"
+        params={{ productId: p.id }}
+      />
       <section className="bg-background py-8 sm:py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-8">
           <nav aria-label="Breadcrumb" className="text-xs text-primary/60">
@@ -397,37 +348,17 @@ function ProductPage() {
 
           {/* Info — sticky until last image passes */}
           <div className="min-w-0 lg:sticky lg:top-24">
-            <h1 className="font-display text-3xl text-primary sm:text-4xl">
-              {p.name}
-            </h1>
-
-            {priceMin !== null && priceMax !== null && (
-              <div className="mt-4">
-                {hasDiscount && baseMin !== null && baseMax !== null && (
-                  <div className="text-sm text-primary/50 line-through">
-                    {baseMin === baseMax
-                      ? formatBRL(baseMin)
-                      : `${formatBRL(baseMin)} até ${formatBRL(baseMax)}`}
-                  </div>
-                )}
-                <div className="font-display text-3xl text-primary">
-                  {priceMin === priceMax
-                    ? formatBRL(priceMin)
-                    : `${formatBRL(priceMin)} até ${formatBRL(priceMax)}`}
-                </div>
-                {isAdmin && (
-                  <div className="text-xs text-primary/60 mt-1">
-                    Preço revendedor: {priceMin === priceMax
-                      ? formatBRL(priceMin * 0.7)
-                      : `${formatBRL(priceMin * 0.7)} até ${formatBRL(priceMax * 0.7)}`}
-                  </div>
-                )}
-              </div>
-            )}
+            <h1 className="font-display text-3xl text-primary sm:text-4xl">{p.name}</h1>
 
             {description && (
-              <section className="mt-8 border-t border-primary/10 pt-6" aria-labelledby="product-description-title">
-                <h2 id="product-description-title" className="mb-3 font-display text-xl font-semibold text-primary">
+              <section
+                className="mt-8 border-t border-primary/10 pt-6"
+                aria-labelledby="product-description-title"
+              >
+                <h2
+                  id="product-description-title"
+                  className="mb-3 font-display text-xl font-semibold text-primary"
+                >
                   Descrição do produto
                 </h2>
                 <p className="whitespace-pre-line text-base leading-relaxed text-primary/80">
@@ -450,21 +381,18 @@ function ProductPage() {
                         <th className="px-4 py-3">Larg.</th>
                         <th className="px-4 py-3">Comp.</th>
                         <th className="px-4 py-3">Estoque</th>
-                        <th className="px-4 py-3 text-center"><span className="sr-only">Adicionar</span></th>
+                        <th className="px-4 py-3 text-center">
+                          <span className="sr-only">Adicionar</span>
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="text-primary">
                       {sizes.map((s, i) => {
                         // Use the raw size field when the name does not contain dimensions.
-                        const dims = parseDims(s.name ?? (s as any).size ?? "");
+                        const dims = parseDims(s.name ?? s.size ?? "");
                         return (
-                          <tr
-                            key={s.id}
-                            className="border-t border-primary/10"
-                          >
-                            <td className="px-4 py-3 font-medium">
-                              {sizeCode(i, sizes.length)}
-                            </td>
+                          <tr key={s.id} className="border-t border-primary/10">
+                            <td className="px-4 py-3 font-medium">{sizeCode(i, sizes.length)}</td>
                             <td className="px-4 py-3 text-primary/80">
                               {dims ? dims.altura : "—"}
                             </td>
@@ -474,9 +402,8 @@ function ProductPage() {
                             <td className="px-4 py-3 text-primary/80">
                               {dims ? dims.comprimento : "—"}
                             </td>
-                            <td className="px-4 py-3 text-primary/80">
-                              Sob Encomenda
-                            </td>                            <td className="px-4 py-3 text-center">
+                            <td className="px-4 py-3 text-primary/80">Sob Encomenda</td>{" "}
+                            <td className="px-4 py-3 text-center">
                               <button
                                 type="button"
                                 onClick={() => openProductConfiguration(s.id)}
@@ -498,13 +425,11 @@ function ProductPage() {
                     </tbody>
                   </table>
                 </div>
-
               </div>
             )}
 
             {/* Botões sempre visíveis */}
             <div className="mt-6 flex gap-3">
-              
               <button
                 type="button"
                 onClick={openCatalogDownload}
@@ -515,14 +440,16 @@ function ProductPage() {
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  window.dispatchEvent(new CustomEvent("arteno:open-whatsapp"))
-                }
+                onClick={() => window.dispatchEvent(new CustomEvent("arteno:open-whatsapp"))}
                 className="inline-flex flex-1 items-center justify-center gap-2 border border-[#2a2f2c] bg-white px-5 py-3 text-sm font-medium text-[#2a2f2c] transition-colors hover:bg-[#2a2f2c] hover:text-white cursor-pointer"
               >
                 <MessageCircle className="h-4 w-4" />
                 Suporte WhatsApp
               </button>
+            </div>
+            <div className="mt-4 border border-primary/15 bg-primary/5 px-4 py-3 text-sm leading-relaxed text-primary/80">
+              Para ver os preços, adicione os produtos ao orçamento pelo botão + e finalize sua
+              solicitação.
             </div>
           </div>
         </div>
@@ -532,14 +459,13 @@ function ProductPage() {
       <AvailableColorsSection availableNames={colors.map((color) => color.name)} />
 
       {p.category && (
-        <ProductRelatedSection
-          currentProductId={p.id}
-          category={p.category}
-          limit={8}
-        />
+        <ProductRelatedSection currentProductId={p.id} category={p.category} limit={8} />
       )}
 
-      <Dialog open={lightboxIndex !== null} onOpenChange={(isOpen) => !isOpen && setLightboxIndex(null)}>
+      <Dialog
+        open={lightboxIndex !== null}
+        onOpenChange={(isOpen) => !isOpen && setLightboxIndex(null)}
+      >
         <DialogContent className="max-h-[94vh] max-w-6xl overflow-hidden border-primary/10 bg-white p-0 text-primary sm:rounded-2xl">
           <DialogHeader className="sr-only">
             <DialogTitle>Galeria de {p.name}</DialogTitle>
@@ -547,13 +473,29 @@ function ProductPage() {
           {lightboxIndex !== null && images[lightboxIndex] && (
             <div className="flex max-h-[94vh] flex-col bg-white">
               <div className="relative flex min-h-0 flex-1 items-center justify-center bg-white px-4 pb-3 pt-12 sm:px-8">
-                <img src={images[lightboxIndex]} alt={`${p.name} — imagem ${lightboxIndex + 1}`} className="max-h-[72vh] max-w-full object-contain" />
+                <img
+                  src={images[lightboxIndex]}
+                  alt={`${p.name} — imagem ${lightboxIndex + 1}`}
+                  className="max-h-[72vh] max-w-full object-contain"
+                />
                 {images.length > 1 && (
                   <>
-                    <button type="button" onClick={() => setLightboxIndex((lightboxIndex - 1 + images.length) % images.length)} className="absolute left-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-primary shadow-md ring-1 ring-primary/10 hover:bg-neutral-50 sm:left-5" aria-label="Imagem anterior">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setLightboxIndex((lightboxIndex - 1 + images.length) % images.length)
+                      }
+                      className="absolute left-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-primary shadow-md ring-1 ring-primary/10 hover:bg-neutral-50 sm:left-5"
+                      aria-label="Imagem anterior"
+                    >
                       <ChevronLeft className="h-6 w-6" />
                     </button>
-                    <button type="button" onClick={() => setLightboxIndex((lightboxIndex + 1) % images.length)} className="absolute right-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-primary shadow-md ring-1 ring-primary/10 hover:bg-neutral-50 sm:right-5" aria-label="Próxima imagem">
+                    <button
+                      type="button"
+                      onClick={() => setLightboxIndex((lightboxIndex + 1) % images.length)}
+                      className="absolute right-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-primary shadow-md ring-1 ring-primary/10 hover:bg-neutral-50 sm:right-5"
+                      aria-label="Próxima imagem"
+                    >
                       <ChevronRight className="h-6 w-6" />
                     </button>
                   </>
@@ -562,12 +504,20 @@ function ProductPage() {
               <div className="border-t border-primary/10 bg-white px-5 py-4">
                 <div className="flex items-center justify-between gap-4">
                   <p className="font-display text-lg font-semibold text-primary">{p.name}</p>
-                  <span className="text-xs text-primary/55">{lightboxIndex + 1} / {images.length}</span>
+                  <span className="text-xs text-primary/55">
+                    {lightboxIndex + 1} / {images.length}
+                  </span>
                 </div>
                 {images.length > 1 && (
                   <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
                     {images.map((url, index) => (
-                      <button key={url + index} type="button" onClick={() => setLightboxIndex(index)} className={`h-16 w-16 shrink-0 overflow-hidden rounded-md border-2 bg-white transition ${index === lightboxIndex ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"}`} aria-label={`Abrir imagem ${index + 1}`}>
+                      <button
+                        key={url + index}
+                        type="button"
+                        onClick={() => setLightboxIndex(index)}
+                        className={`h-16 w-16 shrink-0 overflow-hidden rounded-md border-2 bg-white transition ${index === lightboxIndex ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"}`}
+                        aria-label={`Abrir imagem ${index + 1}`}
+                      >
                         <img src={url} alt="" className="h-full w-full object-cover" />
                       </button>
                     ))}
@@ -607,10 +557,12 @@ function ProductPage() {
                   onChange={(e) => setSelectedFinish(e.target.value)}
                   className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 >
-                  <option value="" disabled>Selecione um acabamento</option>
+                  <option value="" disabled>
+                    Selecione um acabamento
+                  </option>
                   {finishes.map((f) => (
                     <option key={f.id} value={f.name}>
-                      {f.name}{f.extra_price > 0 ? ` (+ ${formatBRL(f.extra_price)})` : ""}
+                      {f.name}
                     </option>
                   ))}
                 </select>
@@ -624,7 +576,9 @@ function ProductPage() {
                   onChange={(e) => setSelectedColor(e.target.value)}
                   className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 >
-                  <option value="" disabled>Selecione uma cor</option>
+                  <option value="" disabled>
+                    Selecione uma cor
+                  </option>
                   {colors.map((c) => (
                     <option key={c.id} value={c.name}>
                       {c.name}
@@ -644,9 +598,7 @@ function ProductPage() {
                 >
                   <Minus className="h-3 w-3" />
                 </button>
-                <span className="w-8 text-center text-sm font-medium">
-                  {qty}
-                </span>
+                <span className="w-8 text-center text-sm font-medium">{qty}</span>
                 <button
                   type="button"
                   onClick={() => setQty((q) => q + 1)}
@@ -658,17 +610,6 @@ function ProductPage() {
               </div>
             </label>
           </div>
-          {selectedSize && (
-            <div className="border-t border-primary/10 pt-4 text-right">
-              <p className="text-xs uppercase tracking-wider text-primary/55">Valor unitário</p>
-              <p className="font-display text-2xl text-primary">{formatBRL(selectedUnitPrice)}</p>
-              {selectedFinishExtra > 0 && (
-                <p className="text-xs text-primary/60">
-                  Inclui {formatBRL(selectedFinishExtra)} do acabamento
-                </p>
-              )}
-            </div>
-          )}
           <DialogFooter>
             <button
               type="button"
@@ -681,11 +622,45 @@ function ProductPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-</>
+      <Dialog open={addedOpen} onOpenChange={setAddedOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Produto adicionado ao orçamento</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {addedDescription} adicionado ao carrinho.
+          </p>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => setAddedOpen(false)}
+              className="inline-flex flex-1 items-center justify-center border border-primary/20 px-4 py-2.5 text-sm font-medium text-primary hover:bg-primary/5"
+            >
+              Continuar comprando
+            </button>
+            <Link
+              to="/orcamento"
+              onClick={() => setAddedOpen(false)}
+              className="inline-flex flex-1 items-center justify-center bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              Finalizar orçamento
+            </Link>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
-function MobileGallery({ images, name, onOpen }: { images: string[]; name: string; onOpen: (index: number) => void }) {
+function MobileGallery({
+  images,
+  name,
+  onOpen,
+}: {
+  images: string[];
+  name: string;
+  onOpen: (index: number) => void;
+}) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
 

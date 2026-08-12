@@ -239,8 +239,23 @@ export async function buildCatalogPDF(
 
     for (const product of products) {
       const sizes = product.product_sizes ?? [];
-      const rowLineHeight = variant === "reseller" ? 17 : variant === "professional" ? 11 : 7;
-      const tableHeight = 12 + rowLineHeight * Math.max(1, sizes.length);
+      const rowLineHeight = 7;
+      const applicableFinishes = (product.product_finishes ?? [])
+        .map((relation) => snapshot.finishes.find((finish) => finish.name === relation.name))
+        .filter((finish): finish is AttributeTerm => Boolean(finish));
+      const priceFinishes = applicableFinishes.length
+        ? applicableFinishes
+        : [{ name: "Padrão", extra_price: 0 } as AttributeTerm];
+      const finishGroups = Array.from(
+        priceFinishes.reduce((groups, finish) => {
+          const key = Math.round((Number(finish.extra_price) || 0) * 100);
+          const group = groups.get(key) ?? { extraPrice: key / 100, names: [] as string[] };
+          group.names.push(finish.name);
+          groups.set(key, group);
+          return groups;
+        }, new Map<number, { extraPrice: number; names: string[] }>()),
+      ).map(([, group]) => group);
+      const tableHeight = finishGroups.length * (19 + rowLineHeight * Math.max(1, sizes.length));
       const rowHeight = Math.max(78, 32 + tableHeight);
       if (currentY + rowHeight > pageHeight - 16) {
         pdf.addPage();
@@ -273,101 +288,113 @@ export async function buildCatalogPDF(
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(13);
       pdf.text(pdf.splitTextToSize(product.name, textWidth).slice(0, 2), textX, currentY + 9);
-      const applicableFinishes = (product.product_finishes ?? [])
-        .map((relation) => snapshot.finishes.find((finish) => finish.name === relation.name))
-        .filter((finish): finish is AttributeTerm => Boolean(finish));
-      const priceFinishes = applicableFinishes.length
-        ? applicableFinishes
-        : [{ name: "Padrão", extra_price: 0 } as AttributeTerm];
       const tableX = textX;
-      const tableY = currentY + 20;
       const tableWidth = textWidth;
-      const sizeColumnWidth = Math.min(24, tableWidth * 0.25);
-      const finishColumnWidth = (tableWidth - sizeColumnWidth) / priceFinishes.length;
+      const dimensionWidth = Math.min(38, tableWidth * 0.42);
+      const dimensionCellWidth = dimensionWidth / 3;
+      const priceWidth = tableWidth - dimensionWidth;
+      const priceHeaders =
+        variant === "reseller"
+          ? ["Referência", "25%", "30%", "35%"]
+          : variant === "professional"
+            ? ["Referência", "Prof. 15%"]
+            : ["Preço"];
+      const priceCellWidth = priceWidth / priceHeaders.length;
       const headerHeight = 12;
+      const brl = (value: number) => `R$ ${value.toFixed(2).replace(".", ",")}`;
+      let tableY = currentY + 20;
 
-      pdf.setFillColor(246, 248, 245);
-      pdf.rect(tableX, tableY, tableWidth, headerHeight, "F");
-      pdf.setDrawColor(218, 222, 218);
-      pdf.setLineWidth(0.25);
-      pdf.rect(
-        tableX,
-        tableY,
-        tableWidth,
-        headerHeight + rowLineHeight * Math.max(1, sizes.length),
-        "S",
-      );
-      pdf.line(
-        tableX + sizeColumnWidth,
-        tableY,
-        tableX + sizeColumnWidth,
-        tableY + headerHeight + rowLineHeight * Math.max(1, sizes.length),
-      );
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(6.5);
-      pdf.setTextColor(65, 72, 67);
-      pdf.text("Altura × Largura × Comprimento (cm)", tableX + 2, tableY + 7);
-      priceFinishes.forEach((finish, finishIndex) => {
-        const columnX = tableX + sizeColumnWidth + finishColumnWidth * finishIndex;
-        if (finishIndex > 0) {
-          pdf.line(
-            columnX,
-            tableY,
-            columnX,
-            tableY + headerHeight + rowLineHeight * Math.max(1, sizes.length),
-          );
+      finishGroups.forEach((group) => {
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(42, 47, 44);
+        const title = `${group.names.length > 1 ? "Acabamentos" : "Acabamento"}: ${group.names.join(", ")}`;
+        pdf.text(pdf.splitTextToSize(title, tableWidth).slice(0, 1), tableX, tableY + 4);
+        tableY += 7;
+        const bodyHeight = headerHeight + rowLineHeight * Math.max(1, sizes.length);
+        pdf.setFillColor(246, 248, 245);
+        pdf.rect(tableX, tableY, tableWidth, headerHeight, "F");
+        pdf.setDrawColor(218, 222, 218);
+        pdf.setLineWidth(0.25);
+        pdf.rect(tableX, tableY, tableWidth, bodyHeight, "S");
+        pdf.line(tableX + dimensionWidth, tableY, tableX + dimensionWidth, tableY + bodyHeight);
+        for (let column = 1; column < priceHeaders.length; column += 1) {
+          const x = tableX + dimensionWidth + priceCellWidth * column;
+          pdf.line(x, tableY, x, tableY + bodyHeight);
         }
-        const labelLines = pdf
-          .splitTextToSize(finish.name, Math.max(8, finishColumnWidth - 2))
-          .slice(0, 2);
-        pdf.text(labelLines, columnX + finishColumnWidth / 2, tableY + 5, { align: "center" });
-      });
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(6.5);
-      sizes.forEach((size, sizeIndex) => {
-        const rowY = tableY + headerHeight + rowLineHeight * sizeIndex;
-        pdf.line(tableX, rowY, tableX + tableWidth, rowY);
-        const rawSize = size.size || size.name || "Único";
-        const dimensions = parseDims(rawSize);
-        const sizeLabel = dimensions
-          ? `${dimensions.altura} × ${dimensions.largura} × ${dimensions.comprimento}`
-          : rawSize;
-        pdf.text(
-          pdf.splitTextToSize(sizeLabel, sizeColumnWidth - 3).slice(0, 1),
-          tableX + 2,
-          rowY + rowLineHeight * 0.68,
+        pdf.line(tableX, tableY + 6, tableX + dimensionWidth, tableY + 6);
+        for (let column = 1; column < 3; column += 1) {
+          const x = tableX + dimensionCellWidth * column;
+          pdf.line(x, tableY + 6, x, tableY + bodyHeight);
+        }
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(6.2);
+        pdf.text("Tamanho", tableX + dimensionWidth / 2, tableY + 4, { align: "center" });
+        ["Alt.", "Larg.", "Comp."].forEach((label, index) =>
+          pdf.text(label, tableX + dimensionCellWidth * (index + 0.5), tableY + 10, {
+            align: "center",
+          }),
         );
-        const basePrice = size.sale_price ?? size.base_price;
-        priceFinishes.forEach((finish, finishIndex) => {
-          const fullPrice = basePrice + (Number(finish.extra_price) || 0);
-          const priceX =
-            tableX + sizeColumnWidth + finishColumnWidth * finishIndex + finishColumnWidth / 2;
-          const brl = (value: number) => `R$ ${value.toFixed(2).replace(".", ",")}`;
+        priceHeaders.forEach((label, index) =>
+          pdf.text(label, tableX + dimensionWidth + priceCellWidth * (index + 0.5), tableY + 7, {
+            align: "center",
+          }),
+        );
+        pdf.setFont("helvetica", "normal");
+        sizes.forEach((size, sizeIndex) => {
+          const rowY = tableY + headerHeight + rowLineHeight * sizeIndex;
+          pdf.line(tableX, rowY, tableX + tableWidth, rowY);
+          const rawSize = size.size || size.name || "Único";
+          const dimensions = parseDims(rawSize);
+          const values = dimensions
+            ? [dimensions.altura, dimensions.largura, dimensions.comprimento]
+            : [rawSize, "—", "—"];
+          values.forEach((value, index) =>
+            pdf.text(
+              pdf.splitTextToSize(value, dimensionCellWidth - 2).slice(0, 1),
+              tableX + dimensionCellWidth * (index + 0.5),
+              rowY + rowLineHeight * 0.68,
+              { align: "center" },
+            ),
+          );
+          const fullPrice = (size.sale_price ?? size.base_price) + group.extraPrice;
+          const priceX = (index: number) =>
+            tableX + dimensionWidth + priceCellWidth * (index + 0.5);
+          if (variant === "professional" || variant === "reseller") {
+            const publicPrice = brl(fullPrice);
+            const publicY = rowY + rowLineHeight * 0.68;
+            pdf.text(publicPrice, priceX(0), publicY, { align: "center" });
+            const publicTextWidth = pdf.getTextWidth(publicPrice);
+            pdf.line(
+              priceX(0) - publicTextWidth / 2,
+              publicY - 1.2,
+              priceX(0) + publicTextWidth / 2,
+              publicY - 1.2,
+            );
+          }
           if (variant === "professional") {
-            pdf.text(`Público ${brl(fullPrice)}`, priceX, rowY + 4, { align: "center" });
             pdf.setFont("helvetica", "bold");
             pdf.text(
-              `Prof. ${brl(discountedPrice(fullPrice, PROFESSIONAL_DISCOUNT))}`,
-              priceX,
-              rowY + 8.5,
+              brl(discountedPrice(fullPrice, PROFESSIONAL_DISCOUNT)),
+              priceX(1),
+              rowY + rowLineHeight * 0.68,
               { align: "center" },
             );
             pdf.setFont("helvetica", "normal");
           } else if (variant === "reseller") {
-            pdf.text(`Público ${brl(fullPrice)}`, priceX, rowY + 3.5, { align: "center" });
             RESELLER_TIERS.forEach((tier, tierIndex) =>
               pdf.text(
-                `${Math.round(tier.discount * 100)}% ${brl(discountedPrice(fullPrice, tier.discount))}`,
-                priceX,
-                rowY + 7.5 + tierIndex * 3.5,
+                brl(discountedPrice(fullPrice, tier.discount)),
+                priceX(tierIndex + 1),
+                rowY + rowLineHeight * 0.68,
                 { align: "center" },
               ),
             );
           } else {
-            pdf.text(brl(fullPrice), priceX, rowY + rowLineHeight * 0.68, { align: "center" });
+            pdf.text(brl(fullPrice), priceX(0), rowY + rowLineHeight * 0.68, { align: "center" });
           }
         });
+        tableY += bodyHeight + 7;
       });
       const buttonWidth = 64;
       const buttonHeight = 8;

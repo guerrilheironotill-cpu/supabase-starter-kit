@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { buildCatalogPDF, fetchCatalogSnapshot, type CatalogVariant } from "@/lib/pdf-generator";
 
 const BUCKET = "catalog-media";
-const CATALOG_LAYOUT_VERSION = "v5";
+const CATALOG_LAYOUT_VERSION = "v6";
 const PATHS: Record<CatalogVariant, string> = {
   standard: `generated/${CATALOG_LAYOUT_VERSION}/catalogo-arteno.pdf`,
   professional: `generated/${CATALOG_LAYOUT_VERSION}/catalogo-arteno-profissional.pdf`,

@@ -1,14 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  Minus,
-  Plus,
-  Trash2,
-  Download,
-  Mail,
-  Check,
-  ArrowLeft,
-  ArrowRight,
-} from "lucide-react";
+import { Minus, Plus, Trash2, Download, Mail, Check, ArrowLeft, ArrowRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import { useQuoteStore, type QuoteItem } from "@/lib/quote-store";
@@ -22,14 +13,12 @@ export const Route = createFileRoute("/orcamento")({
       { title: "Orçamento — Casa & Jardim" },
       {
         name: "description",
-        content:
-          "Revise os produtos selecionados e solicite seu orçamento personalizado.",
+        content: "Revise os produtos selecionados e solicite seu orçamento personalizado.",
       },
       { property: "og:title", content: "Orçamento — Casa & Jardim" },
       {
         property: "og:description",
-        content:
-          "Revise os produtos selecionados e solicite seu orçamento personalizado.",
+        content: "Revise os produtos selecionados e solicite seu orçamento personalizado.",
       },
       { name: "robots", content: "noindex" },
     ],
@@ -51,7 +40,8 @@ type Customer = {
   name: string;
   email: string;
   phone: string;
-  personType: "fisica" | "juridica";
+  customerType: "final" | "professional" | "reseller";
+  professionalDocument: "cpf" | "cnpj";
   cpf: string;
   cnpj: string;
   companyName: string;
@@ -76,31 +66,30 @@ function formatBRL(n: number) {
   });
 }
 
-function useCepAutocomplete(
-  cep: string,
-  onFill: (data: Partial<Address>) => void,
-) {
+function useCepAutocomplete(cep: string, onFill: (data: Partial<Address>) => void) {
   useEffect(() => {
     const digits = cep.replace(/\D/g, "");
     if (digits.length !== 8) return;
     let cancelled = false;
     fetch(`https://viacep.com.br/ws/${digits}/json/`)
       .then((r) => r.json())
-      .then((d: {
-        logradouro?: string;
-        bairro?: string;
-        localidade?: string;
-        uf?: string;
-        erro?: boolean;
-      }) => {
-        if (cancelled || d.erro) return;
-        onFill({
-          street: d.logradouro ?? "",
-          neighborhood: d.bairro ?? "",
-          city: d.localidade ?? "",
-          state: d.uf ?? "",
-        });
-      })
+      .then(
+        (d: {
+          logradouro?: string;
+          bairro?: string;
+          localidade?: string;
+          uf?: string;
+          erro?: boolean;
+        }) => {
+          if (cancelled || d.erro) return;
+          onFill({
+            street: d.logradouro ?? "",
+            neighborhood: d.bairro ?? "",
+            city: d.localidade ?? "",
+            state: d.uf ?? "",
+          });
+        },
+      )
       .catch(() => {});
     return () => {
       cancelled = true;
@@ -126,7 +115,8 @@ function OrcamentoPage() {
     name: "",
     email: "",
     phone: "",
-    personType: "fisica",
+    customerType: "final",
+    professionalDocument: "cnpj",
     cpf: "",
     cnpj: "",
     companyName: "",
@@ -173,8 +163,7 @@ function OrcamentoPage() {
         it.dimensions && `Medidas: ${it.dimensions}`,
         it.finish && `Acabamento: ${it.finish}`,
         it.color && `Cor: ${it.color}`,
-        typeof it.unitPrice === "number" &&
-          `Subtotal: ${formatBRL(itemSubtotal(it))}`,
+        typeof it.unitPrice === "number" && `Subtotal: ${formatBRL(itemSubtotal(it))}`,
       ].filter(Boolean);
       details.forEach((d) => lines.push(`   - ${d}`));
     });
@@ -185,11 +174,14 @@ function OrcamentoPage() {
     lines.push("");
     lines.push("CLIENTE");
     lines.push(`Nome: ${customer.name}`);
-    if (customer.personType === "juridica") {
+    if (
+      customer.customerType === "reseller" ||
+      (customer.customerType === "professional" && customer.professionalDocument === "cnpj")
+    ) {
       lines.push(`Empresa: ${customer.companyName}`);
-      lines.push(`CNPJ: ${customer.cnpj}`);
+      if (customer.cnpj) lines.push(`CNPJ: ${customer.cnpj}`);
     } else {
-      lines.push(`CPF: ${customer.cpf}`);
+      if (customer.cpf) lines.push(`CPF: ${customer.cpf}`);
     }
     lines.push(`E-mail: ${customer.email}`);
     lines.push(`Telefone: ${customer.phone}`);
@@ -199,9 +191,7 @@ function OrcamentoPage() {
       lines.push("Retirar na fábrica");
     } else {
       const a = finalDeliveryAddress;
-      lines.push(
-        `Frete — ${a.street}, ${a.number}${a.complement ? ` (${a.complement})` : ""}`,
-      );
+      lines.push(`Frete — ${a.street}, ${a.number}${a.complement ? ` (${a.complement})` : ""}`);
       lines.push(`${a.neighborhood} — ${a.city}/${a.state} — CEP ${a.cep}`);
     }
     return lines.join("\n");
@@ -236,8 +226,7 @@ function OrcamentoPage() {
         it.dimensions && `Medidas: ${it.dimensions}`,
         it.finish && `Acabamento: ${it.finish}`,
         it.color && `Cor: ${it.color}`,
-        typeof it.unitPrice === "number" &&
-          `Subtotal: ${formatBRL(itemSubtotal(it))}`,
+        typeof it.unitPrice === "number" && `Subtotal: ${formatBRL(itemSubtotal(it))}`,
       ].filter(Boolean) as string[];
       details.forEach((d) => {
         doc.text(`   • ${d}`, marginX, y);
@@ -269,14 +258,21 @@ function OrcamentoPage() {
     doc.setFont("helvetica", "normal");
     doc.text(`Nome: ${customer.name}`, marginX, y);
     y += 5;
-    if (customer.personType === "juridica") {
+    if (
+      customer.customerType === "reseller" ||
+      (customer.customerType === "professional" && customer.professionalDocument === "cnpj")
+    ) {
       doc.text(`Empresa: ${customer.companyName}`, marginX, y);
       y += 5;
-      doc.text(`CNPJ: ${customer.cnpj}`, marginX, y);
-      y += 5;
+      if (customer.cnpj) {
+        doc.text(`CNPJ: ${customer.cnpj}`, marginX, y);
+        y += 5;
+      }
     } else {
-      doc.text(`CPF: ${customer.cpf}`, marginX, y);
-      y += 5;
+      if (customer.cpf) {
+        doc.text(`CPF: ${customer.cpf}`, marginX, y);
+        y += 5;
+      }
     }
     doc.text(`E-mail: ${customer.email}`, marginX, y);
     y += 5;
@@ -291,17 +287,9 @@ function OrcamentoPage() {
       doc.text("Retirar na fábrica", marginX, y);
     } else {
       const a = finalDeliveryAddress;
-      doc.text(
-        `${a.street}, ${a.number}${a.complement ? ` (${a.complement})` : ""}`,
-        marginX,
-        y,
-      );
+      doc.text(`${a.street}, ${a.number}${a.complement ? ` (${a.complement})` : ""}`, marginX, y);
       y += 5;
-      doc.text(
-        `${a.neighborhood} — ${a.city}/${a.state} — CEP ${a.cep}`,
-        marginX,
-        y,
-      );
+      doc.text(`${a.neighborhood} — ${a.city}/${a.state} — CEP ${a.cep}`, marginX, y);
     }
 
     doc.save("orcamento.pdf");
@@ -336,11 +324,19 @@ function OrcamentoPage() {
         effectiveDelivery === "shipping"
           ? `${a.street}, ${a.number}${a.complement ? ` (${a.complement})` : ""} — ${a.neighborhood}, ${a.city}/${a.state} — CEP ${a.cep}`
           : "Retirar na fábrica",
-      personType: customer.personType,
-      cpf: customer.personType === "fisica" ? customer.cpf : null,
-      cnpj: customer.personType === "juridica" ? customer.cnpj : null,
-      companyName:
-        customer.personType === "juridica" ? customer.companyName : null,
+      personType: customer.customerType === "final" ? "fisica" : "juridica",
+      customerType: customer.customerType,
+      cpf:
+        customer.customerType === "final" ||
+        (customer.customerType === "professional" && customer.professionalDocument === "cpf")
+          ? customer.cpf
+          : null,
+      cnpj:
+        customer.customerType === "reseller" ||
+        (customer.customerType === "professional" && customer.professionalDocument === "cnpj")
+          ? customer.cnpj
+          : null,
+      companyName: customer.customerType !== "final" ? customer.companyName : null,
     };
     try {
       await publicSupabase.from("orders" as never).insert({
@@ -361,11 +357,7 @@ function OrcamentoPage() {
 
   const sendWhatsApp = () => {
     void persistOrder();
-    window.open(
-      whatsappLinkFrom(whatsappNumber, buildSummary()),
-      "_blank",
-      "noopener,noreferrer",
-    );
+    window.open(whatsappLinkFrom(whatsappNumber, buildSummary()), "_blank", "noopener,noreferrer");
   };
 
   const sendEmail = () => {
@@ -379,9 +371,13 @@ function OrcamentoPage() {
   const cpfDigits = customer.cpf.replace(/\D/g, "");
   const cnpjDigits = customer.cnpj.replace(/\D/g, "");
   const docOk =
-    customer.personType === "fisica"
+    customer.customerType === "final"
       ? cpfDigits.length === 11
-      : cnpjDigits.length === 14 && customer.companyName.trim() !== "";
+      : customer.customerType === "reseller"
+        ? cnpjDigits.length === 14
+        : customer.professionalDocument === "cpf"
+          ? cpfDigits.length === 0 || cpfDigits.length === 11
+          : cnpjDigits.length === 0 || cnpjDigits.length === 14;
   const canGoStep3 =
     customer.name.trim() !== "" &&
     customer.email.trim() !== "" &&
@@ -402,20 +398,16 @@ function OrcamentoPage() {
     return (
       <section className="min-h-[calc(100vh-96px)] bg-white">
         <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-primary">
-          Seu orçamento
-        </h1>
-        <div className="mt-8 border border-dashed border-border p-10 text-center">
-          <p className="text-muted-foreground">
-            Nenhum produto adicionado ao orçamento ainda.
-          </p>
-          <Link
-            to="/"
-            className="mt-4 inline-flex items-center justify-center bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Ver produtos
-          </Link>
-        </div>
+          <h1 className="text-2xl font-semibold tracking-tight text-primary">Seu orçamento</h1>
+          <div className="mt-8 border border-dashed border-border p-10 text-center">
+            <p className="text-muted-foreground">Nenhum produto adicionado ao orçamento ainda.</p>
+            <Link
+              to="/"
+              className="mt-4 inline-flex items-center justify-center bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Ver produtos
+            </Link>
+          </div>
         </div>
       </section>
     );
@@ -424,189 +416,171 @@ function OrcamentoPage() {
   return (
     <section className="min-h-[calc(100vh-96px)] bg-white">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      {/* Stepper */}
-      <Stepper
-        step={step}
-        onSelect={(s) =>
-          setStep(
-            s === 1
-              ? 1
-              : s === 2
-                ? canGoStep2
-                  ? 2
-                  : step
-                : canGoStep2 && canGoStep3
-                  ? 3
-                  : step,
-          )
-        }
-      />
+        {/* Stepper */}
+        <Stepper
+          step={step}
+          onSelect={(s) =>
+            setStep(
+              s === 1 ? 1 : s === 2 ? (canGoStep2 ? 2 : step) : canGoStep2 && canGoStep3 ? 3 : step,
+            )
+          }
+        />
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-start">
-        {/* Left column — active step content */}
-        <div className="min-w-0">
-          {step === 1 && (
-            <StepProducts
-              items={items}
-              updateQuantity={updateQuantity}
-              removeItem={removeItem}
-              clear={clear}
-            />
-          )}
-          {step === 2 && (
-            <StepCustomer
-              customer={customer}
-              setCustomer={setCustomer}
-              customerAddress={customerAddress}
-              setCustomerAddress={setCustomerAddress}
-            />
-          )}
-          {step === 3 && (
-            <StepDelivery
-              delivery={delivery}
-              setDelivery={setDelivery}
-              shippingAvailable={shippingAvailable}
-              effectiveDelivery={effectiveDelivery}
-              deliveryAddress={deliveryFormAddress}
-              setDeliveryAddress={setDeliveryAddress}
-              sameAsDelivery={sameAsDelivery}
-              onToggleSame={(v) => {
-                setSameAsDelivery(v);
-                if (v) {
-                  setDeliveryAddress(() => ({ ...customerAddress }));
-                } else {
-                  setDeliveryAddress(() => EMPTY_ADDRESS);
-                }
-              }}
-            />
-          )}
-        </div>
+        <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-start">
+          {/* Left column — active step content */}
+          <div className="min-w-0">
+            {step === 1 && (
+              <StepProducts
+                items={items}
+                updateQuantity={updateQuantity}
+                removeItem={removeItem}
+                clear={clear}
+              />
+            )}
+            {step === 2 && (
+              <StepCustomer
+                customer={customer}
+                setCustomer={setCustomer}
+                customerAddress={customerAddress}
+                setCustomerAddress={setCustomerAddress}
+              />
+            )}
+            {step === 3 && (
+              <StepDelivery
+                delivery={delivery}
+                setDelivery={setDelivery}
+                shippingAvailable={shippingAvailable}
+                effectiveDelivery={effectiveDelivery}
+                deliveryAddress={deliveryFormAddress}
+                setDeliveryAddress={setDeliveryAddress}
+                sameAsDelivery={sameAsDelivery}
+                onToggleSame={(v) => {
+                  setSameAsDelivery(v);
+                  if (v) {
+                    setDeliveryAddress(() => ({ ...customerAddress }));
+                  } else {
+                    setDeliveryAddress(() => EMPTY_ADDRESS);
+                  }
+                }}
+              />
+            )}
+          </div>
 
-        {/* Right column — sticky summary */}
-        <aside className="lg:sticky lg:top-24">
-          <div className="border border-border bg-card">
-            <div className="border-b border-border px-5 py-4">
-              <h2 className="text-sm font-semibold uppercase tracking-widest text-primary">
-                Resumo do orçamento
-              </h2>
-            </div>
-            <ul className="divide-y divide-border">
-              {items.map((it) => (
-                <li key={it.id} className="flex gap-3 px-5 py-3 text-sm">
-                  <span className="min-w-0 flex-1 truncate text-foreground">
-                    {it.quantity}× {it.name}
-                  </span>
-                  <span className="shrink-0 text-muted-foreground">
-                    {typeof it.unitPrice === "number"
-                      ? formatBRL(itemSubtotal(it))
-                      : "—"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div className="border-t border-border px-5 py-4 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-semibold text-foreground">
-                  {hasPrices ? formatBRL(subtotal) : "A consultar"}
-                </span>
+          {/* Right column — sticky summary */}
+          <aside className="lg:sticky lg:top-24">
+            <div className="border border-border bg-card">
+              <div className="border-b border-border px-5 py-4">
+                <h2 className="text-sm font-semibold uppercase tracking-widest text-primary">
+                  Resumo do orçamento
+                </h2>
               </div>
-              <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                <span>Entrega</span>
-                <span>
-                  {effectiveDelivery === "pickup"
-                    ? "Retirar na fábrica"
-                    : "Frete a cotar"}
-                </span>
+              <ul className="divide-y divide-border">
+                {items.map((it) => (
+                  <li key={it.id} className="flex gap-3 px-5 py-3 text-sm">
+                    <span className="min-w-0 flex-1 truncate text-foreground">
+                      {it.quantity}× {it.name}
+                    </span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {typeof it.unitPrice === "number" ? formatBRL(itemSubtotal(it)) : "—"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className="border-t border-border px-5 py-4 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-semibold text-foreground">
+                    {hasPrices ? formatBRL(subtotal) : "A consultar"}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Entrega</span>
+                  <span>
+                    {effectiveDelivery === "pickup" ? "Retirar na fábrica" : "Frete a cotar"}
+                  </span>
+                </div>
               </div>
-            </div>
 
-            {step < 3 ? (
-              <div className="border-t border-border p-5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (step === 1 && canGoStep2) setStep(2);
-                    else if (step === 2 && canGoStep3) setStep(3);
-                  }}
-                  disabled={step === 2 && !canGoStep3}
-                  className="inline-flex w-full items-center justify-center gap-2 bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                >
-                  Continuar
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-                {step === 2 && (
+              {step < 3 ? (
+                <div className="border-t border-border p-5">
                   <button
                     type="button"
-                    onClick={() => setStep(1)}
+                    onClick={() => {
+                      if (step === 1 && canGoStep2) setStep(2);
+                      else if (step === 2 && canGoStep3) setStep(3);
+                    }}
+                    disabled={step === 2 && !canGoStep3}
+                    className="inline-flex w-full items-center justify-center gap-2 bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                  >
+                    Continuar
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                  {step === 2 && (
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="mt-2 inline-flex w-full items-center justify-center gap-2 text-xs text-muted-foreground transition-colors hover:text-primary"
+                    >
+                      <ArrowLeft className="h-3 w-3" />
+                      Voltar
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2 border-t border-border p-5">
+                  <button
+                    type="button"
+                    onClick={sendWhatsApp}
+                    disabled={!canFinish}
+                    className="inline-flex w-full items-center justify-center gap-2 bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-4 w-4"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path d="M20.52 3.48A11.86 11.86 0 0 0 12.06 0C5.5 0 .18 5.32.18 11.88c0 2.09.55 4.13 1.6 5.93L0 24l6.34-1.66a11.86 11.86 0 0 0 5.72 1.46h.01c6.55 0 11.88-5.32 11.88-11.88 0-3.17-1.24-6.15-3.43-8.44Z" />
+                    </svg>
+                    Enviar por WhatsApp
+                  </button>
+                  <button
+                    type="button"
+                    onClick={sendEmail}
+                    disabled={!canFinish}
+                    className="inline-flex w-full items-center justify-center gap-2 border border-border px-5 py-3 text-sm font-medium transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Mail className="h-4 w-4" />
+                    Enviar por e-mail
+                  </button>
+                  <button
+                    type="button"
+                    onClick={generatePDF}
+                    disabled={!canFinish}
+                    className="inline-flex w-full items-center justify-center gap-2 border border-border px-5 py-3 text-sm font-medium transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Download className="h-4 w-4" />
+                    Gerar PDF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
                     className="mt-2 inline-flex w-full items-center justify-center gap-2 text-xs text-muted-foreground transition-colors hover:text-primary"
                   >
                     <ArrowLeft className="h-3 w-3" />
                     Voltar
                   </button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2 border-t border-border p-5">
-                <button
-                  type="button"
-                  onClick={sendWhatsApp}
-                  disabled={!canFinish}
-                  className="inline-flex w-full items-center justify-center gap-2 bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="h-4 w-4"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path d="M20.52 3.48A11.86 11.86 0 0 0 12.06 0C5.5 0 .18 5.32.18 11.88c0 2.09.55 4.13 1.6 5.93L0 24l6.34-1.66a11.86 11.86 0 0 0 5.72 1.46h.01c6.55 0 11.88-5.32 11.88-11.88 0-3.17-1.24-6.15-3.43-8.44Z" />
-                  </svg>
-                  Enviar por WhatsApp
-                </button>
-                <button
-                  type="button"
-                  onClick={sendEmail}
-                  disabled={!canFinish}
-                  className="inline-flex w-full items-center justify-center gap-2 border border-border px-5 py-3 text-sm font-medium transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Mail className="h-4 w-4" />
-                  Enviar por e-mail
-                </button>
-                <button
-                  type="button"
-                  onClick={generatePDF}
-                  disabled={!canFinish}
-                  className="inline-flex w-full items-center justify-center gap-2 border border-border px-5 py-3 text-sm font-medium transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Download className="h-4 w-4" />
-                  Gerar PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  className="mt-2 inline-flex w-full items-center justify-center gap-2 text-xs text-muted-foreground transition-colors hover:text-primary"
-                >
-                  <ArrowLeft className="h-3 w-3" />
-                  Voltar
-                </button>
-              </div>
-            )}
-          </div>
-        </aside>
-      </div>
+                </div>
+              )}
+            </div>
+          </aside>
+        </div>
       </div>
     </section>
   );
 }
 
-function Stepper({
-  step,
-  onSelect,
-}: {
-  step: 1 | 2 | 3;
-  onSelect: (s: 1 | 2 | 3) => void;
-}) {
+function Stepper({ step, onSelect }: { step: 1 | 2 | 3; onSelect: (s: 1 | 2 | 3) => void }) {
   const steps = [
     { n: 1, label: "Produtos" },
     { n: 2, label: "Seus dados" },
@@ -675,11 +649,7 @@ function StepProducts({
             <li key={item.id} className="flex gap-5 p-5">
               <div className="h-28 w-28 shrink-0 overflow-hidden bg-muted sm:h-32 sm:w-32">
                 {item.image && (
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="h-full w-full object-cover"
-                  />
+                  <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
                 )}
               </div>
               <div className="flex min-w-0 flex-1 flex-col">
@@ -732,9 +702,7 @@ function StepProducts({
                     >
                       <Minus className="h-3.5 w-3.5" />
                     </button>
-                    <span className="w-8 text-center text-sm font-medium">
-                      {item.quantity}
-                    </span>
+                    <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
                     <button
                       type="button"
                       onClick={() => updateQuantity(item.id, item.quantity + 1)}
@@ -793,30 +761,35 @@ function StepCustomer({
         <div className="mt-3 grid gap-4 border border-border bg-card p-5 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <span className="block text-xs font-medium uppercase tracking-widest text-muted-foreground">
-              Tipo de pessoa
+              Perfil do cliente
             </span>
             <div className="mt-2 flex gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input
                   type="radio"
-                  name="personType"
-                  checked={customer.personType === "fisica"}
-                  onChange={() =>
-                    setCustomer((c) => ({ ...c, personType: "fisica" }))
-                  }
+                  name="customerType"
+                  checked={customer.customerType === "final"}
+                  onChange={() => setCustomer((c) => ({ ...c, customerType: "final" }))}
                 />
-                Pessoa física
+                Cliente final
               </label>
               <label className="flex items-center gap-2">
                 <input
                   type="radio"
-                  name="personType"
-                  checked={customer.personType === "juridica"}
-                  onChange={() =>
-                    setCustomer((c) => ({ ...c, personType: "juridica" }))
-                  }
+                  name="customerType"
+                  checked={customer.customerType === "professional"}
+                  onChange={() => setCustomer((c) => ({ ...c, customerType: "professional" }))}
                 />
-                Pessoa jurídica
+                Profissional / Especificador
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="customerType"
+                  checked={customer.customerType === "reseller"}
+                  onChange={() => setCustomer((c) => ({ ...c, customerType: "reseller" }))}
+                />
+                Revendedor / Lojista
               </label>
             </div>
           </div>
@@ -826,7 +799,7 @@ function StepCustomer({
             onChange={(v) => setCustomer((c) => ({ ...c, name: v }))}
             className="sm:col-span-2"
           />
-          {customer.personType === "juridica" && (
+          {customer.customerType !== "final" && (
             <Field
               label="Nome da empresa"
               value={customer.companyName}
@@ -834,9 +807,35 @@ function StepCustomer({
               className="sm:col-span-2"
             />
           )}
-          {customer.personType === "fisica" ? (
+          {customer.customerType === "professional" && (
+            <div className="sm:col-span-2">
+              <span className="block text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                Documento
+              </span>
+              <div className="mt-2 flex gap-4 text-sm">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    checked={customer.professionalDocument === "cnpj"}
+                    onChange={() => setCustomer((c) => ({ ...c, professionalDocument: "cnpj" }))}
+                  />
+                  Informar CNPJ
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    checked={customer.professionalDocument === "cpf"}
+                    onChange={() => setCustomer((c) => ({ ...c, professionalDocument: "cpf" }))}
+                  />
+                  Informar CPF
+                </label>
+              </div>
+            </div>
+          )}
+          {customer.customerType === "final" ||
+          (customer.customerType === "professional" && customer.professionalDocument === "cpf") ? (
             <Field
-              label="CPF"
+              label={customer.customerType === "professional" ? "CPF (opcional)" : "CPF"}
               value={customer.cpf}
               onChange={(v) => setCustomer((c) => ({ ...c, cpf: v }))}
               maxLength={14}
@@ -845,7 +844,7 @@ function StepCustomer({
             />
           ) : (
             <Field
-              label="CNPJ"
+              label={customer.customerType === "professional" ? "CNPJ (opcional)" : "CNPJ"}
               value={customer.cnpj}
               onChange={(v) => setCustomer((c) => ({ ...c, cnpj: v }))}
               maxLength={18}
@@ -968,8 +967,8 @@ function StepDelivery({
 
           {shippingAvailable === false && delivery === "shipping" && (
             <p className="text-xs text-destructive">
-              Não temos logística de entrega para este endereço. Se quiser
-              continuar, selecione "Retirar na fábrica".
+              Não temos logística de entrega para este endereço. Se quiser continuar, selecione
+              "Retirar na fábrica".
             </p>
           )}
         </div>
@@ -993,13 +992,10 @@ function AddressFields({
   hideTitle?: boolean;
   disabled?: boolean;
 }) {
-  const set = <K extends keyof Address>(k: K, v: Address[K]) =>
-    onChange((a) => ({ ...a, [k]: v }));
+  const set = <K extends keyof Address>(k: K, v: Address[K]) => onChange((a) => ({ ...a, [k]: v }));
   return (
     <div>
-      {!hideTitle && (
-        <p className="text-sm font-semibold text-foreground">{title}</p>
-      )}
+      {!hideTitle && <p className="text-sm font-semibold text-foreground">{title}</p>}
       <div className="mt-3 grid gap-4 sm:grid-cols-6">
         <Field
           label="CEP"
@@ -1007,50 +1003,56 @@ function AddressFields({
           onChange={(v) => set("cep", v)}
           maxLength={9}
           placeholder="00000-000"
-          disabled={disabled} className="sm:col-span-2"
+          disabled={disabled}
+          className="sm:col-span-2"
         />
         <Field
           label="Rua"
           value={address.street}
           onChange={(v) => set("street", v)}
-          disabled={disabled} className="sm:col-span-4"
+          disabled={disabled}
+          className="sm:col-span-4"
         />
         <Field
           label="Número"
           value={address.number}
           onChange={(v) => set("number", v)}
-          disabled={disabled} className="sm:col-span-2"
+          disabled={disabled}
+          className="sm:col-span-2"
         />
         <Field
           label="Complemento"
           value={address.complement}
           onChange={(v) => set("complement", v)}
-          disabled={disabled} className="sm:col-span-4"
+          disabled={disabled}
+          className="sm:col-span-4"
         />
         <Field
           label="Bairro"
           value={address.neighborhood}
           onChange={(v) => set("neighborhood", v)}
-          disabled={disabled} className="sm:col-span-3"
+          disabled={disabled}
+          className="sm:col-span-3"
         />
         <Field
           label="Cidade"
           value={address.city}
           onChange={(v) => set("city", v)}
-          disabled={disabled} className="sm:col-span-2"
+          disabled={disabled}
+          className="sm:col-span-2"
         />
         <Field
           label="UF"
           value={address.state}
           onChange={(v) => set("state", v.toUpperCase())}
           maxLength={2}
-          disabled={disabled} className="sm:col-span-1"
+          disabled={disabled}
+          className="sm:col-span-1"
         />
       </div>
       {requireFull && (
         <p className="mt-2 text-xs text-muted-foreground">
-          Digite o CEP para preencher rua, bairro, cidade e estado
-          automaticamente.
+          Digite o CEP para preencher rua, bairro, cidade e estado automaticamente.
         </p>
       )}
     </div>
