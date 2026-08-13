@@ -6,6 +6,7 @@ import { useQuoteStore, type QuoteItem } from "@/lib/quote-store";
 import { useWhatsAppNumber, whatsappLinkFrom } from "@/lib/site-settings";
 import { maskPhoneBR } from "@/lib/masks";
 import { publicSupabase } from "@/integrations/supabase/client";
+import { absoluteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/orcamento")({
   head: () => ({
@@ -164,6 +165,7 @@ function OrcamentoPage() {
         it.dimensions && `Medidas: ${it.dimensions}`,
         it.finish && `Acabamento: ${it.finish}`,
         it.color && `Cor: ${it.color}`,
+        it.slug && `Link: ${absoluteUrl(`/produto/${it.slug}`)}`,
         typeof it.unitPrice === "number" && `Subtotal: ${formatBRL(itemSubtotal(it))}`,
       ].filter(Boolean);
       details.forEach((d) => lines.push(`   - ${d}`));
