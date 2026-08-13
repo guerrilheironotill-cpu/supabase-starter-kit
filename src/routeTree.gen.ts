@@ -21,6 +21,7 @@ import { Route as OrcamentoRouteImport } from './routes/orcamento'
 import { Route as MobiliarioUrbanoRouteImport } from './routes/mobiliario-urbano'
 import { Route as HealthCacheRouteImport } from './routes/health-cache'
 import { Route as HealthRouteImport } from './routes/health'
+import { Route as FinalizarOrcamentoRouteImport } from './routes/finalizar-orcamento'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CatalogoRouteImport } from './routes/catalogo'
 import { Route as BuscaRouteImport } from './routes/busca'
@@ -122,6 +123,11 @@ const HealthCacheRoute = HealthCacheRouteImport.update({
 const HealthRoute = HealthRouteImport.update({
   id: '/health',
   path: '/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinalizarOrcamentoRoute = FinalizarOrcamentoRouteImport.update({
+  id: '/finalizar-orcamento',
+  path: '/finalizar-orcamento',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -352,6 +358,7 @@ export interface FileRoutesByFullPath {
   '/busca': typeof BuscaRoute
   '/catalogo': typeof CatalogoRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/finalizar-orcamento': typeof FinalizarOrcamentoRoute
   '/health': typeof HealthRoute
   '/health-cache': typeof HealthCacheRoute
   '/mobiliario-urbano': typeof MobiliarioUrbanoRoute
@@ -408,6 +415,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/busca': typeof BuscaRoute
   '/catalogo': typeof CatalogoRoute
+  '/finalizar-orcamento': typeof FinalizarOrcamentoRoute
   '/health': typeof HealthRoute
   '/health-cache': typeof HealthCacheRoute
   '/mobiliario-urbano': typeof MobiliarioUrbanoRoute
@@ -465,6 +473,7 @@ export interface FileRoutesById {
   '/busca': typeof BuscaRoute
   '/catalogo': typeof CatalogoRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/finalizar-orcamento': typeof FinalizarOrcamentoRoute
   '/health': typeof HealthRoute
   '/health-cache': typeof HealthCacheRoute
   '/mobiliario-urbano': typeof MobiliarioUrbanoRoute
@@ -524,6 +533,7 @@ export interface FileRouteTypes {
     | '/busca'
     | '/catalogo'
     | '/dashboard'
+    | '/finalizar-orcamento'
     | '/health'
     | '/health-cache'
     | '/mobiliario-urbano'
@@ -580,6 +590,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/busca'
     | '/catalogo'
+    | '/finalizar-orcamento'
     | '/health'
     | '/health-cache'
     | '/mobiliario-urbano'
@@ -636,6 +647,7 @@ export interface FileRouteTypes {
     | '/busca'
     | '/catalogo'
     | '/dashboard'
+    | '/finalizar-orcamento'
     | '/health'
     | '/health-cache'
     | '/mobiliario-urbano'
@@ -694,6 +706,7 @@ export interface RootRouteChildren {
   BuscaRoute: typeof BuscaRoute
   CatalogoRoute: typeof CatalogoRoute
   DashboardRoute: typeof DashboardRouteWithChildren
+  FinalizarOrcamentoRoute: typeof FinalizarOrcamentoRoute
   HealthRoute: typeof HealthRoute
   HealthCacheRoute: typeof HealthCacheRoute
   MobiliarioUrbanoRoute: typeof MobiliarioUrbanoRoute
@@ -806,6 +819,13 @@ declare module '@tanstack/react-router' {
       path: '/health'
       fullPath: '/health'
       preLoaderRoute: typeof HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/finalizar-orcamento': {
+      id: '/finalizar-orcamento'
+      path: '/finalizar-orcamento'
+      fullPath: '/finalizar-orcamento'
+      preLoaderRoute: typeof FinalizarOrcamentoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -1195,6 +1215,7 @@ const rootRouteChildren: RootRouteChildren = {
   BuscaRoute: BuscaRoute,
   CatalogoRoute: CatalogoRoute,
   DashboardRoute: DashboardRouteWithChildren,
+  FinalizarOrcamentoRoute: FinalizarOrcamentoRoute,
   HealthRoute: HealthRoute,
   HealthCacheRoute: HealthCacheRoute,
   MobiliarioUrbanoRoute: MobiliarioUrbanoRoute,

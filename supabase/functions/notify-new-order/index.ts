@@ -16,13 +16,27 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { customer_name, customer_phone, customer_email, items, total, notes } = body;
+    const {
+      customer_name,
+      customer_phone,
+      customer_email,
+      items,
+      total,
+      notes,
+      channel,
+      dashboard_url,
+    } = body;
+    const dashboardUrl =
+      typeof dashboard_url === "string"
+        ? dashboard_url
+        : "https://arteno.com.br/dashboard/orcamentos";
 
     // Parse items
     const itemList = Array.isArray(items) ? items : [];
     const itemLines = itemList
-      .map((i: { quantity: number; name: string; price: number }) =>
-        `• ${i.quantity}x ${i.name} — R$ ${Number(i.price * i.quantity).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+      .map(
+        (i: { quantity: number; name: string; price: number }) =>
+          `• ${i.quantity}x ${i.name} — R$ ${Number(i.price * i.quantity).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       )
       .join("\n");
 
@@ -31,7 +45,9 @@ serve(async (req) => {
     try {
       const meta = JSON.parse(notes ?? "{}");
       if (meta.address) address = meta.address;
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     const totalFormatted = `R$ ${Number(total ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 
@@ -48,7 +64,7 @@ ${itemLines}
 Entrega: ${address}
 Total estimado: ${totalFormatted}
 
-Acesse o dashboard para visualizar: https://arteno.com.br/dashboard/orcamentos
+Acesse o dashboard para visualizar: ${dashboardUrl}
     `.trim();
 
     const htmlBody = `
@@ -66,19 +82,23 @@ Acesse o dashboard para visualizar: https://arteno.com.br/dashboard/orcamentos
 
     <h2 style="font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:#888;margin:0 0 12px;">Produtos</h2>
     <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-      ${itemList.map((i: { quantity: number; name: string; price: number }) => `
+      ${itemList
+        .map(
+          (i: { quantity: number; name: string; price: number }) => `
         <tr style="border-bottom:1px solid #f0f0f0;">
           <td style="padding:10px 0;font-size:14px;color:#1a1a1a;">${i.quantity}× ${i.name}</td>
           <td style="padding:10px 0;font-size:14px;color:#1a1a1a;text-align:right;">R$ ${Number((i.price ?? 0) * (i.quantity ?? 1)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
         </tr>
-      `).join("")}
+      `,
+        )
+        .join("")}
       <tr>
         <td style="padding:16px 0 0;font-weight:700;font-size:16px;color:#1a1a1a;">Total estimado</td>
         <td style="padding:16px 0 0;font-weight:700;font-size:16px;color:#1a1a1a;text-align:right;">${totalFormatted}</td>
       </tr>
     </table>
 
-    <a href="https://arteno.com.br/dashboard/orcamentos" style="display:inline-block;background:#1a1a1a;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:500;">
+    <a href="${dashboardUrl}" style="display:inline-block;background:#1a1a1a;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:500;">
       Ver no dashboard →
     </a>
   </div>
@@ -86,7 +106,7 @@ Acesse o dashboard para visualizar: https://arteno.com.br/dashboard/orcamentos
     `.trim();
 
     // Send email via Resend
-    if (RESEND_API_KEY) {
+    if (RESEND_API_KEY && channel !== "whatsapp") {
       await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -109,7 +129,13 @@ Acesse o dashboard para visualizar: https://arteno.com.br/dashboard/orcamentos
     const evolutionKey = Deno.env.get("EVOLUTION_API_KEY");
     const evolutionInstance = Deno.env.get("EVOLUTION_API_INSTANCE");
 
-    if (evolutionUrl && evolutionKey && evolutionInstance && ADMIN_WHATSAPP) {
+    if (
+      channel !== "email" &&
+      evolutionUrl &&
+      evolutionKey &&
+      evolutionInstance &&
+      ADMIN_WHATSAPP
+    ) {
       const waMessage = `🪴 *Novo Orçamento — Arteno*\n\n*Cliente:* ${customer_name}\n*Telefone:* ${customer_phone ?? "—"}\n*Email:* ${customer_email ?? "—"}\n\n*Produtos:*\n${itemLines}\n\n*Entrega:* ${address}\n*Total:* ${totalFormatted}\n\nhttps://arteno.com.br/dashboard/orcamentos`;
 
       await fetch(`${evolutionUrl}/message/sendText/${evolutionInstance}`, {

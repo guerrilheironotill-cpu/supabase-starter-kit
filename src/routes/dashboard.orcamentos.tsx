@@ -46,6 +46,9 @@ import { toast } from "sonner";
 import { ensureCustomerForApprovedQuote } from "@/lib/customer-conversion";
 
 export const Route = createFileRoute("/dashboard/orcamentos")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    orcamento: typeof search.orcamento === "string" ? search.orcamento : undefined,
+  }),
   head: () => ({
     meta: [{ title: "Orçamentos — Dashboard" }, { name: "robots", content: "noindex" }],
   }),
@@ -204,6 +207,7 @@ const currency = (n: number | null | undefined) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(n ?? 0));
 
 function DashboardQuotesPage() {
+  const { orcamento } = Route.useSearch();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [duplicateSource, setDuplicateSource] = useState<OrderRow | null>(null);
@@ -212,6 +216,7 @@ function DashboardQuotesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | QuoteStatus>("all");
   const [originFilter, setOriginFilter] = useState("all");
+  const [deepLinkOpened, setDeepLinkOpened] = useState(false);
 
   const {
     data: allOrders = [],
@@ -259,6 +264,16 @@ function DashboardQuotesPage() {
       }),
     [allOrders, originFilter, search, statusFilter],
   );
+
+  useEffect(() => {
+    if (!orcamento || deepLinkOpened || allOrders.length === 0) return;
+    const target = allOrders.find((order) => order.id === orcamento);
+    if (!target) return;
+    setEditingSource(target);
+    setDuplicateSource(null);
+    setOpen(true);
+    setDeepLinkOpened(true);
+  }, [allOrders, deepLinkOpened, orcamento]);
 
   const allSelected = orders.length > 0 && orders.every((o) => selected.has(o.id));
   async function bulkQuoteStatus(status: "em_aberto" | "nao_aprovado") {

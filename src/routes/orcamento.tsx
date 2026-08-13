@@ -1,9 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Minus, Plus, Trash2, Download, Mail, Check, ArrowLeft, ArrowRight } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Minus, Plus, Trash2, Check, ArrowLeft, ArrowRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import jsPDF from "jspdf";
 import { useQuoteStore, type QuoteItem } from "@/lib/quote-store";
-import { useWhatsAppNumber, whatsappLinkFrom } from "@/lib/site-settings";
+import { useWhatsAppNumber } from "@/lib/site-settings";
 import { maskPhoneBR } from "@/lib/masks";
 import { publicSupabase } from "@/integrations/supabase/client";
 import { absoluteUrl } from "@/lib/site-config";
@@ -104,6 +103,7 @@ function itemSubtotal(it: QuoteItem) {
 }
 
 function OrcamentoPage() {
+  const navigate = useNavigate();
   const items = useQuoteStore((s) => s.items);
   const removeItem = useQuoteStore((s) => s.removeItem);
   const updateQuantity = useQuoteStore((s) => s.updateQuantity);
@@ -127,6 +127,7 @@ function OrcamentoPage() {
   const [sameAsDelivery, setSameAsDelivery] = useState(true);
   const whatsappNumber = useWhatsAppNumber();
   const [submitted, setSubmitted] = useState(false);
+  const [savedOrderId, setSavedOrderId] = useState<string | null>(null);
 
   useCepAutocomplete(deliveryAddress.cep, (patch) =>
     setDeliveryAddress((a) => ({ ...a, ...patch })),
@@ -200,107 +201,9 @@ function OrcamentoPage() {
     return lines.join("\n");
   };
 
-  const generatePDF = () => {
-    const doc = new jsPDF({ unit: "mm", format: "a4" });
-    const marginX = 15;
-    let y = 20;
-    doc.setFontSize(16);
-    doc.text("Orçamento — Arteno Vaso & Decor", marginX, y);
-    y += 8;
-    doc.setFontSize(10);
-    doc.text(new Date().toLocaleDateString("pt-BR"), marginX, y);
-    y += 8;
-    doc.setDrawColor(200);
-    doc.line(marginX, y, 195, y);
-    y += 6;
-
-    doc.setFontSize(11);
-    items.forEach((it, idx) => {
-      if (y > 260) {
-        doc.addPage();
-        y = 20;
-      }
-      doc.setFont("helvetica", "bold");
-      doc.text(`${idx + 1}. ${it.name}  (x${it.quantity})`, marginX, y);
-      y += 5;
-      doc.setFont("helvetica", "normal");
-      const details = [
-        it.sizeLabel && `Tamanho: ${it.sizeLabel}`,
-        it.dimensions && `Medidas: ${it.dimensions}`,
-        it.finish && `Acabamento: ${it.finish}`,
-        it.color && `Cor: ${it.color}`,
-        typeof it.unitPrice === "number" && `Subtotal: ${formatBRL(itemSubtotal(it))}`,
-      ].filter(Boolean) as string[];
-      details.forEach((d) => {
-        doc.text(`   • ${d}`, marginX, y);
-        y += 5;
-      });
-      y += 2;
-    });
-
-    if (hasPrices) {
-      if (y > 260) {
-        doc.addPage();
-        y = 20;
-      }
-      doc.setFont("helvetica", "bold");
-      doc.text(`Subtotal: ${formatBRL(subtotal)}`, marginX, y);
-      y += 8;
-    }
-
-    if (y > 240) {
-      doc.addPage();
-      y = 20;
-    }
-    doc.setDrawColor(200);
-    doc.line(marginX, y, 195, y);
-    y += 6;
-    doc.setFont("helvetica", "bold");
-    doc.text("Cliente", marginX, y);
-    y += 5;
-    doc.setFont("helvetica", "normal");
-    doc.text(`Nome: ${customer.name}`, marginX, y);
-    y += 5;
-    if (
-      customer.customerType === "reseller" ||
-      (customer.customerType === "professional" && customer.professionalDocument === "cnpj")
-    ) {
-      doc.text(`Empresa: ${customer.companyName}`, marginX, y);
-      y += 5;
-      if (customer.cnpj) {
-        doc.text(`CNPJ: ${customer.cnpj}`, marginX, y);
-        y += 5;
-      }
-    } else {
-      if (customer.cpf) {
-        doc.text(`CPF: ${customer.cpf}`, marginX, y);
-        y += 5;
-      }
-    }
-    doc.text(`E-mail: ${customer.email}`, marginX, y);
-    y += 5;
-    doc.text(`Telefone: ${customer.phone}`, marginX, y);
-    y += 8;
-
-    doc.setFont("helvetica", "bold");
-    doc.text("Entrega", marginX, y);
-    y += 5;
-    doc.setFont("helvetica", "normal");
-    if (effectiveDelivery === "pickup") {
-      doc.text("Retirar na fábrica", marginX, y);
-    } else {
-      const a = finalDeliveryAddress;
-      doc.text(`${a.street}, ${a.number}${a.complement ? ` (${a.complement})` : ""}`, marginX, y);
-      y += 5;
-      doc.text(`${a.neighborhood} — ${a.city}/${a.state} — CEP ${a.cep}`, marginX, y);
-    }
-
-    doc.save("orcamento.pdf");
-    void persistOrder();
-  };
-
-  const persistOrder = async () => {
-    if (submitted) return;
+  const persistOrder = async (): Promise<string | null> => {
+    if (savedOrderId) return savedOrderId;
+    if (submitted) return null;
     setSubmitted(true);
     const cleanItems = items.map((i) => ({
       kind: "catalog" as const,
@@ -313,6 +216,7 @@ function OrcamentoPage() {
       size_name: i.sizeLabel ?? null,
       finish: i.finish ?? null,
       color: i.color ?? null,
+      product_url: i.slug ? absoluteUrl(`/produto/${i.slug}`) : null,
     }));
     const a = finalDeliveryAddress;
     const meta = {
@@ -341,33 +245,47 @@ function OrcamentoPage() {
           : null,
       companyName: customer.customerType !== "final" ? customer.companyName : null,
     };
+    const orderId = crypto.randomUUID();
+    const notificationPayload = {
+      id: orderId,
+      customer_name: customer.name,
+      customer_phone: customer.phone,
+      customer_email: customer.email,
+      items: cleanItems,
+      total: subtotal,
+      notes: JSON.stringify(meta),
+    };
     try {
       await publicSupabase.from("orders" as never).insert({
+        id: orderId,
         status: "orcamento",
         origin: "site",
-        customer_name: customer.name,
-        customer_phone: customer.phone,
-        customer_email: customer.email,
-        items: cleanItems,
-        total: subtotal,
-        notes: JSON.stringify(meta),
+        ...notificationPayload,
       } as never);
+      setSavedOrderId(orderId);
+      const dashboardUrl = absoluteUrl(`/dashboard/orcamentos?orcamento=${orderId}`);
+      sessionStorage.setItem(
+        "arteno:quote-finalization",
+        JSON.stringify({
+          orderId,
+          dashboardUrl,
+          whatsappNumber,
+          whatsappText: `${buildSummary()}\n\nABRIR ORÇAMENTO NO DASHBOARD\n${dashboardUrl}`,
+          notificationPayload,
+        }),
+      );
+      return orderId;
     } catch (err) {
       console.warn("[orcamento] persist failed", err);
       setSubmitted(false);
+      return null;
     }
   };
 
-  const sendWhatsApp = () => {
-    void persistOrder();
-    window.open(whatsappLinkFrom(whatsappNumber, buildSummary()), "_blank", "noopener,noreferrer");
-  };
-
-  const sendEmail = () => {
-    void persistOrder();
-    const subject = encodeURIComponent("Orçamento — Arteno Vaso & Decor");
-    const body = encodeURIComponent(buildSummary());
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  const finishQuote = async () => {
+    const orderId = await persistOrder();
+    if (!orderId) return;
+    await navigate({ to: "/finalizar-orcamento" });
   };
 
   const canGoStep2 = items.length > 0;
@@ -534,37 +452,11 @@ function OrcamentoPage() {
                 <div className="space-y-2 border-t border-border p-5">
                   <button
                     type="button"
-                    onClick={sendWhatsApp}
-                    disabled={!canFinish}
+                    onClick={() => void finishQuote()}
+                    disabled={!canFinish || submitted}
                     className="inline-flex w-full items-center justify-center gap-2 bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-4 w-4"
-                      fill="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path d="M20.52 3.48A11.86 11.86 0 0 0 12.06 0C5.5 0 .18 5.32.18 11.88c0 2.09.55 4.13 1.6 5.93L0 24l6.34-1.66a11.86 11.86 0 0 0 5.72 1.46h.01c6.55 0 11.88-5.32 11.88-11.88 0-3.17-1.24-6.15-3.43-8.44Z" />
-                    </svg>
-                    Enviar por WhatsApp
-                  </button>
-                  <button
-                    type="button"
-                    onClick={sendEmail}
-                    disabled={!canFinish}
-                    className="inline-flex w-full items-center justify-center gap-2 border border-border px-5 py-3 text-sm font-medium transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <Mail className="h-4 w-4" />
-                    Enviar por e-mail
-                  </button>
-                  <button
-                    type="button"
-                    onClick={generatePDF}
-                    disabled={!canFinish}
-                    className="inline-flex w-full items-center justify-center gap-2 border border-border px-5 py-3 text-sm font-medium transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <Download className="h-4 w-4" />
-                    Gerar PDF
+                    {submitted ? "Salvando orçamento..." : "Finalizar orçamento"}
                   </button>
                   <button
                     type="button"
@@ -992,6 +884,24 @@ function StepDelivery({
               Cotar frete
             </label>
           </div>
+
+          {effectiveDelivery === "pickup" && (
+            <div className="overflow-hidden border border-border bg-background">
+              <iframe
+                title="Região aproximada para retirada em Jurerê"
+                src="https://www.openstreetmap.org/export/embed.html?bbox=-48.505%2C-27.455%2C-48.475%2C-27.425&layer=mapnik&marker=-27.44%2C-48.49"
+                className="h-64 w-full border-0"
+                loading="lazy"
+              />
+              <div className="border-t border-border px-4 py-3">
+                <p className="text-sm font-medium text-foreground">Retirada na região de Jurerê</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  O mapa indica somente a região aproximada. O endereço exato será combinado durante
+                  o atendimento.
+                </p>
+              </div>
+            </div>
+          )}
 
           {effectiveDelivery === "shipping" && (
             <>
