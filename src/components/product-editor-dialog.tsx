@@ -231,6 +231,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
     if (!product) return;
     setSaving(true);
     setError(null);
+    let newlyCreatedProductId: string | null = null;
     try {
       const name = product.name.trim();
       const slug = product.slug.trim();
@@ -262,7 +263,10 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
         ? await supabase.from("products").update(productPayload).eq("id", product.id)
         : await supabase.from("products").insert(productPayload).select("id").single();
       const pErr = productWrite.error;
-      if (!product.id && productWrite.data) savedProductId = productWrite.data.id;
+      if (!product.id && productWrite.data) {
+        savedProductId = productWrite.data.id;
+        newlyCreatedProductId = productWrite.data.id;
+      }
       if (pErr) {
         if (!isMissingSeoColumnError(pErr)) throw pErr;
         const fallbackPayload = {
@@ -278,7 +282,10 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
           : await supabase.from("products").insert(fallbackPayload).select("id").single();
         const fallbackErr = fallbackWrite.error;
         if (fallbackErr) throw fallbackErr;
-        if (!product.id && fallbackWrite.data) savedProductId = fallbackWrite.data.id;
+        if (!product.id && fallbackWrite.data) {
+          savedProductId = fallbackWrite.data.id;
+          newlyCreatedProductId = fallbackWrite.data.id;
+        }
       }
       if (!savedProductId) throw new Error("Não foi possível identificar o produto cadastrado.");
 
@@ -307,6 +314,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
             finishes.map((f, i) => ({
               product_id: savedProductId,
               finish: f.name,
+              name: f.name,
               sort_order: i,
             })),
           ),
@@ -320,6 +328,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
             colors.map((c, i) => ({
               product_id: savedProductId,
               color: c.name,
+              name: c.name,
               sort_order: i,
             })),
           ),
@@ -335,7 +344,13 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
       onSaved();
       onClose();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Falha ao salvar";
+      if (newlyCreatedProductId) {
+        await supabase.from("products").delete().eq("id", newlyCreatedProductId);
+      }
+      const msg =
+        e && typeof e === "object" && "message" in e
+          ? String(e.message)
+          : "Falha ao salvar o produto.";
       setError(msg);
       toast.error(msg);
     } finally {
@@ -796,19 +811,25 @@ function AttrTab({
         supabase.from(catalog).select("name").order("name"),
         supabase.from(relation).select(finishCol).order(finishCol),
       ]);
-      const names = new Set<string>();
+      const names = new Map<string, string>();
+      const addOption = (value: string | null) => {
+        const trimmed = value?.trim();
+        if (!trimmed) return;
+        const normalized = trimmed.toLocaleLowerCase("pt-BR");
+        if (!names.has(normalized)) names.set(normalized, trimmed);
+      };
       if (!catalogRows.error) {
         for (const row of (catalogRows.data ?? []) as Array<{ name: string | null }>) {
-          if (row.name) names.add(row.name);
+          addOption(row.name);
         }
       }
       if (!productRows.error) {
         for (const row of (productRows.data ?? []) as Array<Record<string, string | null>>) {
           const val = row[finishCol];
-          if (val) names.add(val);
+          addOption(val);
         }
       }
-      setOptions(Array.from(names).sort((a, b) => a.localeCompare(b)));
+      setOptions(Array.from(names.values()).sort((a, b) => a.localeCompare(b)));
     })();
   }, [catalog]);
 

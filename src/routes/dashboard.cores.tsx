@@ -50,6 +50,11 @@ function DashboardColorsPage() {
         .delete()
         .eq("name", color.name);
       if (relationError) throw relationError;
+      const { error: legacyRelationError } = await supabase
+        .from("product_colors")
+        .delete()
+        .eq("color", color.name);
+      if (legacyRelationError) throw legacyRelationError;
       const { error: catalogError } = await supabase
         .from("color_catalog")
         .delete()

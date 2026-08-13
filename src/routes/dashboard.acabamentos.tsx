@@ -82,6 +82,11 @@ function DashboardFinishesPage() {
         .delete()
         .eq("name", finish.name);
       if (relationError) throw relationError;
+      const { error: legacyRelationError } = await supabase
+        .from("product_finishes")
+        .delete()
+        .eq("finish", finish.name);
+      if (legacyRelationError) throw legacyRelationError;
       const { error: catalogError } = await supabase
         .from("finish_catalog")
         .delete()
