@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import type { Product } from "@/lib/products";
 
 type Props = {
@@ -22,20 +22,42 @@ function formatBRL(n: number) {
 export function ProductCard({ product, priceFrom, index = 0, variant = "default" }: Props) {
   const images = (product.images ?? []).filter(Boolean);
   const [imageIndex, setImageIndex] = useState(0);
+  const [previousImage, setPreviousImage] = useState<string | null>(null);
+  const [imageTransition, setImageTransition] = useState<"fade" | "slide-left" | "slide-right">("fade");
+  const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const img = images[imageIndex];
   const hasGalleryNavigation = images.length > 2;
   const homeStyle = variant === "home";
 
-  const showGalleryPreview = () => {
-    if (images.length > 1 && imageIndex === 0) setImageIndex(1);
+  useEffect(() => () => {
+    if (transitionTimer.current) clearTimeout(transitionTimer.current);
+  }, []);
+
+  const changeImage = (
+    nextIndex: number,
+    transition: "fade" | "slide-left" | "slide-right",
+  ) => {
+    if (nextIndex === imageIndex || !img) return;
+    if (transitionTimer.current) clearTimeout(transitionTimer.current);
+    setPreviousImage(img);
+    setImageTransition(transition);
+    setImageIndex(nextIndex);
+    transitionTimer.current = setTimeout(() => setPreviousImage(null), 520);
   };
 
-  const resetGalleryPreview = () => setImageIndex(0);
+  const showGalleryPreview = () => {
+    if (images.length > 1 && imageIndex === 0) changeImage(1, "fade");
+  };
+
+  const resetGalleryPreview = () => {
+    if (imageIndex !== 0) changeImage(0, "fade");
+  };
 
   const navigateImage = (event: MouseEvent, direction: -1 | 1) => {
     event.preventDefault();
     event.stopPropagation();
-    setImageIndex((current) => (current + direction + images.length) % images.length);
+    const nextIndex = (imageIndex + direction + images.length) % images.length;
+    changeImage(nextIndex, direction === 1 ? "slide-left" : "slide-right");
   };
 
   return (
@@ -57,12 +79,23 @@ export function ProductCard({ product, priceFrom, index = 0, variant = "default"
         }
       >
         {img ? (
-          <img
-            src={img}
-            alt={product.name}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
+          <>
+            {previousImage && (
+              <img
+                src={previousImage}
+                alt=""
+                aria-hidden="true"
+                className={`absolute inset-0 h-full w-full object-cover product-card-image-out product-card-image-out--${imageTransition}`}
+              />
+            )}
+            <img
+              key={`${imageIndex}-${imageTransition}`}
+              src={img}
+              alt={product.name}
+              loading="lazy"
+              className={`absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 product-card-image-in product-card-image-in--${imageTransition}`}
+            />
+          </>
         ) : (
           <div className="h-full w-full bg-primary/5" />
         )}

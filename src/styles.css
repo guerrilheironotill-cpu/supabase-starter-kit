@@ -213,6 +213,57 @@
   animation: fade-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+@keyframes product-card-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes product-card-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes product-card-slide-in-left {
+  from { opacity: 0.7; transform: translateX(18%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes product-card-slide-out-left {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0.7; transform: translateX(-18%); }
+}
+
+@keyframes product-card-slide-in-right {
+  from { opacity: 0.7; transform: translateX(-18%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes product-card-slide-out-right {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0.7; transform: translateX(18%); }
+}
+
+.product-card-image-in,
+.product-card-image-out {
+  animation-duration: 480ms;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.product-card-image-in--fade { animation-name: product-card-fade-in; }
+.product-card-image-out--fade { animation-name: product-card-fade-out; }
+.product-card-image-in--slide-left { animation-name: product-card-slide-in-left; }
+.product-card-image-out--slide-left { animation-name: product-card-slide-out-left; }
+.product-card-image-in--slide-right { animation-name: product-card-slide-in-right; }
+.product-card-image-out--slide-right { animation-name: product-card-slide-out-right; }
+
+@media (prefers-reduced-motion: reduce) {
+  .product-card-image-in,
+  .product-card-image-out {
+    animation-duration: 1ms;
+  }
+}
+
 .scroll-reveal {
   opacity: 0;
   transform: translate3d(0, 34px, 0);
