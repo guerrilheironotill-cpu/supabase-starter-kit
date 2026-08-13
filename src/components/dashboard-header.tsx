@@ -1,6 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut } from "lucide-react";
+import { Copy, LogOut } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { absoluteUrl } from "@/lib/site-config";
 
 export function DashboardHeader() {
   const navigate = useNavigate();
@@ -8,6 +10,15 @@ export function DashboardHeader() {
   async function logout() {
     await supabase.auth.signOut();
     navigate({ to: "/auth" });
+  }
+
+  async function copyCatalogLink() {
+    try {
+      await navigator.clipboard.writeText(absoluteUrl("/catalogo-pdf"));
+      toast.success("Link do catálogo copiado");
+    } catch {
+      toast.error("Não foi possível copiar o link");
+    }
   }
 
   return (
@@ -24,14 +35,25 @@ export function DashboardHeader() {
             className="h-full w-full object-contain object-left"
           />
         </Link>
-        <button
-          type="button"
-          onClick={logout}
-          className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10"
-        >
-          <LogOut className="h-4 w-4" />
-          Sair
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void copyCatalogLink()}
+            className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-white/10 sm:px-4 sm:text-sm"
+          >
+            <Copy className="h-4 w-4" />
+            <span className="hidden sm:inline">Copiar link do catálogo</span>
+            <span className="sm:hidden">Catálogo</span>
+          </button>
+          <button
+            type="button"
+            onClick={logout}
+            className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-white/10 sm:px-4 sm:text-sm"
+          >
+            <LogOut className="h-4 w-4" />
+            Sair
+          </button>
+        </div>
       </div>
     </header>
   );
