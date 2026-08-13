@@ -18,31 +18,42 @@ const baseSchema = z.object({
     .min(8, "Telefone inválido")
     .max(20, "Telefone inválido")
     .regex(/^[0-9()+\-\s]+$/, "Use apenas números"),
-  personType: z.enum(["fisica", "juridica"]),
+  customerType: z.enum(["final", "professional", "reseller"]),
+  professionalDocument: z.enum(["cpf", "cnpj"]),
   cpf: z.string().trim().optional(),
   cnpj: z.string().trim().optional(),
   companyName: z.string().trim().optional(),
 });
 
 const schema = baseSchema.superRefine((v, ctx) => {
-  if (v.personType === "fisica") {
+  if (v.customerType === "final") {
     if ((v.cpf ?? "").replace(/\D/g, "").length !== 11) {
       ctx.addIssue({ code: "custom", path: ["cpf"], message: "CPF inválido" });
     }
-  } else {
+  } else if (v.customerType === "reseller") {
     if ((v.cnpj ?? "").replace(/\D/g, "").length !== 14) {
       ctx.addIssue({ code: "custom", path: ["cnpj"], message: "CNPJ inválido" });
     }
-    if (!(v.companyName ?? "").trim()) {
-      ctx.addIssue({ code: "custom", path: ["companyName"], message: "Informe a empresa" });
-    }
+  } else if (
+    v.professionalDocument === "cpf" &&
+    (v.cpf ?? "").replace(/\D/g, "").length > 0 &&
+    (v.cpf ?? "").replace(/\D/g, "").length !== 11
+  ) {
+    ctx.addIssue({ code: "custom", path: ["cpf"], message: "CPF inválido" });
+  } else if (
+    v.professionalDocument === "cnpj" &&
+    (v.cnpj ?? "").replace(/\D/g, "").length > 0 &&
+    (v.cnpj ?? "").replace(/\D/g, "").length !== 14
+  ) {
+    ctx.addIssue({ code: "custom", path: ["cnpj"], message: "CNPJ inválido" });
   }
 });
 
 export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [personType, setPersonType] = useState<"fisica" | "juridica">("fisica");
+  const [customerType, setCustomerType] = useState<"final" | "professional" | "reseller">("final");
+  const [professionalDocument, setProfessionalDocument] = useState<"cpf" | "cnpj">("cnpj");
   const [cpf, setCpf] = useState("");
   const [cnpj, setCnpj] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -71,7 +82,8 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
     const parsed = schema.safeParse({
       name,
       phone,
-      personType,
+      customerType,
+      professionalDocument,
       cpf,
       cnpj,
       companyName,
@@ -130,9 +142,15 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
     const message =
       `Olá! Gostaria de solicitar um orçamento.\n\n` +
       `Nome: ${parsed.data.name}\n` +
-      (parsed.data.personType === "juridica"
-        ? `Empresa: ${parsed.data.companyName}\nCNPJ: ${parsed.data.cnpj}\n`
-        : `CPF: ${parsed.data.cpf}\n`) +
+      `Perfil: ${parsed.data.customerType === "final" ? "Cliente final" : parsed.data.customerType === "professional" ? "Profissional / Especificador" : "Revendedor / Lojista"}\n` +
+      (parsed.data.companyName ? `Empresa: ${parsed.data.companyName}\n` : "") +
+      (parsed.data.customerType === "final" || parsed.data.professionalDocument === "cpf"
+        ? parsed.data.cpf
+          ? `CPF: ${parsed.data.cpf}\n`
+          : ""
+        : parsed.data.cnpj
+          ? `CNPJ: ${parsed.data.cnpj}\n`
+          : "") +
       `Telefone: ${parsed.data.phone}\n\n` +
       `Produtos:\n${list}`;
 
@@ -204,10 +222,17 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
         }));
         const meta = {
           __meta: 1,
-          personType: parsed.data.personType,
-          cpf: parsed.data.personType === "fisica" ? parsed.data.cpf : null,
-          cnpj: parsed.data.personType === "juridica" ? parsed.data.cnpj : null,
-          companyName: parsed.data.personType === "juridica" ? parsed.data.companyName : null,
+          personType: parsed.data.customerType === "final" ? "fisica" : "juridica",
+          customerType: parsed.data.customerType,
+          cpf:
+            parsed.data.customerType === "final" || parsed.data.professionalDocument === "cpf"
+              ? parsed.data.cpf
+              : null,
+          cnpj:
+            parsed.data.customerType === "reseller" || parsed.data.professionalDocument === "cnpj"
+              ? parsed.data.cnpj
+              : null,
+          companyName: parsed.data.customerType !== "final" ? parsed.data.companyName : null,
         };
         const total = items.reduce((s, i) => s + (i.unitPrice ?? 0) * i.quantity, 0);
         await publicSupabase.from("orders" as never).insert({
@@ -292,43 +317,34 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
               )}
             </label>
 
-            <div>
+            <label className="block">
               <span className="text-xs font-medium uppercase tracking-widest text-primary">
-                Tipo de pessoa
+                Perfil do cliente <span className="text-destructive">*</span>
               </span>
-              <div className="mt-2 flex gap-4 text-sm">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="wa-personType"
-                    checked={personType === "fisica"}
-                    onChange={() => setPersonType("fisica")}
-                  />
-                  Física
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="wa-personType"
-                    checked={personType === "juridica"}
-                    onChange={() => setPersonType("juridica")}
-                  />
-                  Jurídica
-                </label>
-              </div>
-            </div>
+              <select
+                value={customerType}
+                onChange={(e) =>
+                  setCustomerType(e.target.value as "final" | "professional" | "reseller")
+                }
+                required
+                className="mt-2 block w-full rounded-full border border-border bg-background px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary"
+              >
+                <option value="final">Cliente final</option>
+                <option value="professional">Profissional / Especificador</option>
+                <option value="reseller">Revendedor / Lojista</option>
+              </select>
+            </label>
 
-            {personType === "juridica" && (
+            {customerType !== "final" && (
               <label className="block">
                 <span className="text-xs font-medium uppercase tracking-widest text-primary">
-                  Nome da empresa <span className="text-destructive">*</span>
+                  Nome da empresa
                 </span>
                 <input
                   type="text"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   maxLength={120}
-                  required
                   className="mt-2 block w-full rounded-full border border-border bg-transparent px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary"
                   placeholder="Razão social"
                 />
@@ -338,23 +354,43 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
               </label>
             )}
 
+            {customerType === "professional" && (
+              <label className="block">
+                <span className="text-xs font-medium uppercase tracking-widest text-primary">
+                  Documento
+                </span>
+                <select
+                  value={professionalDocument}
+                  onChange={(e) => setProfessionalDocument(e.target.value as "cpf" | "cnpj")}
+                  className="mt-2 block w-full rounded-full border border-border bg-background px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary"
+                >
+                  <option value="cnpj">Informar CNPJ (opcional)</option>
+                  <option value="cpf">Informar CPF (opcional)</option>
+                </select>
+              </label>
+            )}
+
             <label className="block">
               <span className="text-xs font-medium uppercase tracking-widest text-primary">
-                {personType === "fisica" ? "CPF" : "CNPJ"}{" "}
-                <span className="text-destructive">*</span>
+                {customerType === "final" || professionalDocument === "cpf" ? "CPF" : "CNPJ"}{" "}
+                {customerType !== "professional" && <span className="text-destructive">*</span>}
               </span>
               <input
                 type="text"
-                value={personType === "fisica" ? cpf : cnpj}
+                value={customerType === "final" || professionalDocument === "cpf" ? cpf : cnpj}
                 onChange={(e) =>
-                  personType === "fisica"
+                  customerType === "final" || professionalDocument === "cpf"
                     ? setCpf(maskCpf(e.target.value))
                     : setCnpj(maskCnpj(e.target.value))
                 }
-                maxLength={personType === "fisica" ? 14 : 18}
-                required
+                maxLength={customerType === "final" || professionalDocument === "cpf" ? 14 : 18}
+                required={customerType !== "professional"}
                 className="mt-2 block w-full rounded-full border border-border bg-transparent px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary"
-                placeholder={personType === "fisica" ? "000.000.000-00" : "00.000.000/0000-00"}
+                placeholder={
+                  customerType === "final" || professionalDocument === "cpf"
+                    ? "000.000.000-00"
+                    : "00.000.000/0000-00"
+                }
               />
               {(errors.cpf || errors.cnpj) && (
                 <span className="mt-1 block text-xs text-destructive">
