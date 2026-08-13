@@ -47,6 +47,7 @@ import { Route as DashboardCoresRouteImport } from './routes/dashboard.cores'
 import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.configuracoes'
 import { Route as DashboardClientesRouteImport } from './routes/dashboard.clientes'
 import { Route as DashboardCategoriasRouteImport } from './routes/dashboard.categorias'
+import { Route as DashboardCadastrarProdutoRouteImport } from './routes/dashboard.cadastrar-produto'
 import { Route as DashboardAcabamentosRouteImport } from './routes/dashboard.acabamentos'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 import { Route as ApiUploadMediaRouteImport } from './routes/api/upload-media'
@@ -257,6 +258,12 @@ const DashboardCategoriasRoute = DashboardCategoriasRouteImport.update({
   path: '/categorias',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardCadastrarProdutoRoute =
+  DashboardCadastrarProdutoRouteImport.update({
+    id: '/cadastrar-produto',
+    path: '/cadastrar-produto',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 const DashboardAcabamentosRoute = DashboardAcabamentosRouteImport.update({
   id: '/acabamentos',
   path: '/acabamentos',
@@ -389,6 +396,7 @@ export interface FileRoutesByFullPath {
   '/api/upload-media': typeof ApiUploadMediaRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
+  '/dashboard/cadastrar-produto': typeof DashboardCadastrarProdutoRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
   '/dashboard/clientes': typeof DashboardClientesRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
@@ -447,6 +455,7 @@ export interface FileRoutesByTo {
   '/api/upload-media': typeof ApiUploadMediaRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
+  '/dashboard/cadastrar-produto': typeof DashboardCadastrarProdutoRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
   '/dashboard/clientes': typeof DashboardClientesRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
@@ -506,6 +515,7 @@ export interface FileRoutesById {
   '/api/upload-media': typeof ApiUploadMediaRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
+  '/dashboard/cadastrar-produto': typeof DashboardCadastrarProdutoRoute
   '/dashboard/categorias': typeof DashboardCategoriasRoute
   '/dashboard/clientes': typeof DashboardClientesRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
@@ -567,6 +577,7 @@ export interface FileRouteTypes {
     | '/api/upload-media'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
+    | '/dashboard/cadastrar-produto'
     | '/dashboard/categorias'
     | '/dashboard/clientes'
     | '/dashboard/configuracoes'
@@ -625,6 +636,7 @@ export interface FileRouteTypes {
     | '/api/upload-media'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
+    | '/dashboard/cadastrar-produto'
     | '/dashboard/categorias'
     | '/dashboard/clientes'
     | '/dashboard/configuracoes'
@@ -683,6 +695,7 @@ export interface FileRouteTypes {
     | '/api/upload-media'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
+    | '/dashboard/cadastrar-produto'
     | '/dashboard/categorias'
     | '/dashboard/clientes'
     | '/dashboard/configuracoes'
@@ -1016,6 +1029,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardCategoriasRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/cadastrar-produto': {
+      id: '/dashboard/cadastrar-produto'
+      path: '/cadastrar-produto'
+      fullPath: '/dashboard/cadastrar-produto'
+      preLoaderRoute: typeof DashboardCadastrarProdutoRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/acabamentos': {
       id: '/dashboard/acabamentos'
       path: '/acabamentos'
@@ -1179,6 +1199,7 @@ const DashboardPaginasRouteWithChildren =
 
 interface DashboardRouteChildren {
   DashboardAcabamentosRoute: typeof DashboardAcabamentosRoute
+  DashboardCadastrarProdutoRoute: typeof DashboardCadastrarProdutoRoute
   DashboardCategoriasRoute: typeof DashboardCategoriasRoute
   DashboardClientesRoute: typeof DashboardClientesRoute
   DashboardConfiguracoesRoute: typeof DashboardConfiguracoesRoute
@@ -1203,6 +1224,7 @@ interface DashboardRouteChildren {
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAcabamentosRoute: DashboardAcabamentosRoute,
+  DashboardCadastrarProdutoRoute: DashboardCadastrarProdutoRoute,
   DashboardCategoriasRoute: DashboardCategoriasRoute,
   DashboardClientesRoute: DashboardClientesRoute,
   DashboardConfiguracoesRoute: DashboardConfiguracoesRoute,

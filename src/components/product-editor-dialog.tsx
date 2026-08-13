@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { uploadOptimizedImage } from "@/lib/vps-media";
 import { cn } from "@/lib/utils";
 import { fetchProductCategoryOptions } from "@/lib/dashboard-taxonomies";
+import { slugify } from "@/lib/products";
 import { toast } from "sonner";
 
 type Category = { id: string; name: string; slug: string };
@@ -142,12 +143,21 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
   const initialColors = useRef("");
 
   useEffect(() => {
-    if (!productId) return;
     let cancel = false;
     (async () => {
       setLoading(true);
       setError(null);
       try {
+        if (!productId) {
+          const cats = await fetchProductCategoryOptions();
+          if (cancel) return;
+          setCategories(cats as Category[]);
+          setProduct(normalizeProduct({ category: cats[0]?.name ?? "", active: true }));
+          initialSizes.current = sizesSignature([]);
+          initialFinishes.current = attributesSignature([]);
+          initialColors.current = attributesSignature([]);
+          return;
+        }
         const [p, s, f, c, cats] = await Promise.all([
           fetchEditableProduct(productId),
           supabase
@@ -222,6 +232,11 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
     setSaving(true);
     setError(null);
     try {
+      const name = product.name.trim();
+      const slug = product.slug.trim();
+      if (!name) throw new Error("Informe o nome do produto.");
+      if (!slug) throw new Error("Informe o slug do produto.");
+      if (!product.category) throw new Error("Selecione a categoria do produto.");
       const invalidSize = sizes.find((size) => {
         const hasAllDimensions = Boolean(size.height && size.width && size.length);
         const preservedLegacySize = Boolean(
@@ -233,8 +248,8 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
         throw new Error("Preencha altura, largura e comprimento de todos os tamanhos.");
       }
       const productPayload = {
-        name: product.name,
-        slug: product.slug,
+        name,
+        slug,
         description: product.description,
         category: product.category,
         images: product.images,
@@ -242,10 +257,12 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
         meta_title: product.meta_title,
         meta_description: product.meta_description,
       };
-      const { error: pErr } = await supabase
-        .from("products")
-        .update(productPayload)
-        .eq("id", product.id);
+      let savedProductId = product.id;
+      const productWrite = product.id
+        ? await supabase.from("products").update(productPayload).eq("id", product.id)
+        : await supabase.from("products").insert(productPayload).select("id").single();
+      const pErr = productWrite.error;
+      if (!product.id && productWrite.data) savedProductId = productWrite.data.id;
       if (pErr) {
         if (!isMissingSeoColumnError(pErr)) throw pErr;
         const fallbackPayload = {
@@ -256,21 +273,23 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
           images: productPayload.images,
           active: productPayload.active,
         };
-        const { error: fallbackErr } = await supabase
-          .from("products")
-          .update(fallbackPayload)
-          .eq("id", product.id);
+        const fallbackWrite = product.id
+          ? await supabase.from("products").update(fallbackPayload).eq("id", product.id)
+          : await supabase.from("products").insert(fallbackPayload).select("id").single();
+        const fallbackErr = fallbackWrite.error;
         if (fallbackErr) throw fallbackErr;
+        if (!product.id && fallbackWrite.data) savedProductId = fallbackWrite.data.id;
       }
+      if (!savedProductId) throw new Error("Não foi possível identificar o produto cadastrado.");
 
       const relationUpdates: Array<Promise<void>> = [];
       if (sizesSignature(sizes) !== initialSizes.current) {
         relationUpdates.push(
           replaceRows(
             "product_sizes",
-            product.id,
+            savedProductId,
             sizes.map((s, i) => ({
-              product_id: product.id,
+              product_id: savedProductId,
               size: sizeName(s),
               name: sizeName(s),
               base_price: s.base_price,
@@ -284,9 +303,9 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
         relationUpdates.push(
           replaceRows(
             "product_finishes",
-            product.id,
+            savedProductId,
             finishes.map((f, i) => ({
-              product_id: product.id,
+              product_id: savedProductId,
               finish: f.name,
               sort_order: i,
             })),
@@ -297,9 +316,9 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
         relationUpdates.push(
           replaceRows(
             "product_colors",
-            product.id,
+            savedProductId,
             colors.map((c, i) => ({
-              product_id: product.id,
+              product_id: savedProductId,
               color: c.name,
               sort_order: i,
             })),
@@ -308,7 +327,11 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
       }
       await Promise.all(relationUpdates);
 
-      toast.success(`Produto "${product.name}" salvo com sucesso!`);
+      toast.success(
+        product.id
+          ? `Produto "${name}" salvo com sucesso!`
+          : `Produto "${name}" cadastrado com sucesso!`,
+      );
       onSaved();
       onClose();
     } catch (e) {
@@ -336,11 +359,13 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
     <>
       {mode === "dialog" ? (
         <DialogHeader className="border-b border-border px-6 py-4">
-          <DialogTitle>Editar produto</DialogTitle>
+          <DialogTitle>{productId ? "Editar produto" : "Cadastrar produto"}</DialogTitle>
         </DialogHeader>
       ) : (
         <div className="border-b border-border px-6 py-5">
-          <h1 className="text-xl font-semibold text-foreground">Editar produto</h1>
+          <h1 className="text-xl font-semibold text-foreground">
+            {productId ? "Editar produto" : "Cadastrar produto"}
+          </h1>
           {product?.name && <p className="mt-1 text-sm text-muted-foreground">{product.name}</p>}
         </div>
       )}
@@ -434,7 +459,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
                 className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
                 {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                Salvar alterações
+                {productId ? "Salvar alterações" : "Cadastrar produto"}
               </button>
             </div>
           </div>
@@ -483,21 +508,31 @@ function BasicTab({
 }) {
   return (
     <div className="space-y-3">
-      <Field label="Nome">
+      <Field label="Nome *">
         <input
           className={inputCls}
           value={product.name}
-          onChange={(e) => setProduct({ ...product, name: e.target.value })}
+          onChange={(e) => {
+            const name = e.target.value;
+            setProduct({
+              ...product,
+              name,
+              slug:
+                !product.slug || product.slug === slugify(product.name)
+                  ? slugify(name)
+                  : product.slug,
+            });
+          }}
         />
       </Field>
-      <Field label="Slug">
+      <Field label="Slug *">
         <input
           className={inputCls}
           value={product.slug}
           onChange={(e) => setProduct({ ...product, slug: e.target.value })}
         />
       </Field>
-      <Field label="Categoria">
+      <Field label="Categoria *">
         <select
           className={inputCls}
           value={product.category}

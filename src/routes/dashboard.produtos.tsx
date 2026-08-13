@@ -9,6 +9,7 @@ import {
   Eye,
   Loader2,
   Pencil,
+  Plus,
   RefreshCw,
   Search,
   Trash2,
@@ -436,19 +437,28 @@ function DashboardProductsPage() {
             </p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => void updateProductsInPdf()}
-          disabled={updatingPdf || !pdfPending}
-          className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {updatingPdf ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="mr-2 h-4 w-4" />
-          )}
-          {updatingPdf ? "Atualizando PDFs..." : "Atualizar produtos no PDF"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void navigate({ to: "/dashboard/cadastrar-produto" })}
+            className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Cadastrar produto
+          </button>
+          <button
+            type="button"
+            onClick={() => void updateProductsInPdf()}
+            disabled={updatingPdf || !pdfPending}
+            className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium text-foreground transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {updatingPdf ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            {updatingPdf ? "Atualizando PDFs..." : "Atualizar produtos no PDF"}
+          </button>
+        </div>
       </div>
 
       <DashboardSection title={`Cadastros (${data.length})`}>

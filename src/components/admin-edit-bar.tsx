@@ -7,6 +7,7 @@ type AdminEditBarProps = {
   label: string;
   to:
     | "/dashboard/produtos"
+    | "/dashboard/cadastrar-produto"
     | "/dashboard/editar-produto/$productId"
     | "/dashboard/categorias"
     | "/dashboard/acabamentos"
@@ -75,7 +76,7 @@ export function AdminEditBar({ label, to, search, params }: AdminEditBarProps) {
             <span className="hidden sm:inline">Dashboard</span>
           </Link>
           <Link
-            to="/dashboard/produtos"
+            to="/dashboard/cadastrar-produto"
             className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white"
           >
             <PackagePlus className="h-3.5 w-3.5" />
