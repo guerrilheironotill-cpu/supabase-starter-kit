@@ -26,6 +26,10 @@ type QuoteState = {
     id: string,
     configuration: Pick<QuoteItem, "finish" | "color" | "unitPrice">,
   ) => void;
+  updateConfigurationOptions: (
+    id: string,
+    options: Pick<QuoteItem, "availableFinishes" | "availableColors" | "basePrice">,
+  ) => void;
   clear: () => void;
   count: () => number;
 };
@@ -58,6 +62,10 @@ export const useQuoteStore = create<QuoteState>()(
       updateConfiguration: (id, configuration) =>
         set((state) => ({
           items: state.items.map((item) => (item.id === id ? { ...item, ...configuration } : item)),
+        })),
+      updateConfigurationOptions: (id, options) =>
+        set((state) => ({
+          items: state.items.map((item) => (item.id === id ? { ...item, ...options } : item)),
         })),
       clear: () => set({ items: [] }),
       count: () => get().items.reduce((n, i) => n + i.quantity, 0),

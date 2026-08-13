@@ -6,6 +6,8 @@ import { useWhatsAppNumber } from "@/lib/site-settings";
 import { maskPhoneBR } from "@/lib/masks";
 import { publicSupabase } from "@/integrations/supabase/client";
 import { absoluteUrl } from "@/lib/site-config";
+import { fetchProductBySlug } from "@/lib/products";
+import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
 
 export const Route = createFileRoute("/orcamento")({
   head: () => ({
@@ -108,6 +110,7 @@ function OrcamentoPage() {
   const removeItem = useQuoteStore((s) => s.removeItem);
   const updateQuantity = useQuoteStore((s) => s.updateQuantity);
   const updateConfiguration = useQuoteStore((s) => s.updateConfiguration);
+  const updateConfigurationOptions = useQuoteStore((s) => s.updateConfigurationOptions);
   const clear = useQuoteStore((s) => s.clear);
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -136,6 +139,36 @@ function OrcamentoPage() {
   useCepAutocomplete(customerAddress.cep, (patch) =>
     setCustomerAddress((a) => ({ ...a, ...patch })),
   );
+
+  useEffect(() => {
+    const legacyItems = items.filter(
+      (item) => item.slug && (!item.availableFinishes?.length || !item.availableColors?.length),
+    );
+    if (legacyItems.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      const finishCatalog = await fetchAttributeTerms("product_finishes", "finish_catalog");
+      await Promise.all(
+        legacyItems.map(async (item) => {
+          const product = await fetchProductBySlug(item.slug!);
+          if (!product || cancelled) return;
+          updateConfigurationOptions(item.id, {
+            basePrice: item.basePrice ?? item.unitPrice ?? 0,
+            availableFinishes: product.product_finishes.map((finish) => ({
+              name: finish.name,
+              extraPrice:
+                finishCatalog.find((catalogItem) => catalogItem.name === finish.name)
+                  ?.extra_price ?? 0,
+            })),
+            availableColors: product.product_colors.map((color) => color.name),
+          });
+        }),
+      );
+    })().catch((error) => console.warn("[orcamento] opções do produto indisponíveis", error));
+    return () => {
+      cancelled = true;
+    };
+  }, [items, updateConfigurationOptions]);
 
   // Florianópolis / Grande Fpolis: 88000–88169
   const cepDigits = deliveryAddress.cep.replace(/\D/g, "");
@@ -668,6 +701,9 @@ function StepProducts({
                         }}
                         className="border border-border bg-background px-3 py-2 text-sm normal-case tracking-normal text-foreground"
                       >
+                        <option value="" disabled>
+                          Selecione o acabamento
+                        </option>
                         {item.availableFinishes.map((option) => (
                           <option key={option.name} value={option.name}>
                             {option.name}
@@ -694,6 +730,9 @@ function StepProducts({
                         }
                         className="border border-border bg-background px-3 py-2 text-sm normal-case tracking-normal text-foreground"
                       >
+                        <option value="" disabled>
+                          Selecione a cor
+                        </option>
                         {item.availableColors.map((color) => (
                           <option key={color} value={color}>
                             {color}
