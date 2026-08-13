@@ -9,7 +9,12 @@ import {
 import { fetchAttributeTerms, type AttributeTerm } from "./dashboard-taxonomies";
 import { absoluteUrl } from "./site-config";
 import { fetchHeroSlides } from "./hero-slides";
-import { discountedPrice, PROFESSIONAL_DISCOUNT, RESELLER_TIERS } from "./commercial-rules";
+import {
+  commercialDiscountBase,
+  discountedPrice,
+  PROFESSIONAL_DISCOUNT,
+  RESELLER_TIERS,
+} from "./commercial-rules";
 
 export type CatalogVariant = "standard" | "professional" | "reseller";
 
@@ -357,7 +362,12 @@ export async function buildCatalogPDF(
               { align: "center" },
             ),
           );
-          const fullPrice = (size.sale_price ?? size.base_price) + group.extraPrice;
+          const customerFinalPrice = (size.sale_price ?? size.base_price) + group.extraPrice;
+          const partnerPriceBase = commercialDiscountBase(size.base_price, group.extraPrice);
+          const fullPrice =
+            variant === "professional" || variant === "reseller"
+              ? partnerPriceBase
+              : customerFinalPrice;
           const priceX = (index: number) =>
             tableX + dimensionWidth + priceCellWidth * (index + 0.5);
           if (variant === "professional" || variant === "reseller") {

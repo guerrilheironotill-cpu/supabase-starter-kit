@@ -21,6 +21,15 @@ export function discountedPrice(price: number, discount: number) {
   return Math.round(Number(price) * (1 - discount) * 100) / 100;
 }
 
+/**
+ * Commercial partner discounts always start from the regular product price.
+ * A public promotional price must never be combined with a professional or
+ * reseller discount.
+ */
+export function commercialDiscountBase(basePrice: number, finishExtra = 0) {
+  return Math.round((Number(basePrice) + Number(finishExtra)) * 100) / 100;
+}
+
 export function resellerDiscountForSubtotal(subtotal: number) {
   if (subtotal >= 10_000) return 0.35;
   if (subtotal >= 5_000) return 0.3;
