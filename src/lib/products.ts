@@ -107,6 +107,17 @@ export async function fetchCategories(): Promise<string[]> {
   return Array.from(set).sort();
 }
 
+export async function fetchCategoryCover(category: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("cover_image")
+    .eq("name", category)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.cover_image ?? null;
+}
+
 export type ProductWithSizes = Product & {
   product_sizes: ProductSize[];
   product_finishes?: ProductOption[];

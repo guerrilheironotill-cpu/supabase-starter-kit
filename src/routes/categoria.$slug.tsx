@@ -13,6 +13,7 @@ import {
 } from "@/components/product-filters";
 import {
   fetchCategories,
+  fetchCategoryCover,
   fetchProductsWithSizes,
   categorySlug,
 } from "@/lib/products";
@@ -23,7 +24,8 @@ export const Route = createFileRoute("/categoria/$slug")({
     const categories = await fetchCategories();
     const category = categories.find((c) => categorySlug(c) === params.slug);
     if (!category) throw notFound();
-    return { category };
+    const coverImage = await fetchCategoryCover(category);
+    return { category, coverImage };
   },
   head: ({ loaderData }) => ({
     meta: [
@@ -74,7 +76,7 @@ export const Route = createFileRoute("/categoria/$slug")({
 });
 
 function CategoryPage() {
-  const { category } = Route.useLoaderData();
+  const { category, coverImage } = Route.useLoaderData();
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
   const { data: products = [], isLoading } = useQuery({
@@ -88,7 +90,7 @@ function CategoryPage() {
     [products, filters],
   );
 
-  const heroImage = products[0]?.images?.[0];
+  const heroImage = coverImage ?? products[0]?.images?.[0];
 
   return (
     <>
