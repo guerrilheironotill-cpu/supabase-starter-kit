@@ -10,7 +10,7 @@ if (!url || !serviceKey) {
   process.exit(1);
 }
 
-const EMAIL = "l.felipevogel@gmail.com";
+const EMAIL = "contato@arteno.com.br";
 const PASSWORD = "123mudar";
 
 const admin = createClient(url, serviceKey, {
