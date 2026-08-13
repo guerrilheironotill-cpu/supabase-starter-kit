@@ -23,6 +23,7 @@ import { Route as HealthCacheRouteImport } from './routes/health-cache'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as FinalizarOrcamentoRouteImport } from './routes/finalizar-orcamento'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CatalogoPdfRouteImport } from './routes/catalogo-pdf'
 import { Route as CatalogoRouteImport } from './routes/catalogo'
 import { Route as BuscaRouteImport } from './routes/busca'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -133,6 +134,11 @@ const FinalizarOrcamentoRoute = FinalizarOrcamentoRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CatalogoPdfRoute = CatalogoPdfRouteImport.update({
+  id: '/catalogo-pdf',
+  path: '/catalogo-pdf',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CatalogoRoute = CatalogoRouteImport.update({
@@ -357,6 +363,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/busca': typeof BuscaRoute
   '/catalogo': typeof CatalogoRoute
+  '/catalogo-pdf': typeof CatalogoPdfRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/finalizar-orcamento': typeof FinalizarOrcamentoRoute
   '/health': typeof HealthRoute
@@ -415,6 +422,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/busca': typeof BuscaRoute
   '/catalogo': typeof CatalogoRoute
+  '/catalogo-pdf': typeof CatalogoPdfRoute
   '/finalizar-orcamento': typeof FinalizarOrcamentoRoute
   '/health': typeof HealthRoute
   '/health-cache': typeof HealthCacheRoute
@@ -472,6 +480,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/busca': typeof BuscaRoute
   '/catalogo': typeof CatalogoRoute
+  '/catalogo-pdf': typeof CatalogoPdfRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/finalizar-orcamento': typeof FinalizarOrcamentoRoute
   '/health': typeof HealthRoute
@@ -532,6 +541,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/busca'
     | '/catalogo'
+    | '/catalogo-pdf'
     | '/dashboard'
     | '/finalizar-orcamento'
     | '/health'
@@ -590,6 +600,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/busca'
     | '/catalogo'
+    | '/catalogo-pdf'
     | '/finalizar-orcamento'
     | '/health'
     | '/health-cache'
@@ -646,6 +657,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/busca'
     | '/catalogo'
+    | '/catalogo-pdf'
     | '/dashboard'
     | '/finalizar-orcamento'
     | '/health'
@@ -705,6 +717,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BuscaRoute: typeof BuscaRoute
   CatalogoRoute: typeof CatalogoRoute
+  CatalogoPdfRoute: typeof CatalogoPdfRoute
   DashboardRoute: typeof DashboardRouteWithChildren
   FinalizarOrcamentoRoute: typeof FinalizarOrcamentoRoute
   HealthRoute: typeof HealthRoute
@@ -833,6 +846,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/catalogo-pdf': {
+      id: '/catalogo-pdf'
+      path: '/catalogo-pdf'
+      fullPath: '/catalogo-pdf'
+      preLoaderRoute: typeof CatalogoPdfRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/catalogo': {
@@ -1214,6 +1234,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BuscaRoute: BuscaRoute,
   CatalogoRoute: CatalogoRoute,
+  CatalogoPdfRoute: CatalogoPdfRoute,
   DashboardRoute: DashboardRouteWithChildren,
   FinalizarOrcamentoRoute: FinalizarOrcamentoRoute,
   HealthRoute: HealthRoute,
