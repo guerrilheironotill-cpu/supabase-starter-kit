@@ -10,6 +10,7 @@ const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL") ?? "contato@arteno.com.br";
 const EMAIL_FROM =
   Deno.env.get("EMAIL_FROM") ?? "Arteno Vaso & Decor <orcamentos@envios.arteno.com.br>";
 const REPLY_TO = Deno.env.get("REPLY_TO") ?? ADMIN_EMAIL;
+const SITE_URL = (Deno.env.get("SITE_URL") ?? "https://novo.arteno.com.br").replace(/\/$/, "");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
@@ -139,7 +140,7 @@ Deno.serve(async (req) => {
     } catch {
       meta = {};
     }
-    const dashboardUrl = `https://arteno.com.br/dashboard/orcamentos?orcamento=${encodeURIComponent(order.id)}`;
+    const dashboardUrl = `${SITE_URL}/dashboard/orcamentos?orcamento=${encodeURIComponent(order.id)}`;
     const itemRows = items
       .map((item) => {
         const details = [item.size_name, item.finish, item.color].filter(Boolean).join(" · ");
