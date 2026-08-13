@@ -12,6 +12,9 @@ export type QuoteItem = {
   finish?: string;
   color?: string;
   unitPrice?: number;
+  basePrice?: number;
+  availableFinishes?: Array<{ name: string; extraPrice: number }>;
+  availableColors?: string[];
 };
 
 type QuoteState = {
@@ -19,6 +22,10 @@ type QuoteState = {
   addItem: (item: Omit<QuoteItem, "quantity"> & { quantity?: number }) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
+  updateConfiguration: (
+    id: string,
+    configuration: Pick<QuoteItem, "finish" | "color" | "unitPrice">,
+  ) => void;
   clear: () => void;
   count: () => number;
 };
@@ -33,9 +40,7 @@ export const useQuoteStore = create<QuoteState>()(
           if (existing) {
             return {
               items: state.items.map((i) =>
-                i.id === item.id
-                  ? { ...i, quantity: i.quantity + (item.quantity ?? 1) }
-                  : i,
+                i.id === item.id ? { ...i, quantity: i.quantity + (item.quantity ?? 1) } : i,
               ),
             };
           }
@@ -43,13 +48,16 @@ export const useQuoteStore = create<QuoteState>()(
             items: [...state.items, { ...item, quantity: item.quantity ?? 1 }],
           };
         }),
-      removeItem: (id) =>
-        set((state) => ({ items: state.items.filter((i) => i.id !== id) })),
+      removeItem: (id) => set((state) => ({ items: state.items.filter((i) => i.id !== id) })),
       updateQuantity: (id, quantity) =>
         set((state) => ({
           items: state.items
             .map((i) => (i.id === id ? { ...i, quantity } : i))
             .filter((i) => i.quantity > 0),
+        })),
+      updateConfiguration: (id, configuration) =>
+        set((state) => ({
+          items: state.items.map((item) => (item.id === id ? { ...item, ...configuration } : item)),
         })),
       clear: () => set({ items: [] }),
       count: () => get().items.reduce((n, i) => n + i.quantity, 0),

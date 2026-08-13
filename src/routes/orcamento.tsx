@@ -106,6 +106,7 @@ function OrcamentoPage() {
   const items = useQuoteStore((s) => s.items);
   const removeItem = useQuoteStore((s) => s.removeItem);
   const updateQuantity = useQuoteStore((s) => s.updateQuantity);
+  const updateConfiguration = useQuoteStore((s) => s.updateConfiguration);
   const clear = useQuoteStore((s) => s.clear);
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -433,6 +434,7 @@ function OrcamentoPage() {
               <StepProducts
                 items={items}
                 updateQuantity={updateQuantity}
+                updateConfiguration={updateConfiguration}
                 removeItem={removeItem}
                 clear={clear}
               />
@@ -630,11 +632,16 @@ function Stepper({ step, onSelect }: { step: 1 | 2 | 3; onSelect: (s: 1 | 2 | 3)
 function StepProducts({
   items,
   updateQuantity,
+  updateConfiguration,
   removeItem,
   clear,
 }: {
   items: QuoteItem[];
   updateQuantity: (id: string, q: number) => void;
+  updateConfiguration: (
+    id: string,
+    configuration: Pick<QuoteItem, "finish" | "color" | "unitPrice">,
+  ) => void;
   removeItem: (id: string) => void;
   clear: () => void;
 }) {
@@ -679,19 +686,65 @@ function StepProducts({
                       <dd className="text-foreground">{item.dimensions}</dd>
                     </div>
                   )}
-                  {item.finish && (
-                    <div>
-                      <dt className="uppercase tracking-widest">Acabamento</dt>
-                      <dd className="text-foreground">{item.finish}</dd>
-                    </div>
-                  )}
-                  {item.color && (
-                    <div>
-                      <dt className="uppercase tracking-widest">Cor</dt>
-                      <dd className="text-foreground">{item.color}</dd>
-                    </div>
-                  )}
                 </dl>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <label className="grid gap-1 text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                    Acabamento
+                    {item.availableFinishes?.length ? (
+                      <select
+                        value={item.finish ?? ""}
+                        onChange={(event) => {
+                          const finish = item.availableFinishes?.find(
+                            (option) => option.name === event.target.value,
+                          );
+                          updateConfiguration(item.id, {
+                            finish: event.target.value,
+                            color: item.color,
+                            unitPrice:
+                              (item.basePrice ?? item.unitPrice ?? 0) + (finish?.extraPrice ?? 0),
+                          });
+                        }}
+                        className="border border-border bg-background px-3 py-2 text-sm normal-case tracking-normal text-foreground"
+                      >
+                        {item.availableFinishes.map((option) => (
+                          <option key={option.name} value={option.name}>
+                            {option.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="py-2 text-sm normal-case tracking-normal text-foreground">
+                        {item.finish ?? "Não informado"}
+                      </span>
+                    )}
+                  </label>
+                  <label className="grid gap-1 text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                    Cor
+                    {item.availableColors?.length ? (
+                      <select
+                        value={item.color ?? ""}
+                        onChange={(event) =>
+                          updateConfiguration(item.id, {
+                            finish: item.finish,
+                            color: event.target.value,
+                            unitPrice: item.unitPrice,
+                          })
+                        }
+                        className="border border-border bg-background px-3 py-2 text-sm normal-case tracking-normal text-foreground"
+                      >
+                        {item.availableColors.map((color) => (
+                          <option key={color} value={color}>
+                            {color}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="py-2 text-sm normal-case tracking-normal text-foreground">
+                        {item.color ?? "Não informada"}
+                      </span>
+                    )}
+                  </label>
+                </div>
                 <div className="mt-auto flex items-end justify-between pt-4">
                   <div className="inline-flex items-center border border-border">
                     <button

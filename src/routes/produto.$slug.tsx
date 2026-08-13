@@ -274,6 +274,8 @@ function ProductPage() {
     const idx = sizes.findIndex((s) => s.id === selectedSizeId);
     const s = sizes[idx];
     if (!s) return;
+    if (!selectedFinish || !selectedColor) return;
+    const basePrice = s.sale_price ?? s.base_price;
     addItem({
       id: `${p.id}:${s.id}:${selectedFinish}:${selectedColor}`,
       name: p.name,
@@ -285,7 +287,13 @@ function ProductPage() {
       dimensions: s.name ?? s.size ?? "",
       finish: selectedFinish || undefined,
       color: selectedColor || undefined,
-      unitPrice: (s.sale_price ?? s.base_price) + selectedFinishExtra,
+      unitPrice: basePrice + selectedFinishExtra,
+      basePrice,
+      availableFinishes: finishes.map((finish) => ({
+        name: finish.name,
+        extraPrice: finish.extra_price,
+      })),
+      availableColors: colors.map((color) => color.name),
     });
     setAddedDescription(
       `${p.name}, tamanho ${sizeCode(idx, sizes.length)}${selectedFinish ? `, acabamento ${selectedFinish}` : ""}`,
@@ -611,14 +619,22 @@ function ProductPage() {
             </label>
           </div>
           <DialogFooter>
-            <button
-              type="button"
-              onClick={handleAddSelected}
-              className="inline-flex w-full items-center justify-center gap-2 bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              <Plus className="h-4 w-4" />
-              Adicionar ao pedido
-            </button>
+            <div className="w-full">
+              {(!selectedFinish || !selectedColor) && (
+                <p className="mb-2 text-center text-xs text-destructive">
+                  Selecione o acabamento e a cor para adicionar o produto.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={handleAddSelected}
+                disabled={!selectedFinish || !selectedColor}
+                className="inline-flex w-full items-center justify-center gap-2 bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                <Plus className="h-4 w-4" />
+                Adicionar ao pedido
+              </button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
