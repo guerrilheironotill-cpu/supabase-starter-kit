@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
-const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL") ?? "l.felipevogel@gmail.com";
+const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL") ?? "contato@arteno.com.br";
 const EMAIL_FROM =
   Deno.env.get("EMAIL_FROM") ?? "Arteno Vaso & Decor <orcamentos@envios.arteno.com.br>";
 const REPLY_TO = Deno.env.get("REPLY_TO") ?? ADMIN_EMAIL;
