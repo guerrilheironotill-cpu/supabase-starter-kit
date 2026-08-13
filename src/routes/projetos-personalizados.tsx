@@ -242,11 +242,11 @@ function CustomProjectsPage() {
           />
           <div className="absolute inset-0 bg-gradient-to-r from-[#26352d] from-0% via-[#26352d]/95 via-35% to-transparent to-78%" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10" />
-          <div className="relative z-10 flex min-h-[520px] max-w-2xl flex-col items-start justify-end px-6 py-12 sm:min-h-[560px] sm:px-12 sm:py-16 lg:px-16 lg:py-20">
+          <div className="relative z-10 flex min-h-[520px] max-w-4xl flex-col items-start justify-end px-6 py-12 sm:min-h-[560px] sm:px-12 sm:py-16 lg:px-16 lg:py-20">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/65">
               Seu projeto, nossa matéria
             </p>
-            <h2 className="mt-4 font-display text-4xl leading-tight sm:text-5xl lg:text-6xl">
+            <h2 className="mt-4 max-w-4xl font-display text-4xl leading-tight sm:text-5xl lg:text-6xl">
               Vamos transformar uma ideia em uma peça única?
             </h2>
             <p className="mt-5 max-w-lg text-sm leading-relaxed text-white/75 sm:text-base">
