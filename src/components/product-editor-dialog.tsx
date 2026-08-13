@@ -47,6 +47,34 @@ type SupabaseLikeError = {
   details?: string | null;
 };
 
+function explainSaveError(error: unknown, context: string): string {
+  const dbError = error && typeof error === "object" ? (error as SupabaseLikeError) : null;
+  const code = dbError?.code ?? "";
+  const detail = `${dbError?.message ?? ""} ${dbError?.details ?? ""}`.trim();
+  const normalized = detail.toLowerCase();
+
+  if (code === "23505" || normalized.includes("duplicate key")) {
+    if (normalized.includes("slug")) {
+      return `${context}: já existe um produto usando este slug. Altere o slug e tente novamente.`;
+    }
+    return `${context}: há um item duplicado. Remova a repetição e tente novamente.`;
+  }
+  if (code === "23502" || normalized.includes("not-null")) {
+    return `${context}: um campo obrigatório não foi preenchido. Revise os campos marcados com *.`;
+  }
+  if (code === "23514" || normalized.includes("check constraint")) {
+    return `${context}: um valor não é permitido. Confira medidas, preços e demais números informados.`;
+  }
+  if (code === "42501" || normalized.includes("permission denied") || normalized.includes("row-level security")) {
+    return `${context}: seu usuário não tem permissão para realizar esta operação. Entre novamente como administrador.`;
+  }
+  if (code === "22P02") {
+    return `${context}: um dos valores está em formato inválido.`;
+  }
+  if (detail) return `${context}: ${detail}`;
+  return `${context}: o banco não informou a causa. Recarregue a página e tente novamente.`;
+}
+
 function isMissingSeoColumnError(error: SupabaseLikeError | null): boolean {
   if (!error) return false;
   const message = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
@@ -268,7 +296,9 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
         newlyCreatedProductId = productWrite.data.id;
       }
       if (pErr) {
-        if (!isMissingSeoColumnError(pErr)) throw pErr;
+        if (!isMissingSeoColumnError(pErr)) {
+          throw new Error(explainSaveError(pErr, "Não foi possível salvar os dados básicos"));
+        }
         const fallbackPayload = {
           name: productPayload.name,
           slug: productPayload.slug,
@@ -281,7 +311,11 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
           ? await supabase.from("products").update(fallbackPayload).eq("id", product.id)
           : await supabase.from("products").insert(fallbackPayload).select("id").single();
         const fallbackErr = fallbackWrite.error;
-        if (fallbackErr) throw fallbackErr;
+        if (fallbackErr) {
+          throw new Error(
+            explainSaveError(fallbackErr, "Não foi possível salvar os dados básicos"),
+          );
+        }
         if (!product.id && fallbackWrite.data) {
           savedProductId = fallbackWrite.data.id;
           newlyCreatedProductId = fallbackWrite.data.id;
@@ -294,6 +328,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
         relationUpdates.push(
           replaceRows(
             "product_sizes",
+            "Não foi possível salvar os tamanhos",
             savedProductId,
             sizes.map((s, i) => ({
               product_id: savedProductId,
@@ -310,6 +345,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
         relationUpdates.push(
           replaceRows(
             "product_finishes",
+            "Não foi possível salvar os acabamentos",
             savedProductId,
             finishes.map((f, i) => ({
               product_id: savedProductId,
@@ -324,6 +360,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
         relationUpdates.push(
           replaceRows(
             "product_colors",
+            "Não foi possível salvar as cores",
             savedProductId,
             colors.map((c, i) => ({
               product_id: savedProductId,
@@ -360,14 +397,15 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
 
   async function replaceRows(
     table: "product_sizes" | "product_finishes" | "product_colors",
+    context: string,
     productId: string,
     rows: Array<Record<string, unknown>>,
   ) {
     const { error: delErr } = await supabase.from(table).delete().eq("product_id", productId);
-    if (delErr) throw delErr;
+    if (delErr) throw new Error(explainSaveError(delErr, `${context} (remoção dos vínculos antigos)`));
     if (rows.length === 0) return;
     const { error: insErr } = await supabase.from(table).insert(rows);
-    if (insErr) throw insErr;
+    if (insErr) throw new Error(explainSaveError(insErr, context));
   }
 
   const editorBody = (
