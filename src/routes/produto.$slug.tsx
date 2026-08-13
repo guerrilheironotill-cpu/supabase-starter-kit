@@ -652,7 +652,7 @@ function ProductPage() {
               onClick={() => setAddedOpen(false)}
               className="inline-flex flex-1 items-center justify-center border border-primary/20 px-4 py-2.5 text-sm font-medium text-primary hover:bg-primary/5"
             >
-              Continuar comprando
+              Adicionar mais produtos
             </button>
             <Link
               to="/orcamento"
