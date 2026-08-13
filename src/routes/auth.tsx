@@ -32,22 +32,38 @@ function AuthPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-lg border p-6">
         <h1 className="text-xl font-semibold">Acesso administrativo</h1>
-        <input
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="email"
-          className="w-full rounded-md border px-3 py-2"
-        />
-        <input
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="password"
-          className="w-full rounded-md border px-3 py-2"
-        />
+        <label className="grid gap-1 text-sm font-medium">
+          <span>
+            E-mail{" "}
+            <span aria-hidden="true" className="text-destructive">
+              *
+            </span>
+          </span>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="email"
+            className="w-full rounded-md border px-3 py-2 font-normal"
+          />
+        </label>
+        <label className="grid gap-1 text-sm font-medium">
+          <span>
+            Senha{" "}
+            <span aria-hidden="true" className="text-destructive">
+              *
+            </span>
+          </span>
+          <input
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="senha"
+            className="w-full rounded-md border px-3 py-2 font-normal"
+          />
+        </label>
         <button
           type="submit"
           disabled={loading}

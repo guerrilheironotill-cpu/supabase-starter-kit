@@ -849,6 +849,7 @@ function StepCustomer({
           </div>
           <Field
             label="Nome completo"
+            required
             value={customer.name}
             onChange={(v) => setCustomer((c) => ({ ...c, name: v }))}
             className="sm:col-span-2"
@@ -890,6 +891,7 @@ function StepCustomer({
           (customer.customerType === "professional" && customer.professionalDocument === "cpf") ? (
             <Field
               label={customer.customerType === "professional" ? "CPF (opcional)" : "CPF"}
+              required={customer.customerType === "final"}
               value={customer.cpf}
               onChange={(v) => setCustomer((c) => ({ ...c, cpf: v }))}
               maxLength={14}
@@ -899,6 +901,7 @@ function StepCustomer({
           ) : (
             <Field
               label={customer.customerType === "professional" ? "CNPJ (opcional)" : "CNPJ"}
+              required={customer.customerType === "reseller"}
               value={customer.cnpj}
               onChange={(v) => setCustomer((c) => ({ ...c, cnpj: v }))}
               maxLength={18}
@@ -908,12 +911,14 @@ function StepCustomer({
           )}
           <Field
             label="E-mail"
+            required
             type="email"
             value={customer.email}
             onChange={(v) => setCustomer((c) => ({ ...c, email: v }))}
           />
           <Field
             label="Telefone / WhatsApp"
+            required
             value={customer.phone}
             onChange={(v) => setCustomer((c) => ({ ...c, phone: maskPhoneBR(v) }))}
             placeholder="(00) 00000-0000"
@@ -1071,6 +1076,7 @@ function AddressFields({
       <div className="mt-3 grid gap-4 sm:grid-cols-6">
         <Field
           label="CEP"
+          required={requireFull}
           value={address.cep}
           onChange={(v) => set("cep", v)}
           maxLength={9}
@@ -1080,6 +1086,7 @@ function AddressFields({
         />
         <Field
           label="Rua"
+          required={requireFull}
           value={address.street}
           onChange={(v) => set("street", v)}
           disabled={disabled}
@@ -1087,6 +1094,7 @@ function AddressFields({
         />
         <Field
           label="Número"
+          required={requireFull}
           value={address.number}
           onChange={(v) => set("number", v)}
           disabled={disabled}
@@ -1140,6 +1148,7 @@ function Field({
   placeholder,
   className,
   disabled,
+  required,
 }: {
   label: string;
   value: string;
@@ -1149,11 +1158,13 @@ function Field({
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  required?: boolean;
 }) {
   return (
     <label className={`block ${className ?? ""}`}>
       <span className="block text-xs font-medium uppercase tracking-widest text-muted-foreground">
         {label}
+        {required && <span className="ml-0.5 text-destructive">*</span>}
       </span>
       <input
         type={type}
@@ -1162,6 +1173,7 @@ function Field({
         maxLength={maxLength}
         placeholder={placeholder}
         disabled={disabled}
+        required={required}
         className="mt-1.5 block w-full border border-border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>

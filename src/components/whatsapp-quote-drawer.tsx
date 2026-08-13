@@ -11,11 +11,7 @@ import { compactError, useFormDebugLogStore } from "@/lib/form-debug-log";
 import { useWhatsAppNumber } from "@/lib/site-settings";
 
 const baseSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, "Informe seu nome")
-    .max(80, "Nome muito longo"),
+  name: z.string().trim().min(2, "Informe seu nome").max(80, "Nome muito longo"),
   phone: z
     .string()
     .trim()
@@ -43,13 +39,7 @@ const schema = baseSchema.superRefine((v, ctx) => {
   }
 });
 
-export function WhatsAppQuoteDrawer({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
+export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [personType, setPersonType] = useState<"fisica" | "juridica">("fisica");
@@ -109,8 +99,7 @@ export function WhatsAppQuoteDrawer({
     }
     setErrors({});
 
-    const origin =
-      typeof window !== "undefined" ? window.location.origin : "";
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
 
     const list =
       items.length > 0
@@ -118,11 +107,7 @@ export function WhatsAppQuoteDrawer({
             .map((i, idx) => {
               const details: string[] = [];
               if (i.sizeLabel || i.dimensions) {
-                details.push(
-                  `Tamanho: ${[i.sizeLabel, i.dimensions]
-                    .filter(Boolean)
-                    .join(" — ")}`,
-                );
+                details.push(`Tamanho: ${[i.sizeLabel, i.dimensions].filter(Boolean).join(" — ")}`);
               }
               if (i.finish) details.push(`Acabamento: ${i.finish}`);
               if (i.color) details.push(`Cor: ${i.color}`);
@@ -173,9 +158,7 @@ export function WhatsAppQuoteDrawer({
     // Fire-and-forget (não bloqueia a abertura do WhatsApp)
     void (async () => {
       try {
-        const { error } = await publicSupabase
-          .from("leads" as never)
-          .insert(payload as never);
+        const { error } = await publicSupabase.from("leads" as never).insert(payload as never);
         if (error) {
           console.warn("[leads] supabase insert failed:", error.message);
           addDebugLog({
@@ -224,15 +207,9 @@ export function WhatsAppQuoteDrawer({
           personType: parsed.data.personType,
           cpf: parsed.data.personType === "fisica" ? parsed.data.cpf : null,
           cnpj: parsed.data.personType === "juridica" ? parsed.data.cnpj : null,
-          companyName:
-            parsed.data.personType === "juridica"
-              ? parsed.data.companyName
-              : null,
+          companyName: parsed.data.personType === "juridica" ? parsed.data.companyName : null,
         };
-        const total = items.reduce(
-          (s, i) => s + (i.unitPrice ?? 0) * i.quantity,
-          0,
-        );
+        const total = items.reduce((s, i) => s + (i.unitPrice ?? 0) * i.quantity, 0);
         await publicSupabase.from("orders" as never).insert({
           status: "orcamento",
           origin: "whatsapp",
@@ -255,10 +232,7 @@ export function WhatsAppQuoteDrawer({
 
   return (
     <div
-      className={cn(
-        "fixed inset-0 z-[60]",
-        open ? "pointer-events-auto" : "pointer-events-none",
-      )}
+      className={cn("fixed inset-0 z-[60]", open ? "pointer-events-auto" : "pointer-events-none")}
       aria-hidden={!open}
     >
       <div
@@ -279,9 +253,7 @@ export function WhatsAppQuoteDrawer({
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-5">
           <div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">
-              Orçamento
-            </p>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">Orçamento</p>
             <h2 className="font-display text-2xl">Fale conosco</h2>
           </div>
           <button
@@ -294,20 +266,16 @@ export function WhatsAppQuoteDrawer({
           </button>
         </div>
 
-        <form
-          onSubmit={onSubmit}
-          className="flex flex-1 flex-col justify-between p-6"
-          noValidate
-        >
+        <form onSubmit={onSubmit} className="flex flex-1 flex-col justify-between p-6" noValidate>
           <div className="space-y-5">
             <p className="text-sm text-muted-foreground">
-              Deixe seu nome e telefone para iniciar a conversa no WhatsApp.
-              Enviaremos junto os produtos do seu orçamento.
+              Deixe seu nome e telefone para iniciar a conversa no WhatsApp. Enviaremos junto os
+              produtos do seu orçamento.
             </p>
 
             <label className="block">
               <span className="text-xs font-medium uppercase tracking-widest text-primary">
-                Nome
+                Nome <span className="text-destructive">*</span>
               </span>
               <input
                 type="text"
@@ -315,13 +283,12 @@ export function WhatsAppQuoteDrawer({
                 onChange={(e) => setName(e.target.value)}
                 maxLength={80}
                 autoComplete="name"
+                required
                 className="mt-2 block w-full rounded-full border border-border bg-transparent px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary"
                 placeholder="Seu nome"
               />
               {errors.name && (
-                <span className="mt-1 block text-xs text-destructive">
-                  {errors.name}
-                </span>
+                <span className="mt-1 block text-xs text-destructive">{errors.name}</span>
               )}
             </label>
 
@@ -354,43 +321,38 @@ export function WhatsAppQuoteDrawer({
             {personType === "juridica" && (
               <label className="block">
                 <span className="text-xs font-medium uppercase tracking-widest text-primary">
-                  Nome da empresa
+                  Nome da empresa <span className="text-destructive">*</span>
                 </span>
                 <input
                   type="text"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   maxLength={120}
+                  required
                   className="mt-2 block w-full rounded-full border border-border bg-transparent px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary"
                   placeholder="Razão social"
                 />
                 {errors.companyName && (
-                  <span className="mt-1 block text-xs text-destructive">
-                    {errors.companyName}
-                  </span>
+                  <span className="mt-1 block text-xs text-destructive">{errors.companyName}</span>
                 )}
               </label>
             )}
 
             <label className="block">
               <span className="text-xs font-medium uppercase tracking-widest text-primary">
-                {personType === "fisica" ? "CPF" : "CNPJ"}
+                {personType === "fisica" ? "CPF" : "CNPJ"}{" "}
+                <span className="text-destructive">*</span>
               </span>
               <input
                 type="text"
                 value={personType === "fisica" ? cpf : cnpj}
                 onChange={(e) =>
-                  personType === "fisica"
-                    ? setCpf(e.target.value)
-                    : setCnpj(e.target.value)
+                  personType === "fisica" ? setCpf(e.target.value) : setCnpj(e.target.value)
                 }
                 maxLength={personType === "fisica" ? 14 : 18}
+                required
                 className="mt-2 block w-full rounded-full border border-border bg-transparent px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary"
-                placeholder={
-                  personType === "fisica"
-                    ? "000.000.000-00"
-                    : "00.000.000/0000-00"
-                }
+                placeholder={personType === "fisica" ? "000.000.000-00" : "00.000.000/0000-00"}
               />
               {(errors.cpf || errors.cnpj) && (
                 <span className="mt-1 block text-xs text-destructive">
@@ -401,7 +363,7 @@ export function WhatsAppQuoteDrawer({
 
             <label className="block">
               <span className="text-xs font-medium uppercase tracking-widest text-primary">
-                Telefone
+                Telefone <span className="text-destructive">*</span>
               </span>
               <input
                 type="tel"
@@ -409,13 +371,12 @@ export function WhatsAppQuoteDrawer({
                 onChange={(e) => setPhone(maskPhoneBR(e.target.value))}
                 maxLength={16}
                 autoComplete="tel"
+                required
                 className="mt-2 block w-full rounded-full border border-border bg-transparent px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary"
                 placeholder="(11) 99999-9999"
               />
               {errors.phone && (
-                <span className="mt-1 block text-xs text-destructive">
-                  {errors.phone}
-                </span>
+                <span className="mt-1 block text-xs text-destructive">{errors.phone}</span>
               )}
             </label>
 

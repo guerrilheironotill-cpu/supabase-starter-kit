@@ -91,30 +91,33 @@ export function CatalogDownloadDialog({
         <div className="grid gap-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
-              Nome *
+              Nome <span className="text-destructive">*</span>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Seu nome completo"
+                required
                 className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </label>
             <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
-              Telefone *
+              Telefone <span className="text-destructive">*</span>
               <input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="(00) 00000-0000"
+                required
                 className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </label>
             <label className="flex flex-col gap-1 text-xs font-semibold text-primary sm:col-span-2">
-              E-mail *
+              E-mail <span className="text-destructive">*</span>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
+                required
                 className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </label>
@@ -143,9 +146,10 @@ export function CatalogDownloadDialog({
 
           {clientType === "professional" && (
             <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
-              Área profissional *
+              Área profissional <span className="text-destructive">*</span>
               <select
                 value={professionalType}
+                required
                 onChange={(e) => setProfessionalType(e.target.value as ProfessionalType)}
                 className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               >
@@ -161,11 +165,12 @@ export function CatalogDownloadDialog({
 
           {clientType === "reseller" && (
             <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
-              CNPJ *
+              CNPJ <span className="text-destructive">*</span>
               <input
                 value={cnpj}
                 onChange={(e) => setCnpj(e.target.value)}
                 placeholder="00.000.000/0000-00"
+                required
                 className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </label>

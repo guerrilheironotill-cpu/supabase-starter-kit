@@ -193,12 +193,13 @@ function DashboardProfilePage() {
         </p>
         <label className="block">
           <span className="block text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            Novo e-mail
+            Novo e-mail <span className="text-destructive">*</span>
           </span>
           <input
             type="email"
             value={newEmail}
             onChange={(e) => setNewEmail(e.target.value)}
+            required
             className="mt-2 block w-full max-w-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
           />
         </label>
@@ -231,25 +232,27 @@ function DashboardProfilePage() {
         </p>
         <label className="block">
           <span className="block text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            Nova senha
+            Nova senha <span className="text-destructive">*</span>
           </span>
           <input
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             autoComplete="new-password"
+            required
             className="mt-2 block w-full max-w-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
           />
         </label>
         <label className="block">
           <span className="block text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            Confirmar nova senha
+            Confirmar nova senha <span className="text-destructive">*</span>
           </span>
           <input
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             autoComplete="new-password"
+            required
             className="mt-2 block w-full max-w-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
           />
         </label>
