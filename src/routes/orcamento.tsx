@@ -10,12 +10,12 @@ import { publicSupabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/orcamento")({
   head: () => ({
     meta: [
-      { title: "Orçamento — Casa & Jardim" },
+      { title: "Orçamento — Arteno Vaso & Decor" },
       {
         name: "description",
         content: "Revise os produtos selecionados e solicite seu orçamento personalizado.",
       },
-      { property: "og:title", content: "Orçamento — Casa & Jardim" },
+      { property: "og:title", content: "Orçamento — Arteno Vaso & Decor" },
       {
         property: "og:description",
         content: "Revise os produtos selecionados e solicite seu orçamento personalizado.",
@@ -154,7 +154,7 @@ function OrcamentoPage() {
 
   const buildSummary = () => {
     const lines: string[] = [];
-    lines.push("Orçamento — Casa & Jardim");
+    lines.push("Orçamento — Arteno Vaso & Decor");
     lines.push("");
     lines.push("PRODUTOS");
     items.forEach((it, idx) => {
@@ -203,7 +203,7 @@ function OrcamentoPage() {
     const marginX = 15;
     let y = 20;
     doc.setFontSize(16);
-    doc.text("Orçamento — Casa & Jardim", marginX, y);
+    doc.text("Orçamento — Arteno Vaso & Decor", marginX, y);
     y += 8;
     doc.setFontSize(10);
     doc.text(new Date().toLocaleDateString("pt-BR"), marginX, y);
@@ -363,7 +363,7 @@ function OrcamentoPage() {
 
   const sendEmail = () => {
     void persistOrder();
-    const subject = encodeURIComponent("Orçamento — Casa & Jardim");
+    const subject = encodeURIComponent("Orçamento — Arteno Vaso & Decor");
     const body = encodeURIComponent(buildSummary());
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
