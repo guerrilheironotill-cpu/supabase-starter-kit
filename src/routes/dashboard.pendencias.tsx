@@ -5,10 +5,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dashboard/pendencias")({
   head: () => ({
-    meta: [
-      { title: "Pendências — Dashboard" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Pendências — Dashboard" }, { name: "robots", content: "noindex" }],
   }),
   component: PendenciasPage,
 });
@@ -23,6 +20,13 @@ type Item = {
 };
 
 const INITIAL: Item[] = [
+  {
+    id: "central-duvidas-cotacoes-frete",
+    title: "Implementação futura — Central de dúvidas das cotações de frete",
+    description:
+      "PENDÊNCIA FUTURA: integrar às cotações de frete uma central assíncrona de perguntas e respostas. A página pública deverá exibir FAQ sem dados pessoais, permitir que transportadores enviem dúvidas e acompanhem respostas privadas por token seguro. No dashboard, o administrador deverá responder, publicar/despublicar e arquivar dúvidas, com indicadores de novas perguntas. Antes de implementar, revisar o módulo atual de fretes, propostas, transportadores, autenticação, notificações, banco/RLS e proteções antispam. Não criar chat em tempo real, atendimento genérico ou integração externa desnecessária.",
+    priority: "media",
+  },
   {
     id: "status-pedido",
     title: "Edição do status do pedido em /dashboard/pedidos",
@@ -81,7 +85,6 @@ const INITIAL: Item[] = [
   },
 ];
 
-
 const PRIORITY_STYLE: Record<Priority, string> = {
   alta: "bg-red-100 text-red-700 border-red-200",
   media: "bg-amber-100 text-amber-700 border-amber-200",
@@ -134,15 +137,12 @@ function PendenciasPage() {
           Pendências
         </h1>
         <p className="text-sm text-muted-foreground">
-          Lista de itens em aberto no site. Marque como resolvido conforme forem
-          concluídos.
+          Lista de itens em aberto no site. Marque como resolvido conforme forem concluídos.
         </p>
       </header>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          Em aberto ({open.length})
-        </h2>
+        <h2 className="text-sm font-medium text-muted-foreground">Em aberto ({open.length})</h2>
         <ul className="space-y-2">
           {open.map((it) => (
             <Row key={it.id} item={it} onToggle={toggle} />
@@ -157,9 +157,7 @@ function PendenciasPage() {
 
       {done.length > 0 && (
         <section className="space-y-2">
-          <h2 className="text-sm font-medium text-muted-foreground">
-            Resolvidos ({done.length})
-          </h2>
+          <h2 className="text-sm font-medium text-muted-foreground">Resolvidos ({done.length})</h2>
           <ul className="space-y-2">
             {done.map((it) => (
               <Row key={it.id} item={it} onToggle={toggle} />
@@ -187,20 +185,10 @@ function Row({ item, onToggle }: { item: Item; onToggle: (id: string) => void })
       </button>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className={cn(
-              "font-medium",
-              item.done && "line-through text-muted-foreground",
-            )}
-          >
+          <span className={cn("font-medium", item.done && "line-through text-muted-foreground")}>
             {item.title}
           </span>
-          <span
-            className={cn(
-              "text-xs px-2 py-0.5 rounded border",
-              PRIORITY_STYLE[item.priority],
-            )}
-          >
+          <span className={cn("text-xs px-2 py-0.5 rounded border", PRIORITY_STYLE[item.priority])}>
             {item.priority}
           </span>
         </div>
