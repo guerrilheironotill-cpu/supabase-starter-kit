@@ -42,7 +42,10 @@ export function ProductCard({ product, priceFrom, index = 0, variant = "default"
     setPreviousImage(img);
     setImageTransition(transition);
     setImageIndex(nextIndex);
-    transitionTimer.current = setTimeout(() => setPreviousImage(null), 520);
+    transitionTimer.current = setTimeout(
+      () => setPreviousImage(null),
+      transition === "fade" ? 900 : 520,
+    );
   };
 
   const showGalleryPreview = () => {

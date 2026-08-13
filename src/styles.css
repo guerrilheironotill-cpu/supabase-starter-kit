@@ -252,6 +252,8 @@
 
 .product-card-image-in--fade { animation-name: product-card-fade-in; }
 .product-card-image-out--fade { animation-name: product-card-fade-out; }
+.product-card-image-in--fade,
+.product-card-image-out--fade { animation-duration: 850ms; }
 .product-card-image-in--slide-left { animation-name: product-card-slide-in-left; }
 .product-card-image-out--slide-left { animation-name: product-card-slide-out-left; }
 .product-card-image-in--slide-right { animation-name: product-card-slide-in-right; }
