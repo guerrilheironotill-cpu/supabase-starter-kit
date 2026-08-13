@@ -128,6 +128,7 @@ function OrcamentoPage() {
   const whatsappNumber = useWhatsAppNumber();
   const [submitted, setSubmitted] = useState(false);
   const [savedOrderId, setSavedOrderId] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   useCepAutocomplete(deliveryAddress.cep, (patch) =>
     setDeliveryAddress((a) => ({ ...a, ...patch })),
@@ -284,11 +285,23 @@ function OrcamentoPage() {
 
   const finishQuote = async () => {
     const orderId = await persistOrder();
-    if (!orderId) return;
+    if (!orderId) {
+      setValidationErrors([
+        "Não foi possível salvar o orçamento. Verifique sua conexão e tente novamente.",
+      ]);
+      return;
+    }
     await navigate({ to: "/finalizar-orcamento" });
   };
 
-  const canGoStep2 = items.length > 0;
+  const productErrors = [
+    ...(items.length === 0 ? ["Adicione pelo menos um produto ao orçamento."] : []),
+    ...items.flatMap((item) => [
+      ...(!item.finish ? [`Selecione o acabamento de ${item.name}.`] : []),
+      ...(!item.color ? [`Selecione a cor de ${item.name}.`] : []),
+    ]),
+  ];
+  const canGoStep2 = productErrors.length === 0;
   const cpfDigits = customer.cpf.replace(/\D/g, "");
   const cnpjDigits = customer.cnpj.replace(/\D/g, "");
   const docOk =
@@ -307,6 +320,25 @@ function OrcamentoPage() {
     customerAddress.cep.replace(/\D/g, "").length === 8 &&
     customerAddress.street.trim() !== "" &&
     customerAddress.number.trim() !== "";
+  const customerErrors = [
+    ...(!customer.name.trim() ? ["Informe o nome completo."] : []),
+    ...(!customer.email.trim() ? ["Informe o e-mail."] : []),
+    ...(!customer.phone.trim() ? ["Informe o telefone ou WhatsApp."] : []),
+    ...(!docOk
+      ? [
+          customer.customerType === "reseller"
+            ? "Informe um CNPJ válido com 14 dígitos."
+            : customer.customerType === "final"
+              ? "Informe um CPF válido com 11 dígitos."
+              : "O CPF ou CNPJ informado está incompleto.",
+        ]
+      : []),
+    ...(customerAddress.cep.replace(/\D/g, "").length !== 8
+      ? ["Informe o CEP de cadastro com 8 dígitos."]
+      : []),
+    ...(!customerAddress.street.trim() ? ["Informe a rua do endereço de cadastro."] : []),
+    ...(!customerAddress.number.trim() ? ["Informe o número do endereço de cadastro."] : []),
+  ];
   const deliveryOk =
     effectiveDelivery === "pickup" ||
     sameAsDelivery ||
@@ -314,6 +346,31 @@ function OrcamentoPage() {
       deliveryAddress.street.trim() !== "" &&
       deliveryAddress.number.trim() !== "");
   const canFinish = canGoStep3 && deliveryOk;
+  const deliveryErrors = [
+    ...customerErrors,
+    ...(effectiveDelivery === "shipping" && !deliveryOk
+      ? ["Complete o CEP, a rua e o número do endereço de entrega."]
+      : []),
+  ];
+
+  function continueToNextStep() {
+    const errors = step === 1 ? productErrors : customerErrors;
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+    setValidationErrors([]);
+    setStep(step === 1 ? 2 : 3);
+  }
+
+  function tryFinishQuote() {
+    if (!canFinish) {
+      setValidationErrors(deliveryErrors);
+      return;
+    }
+    setValidationErrors([]);
+    void finishQuote();
+  }
 
   if (items.length === 0) {
     return (
@@ -427,11 +484,7 @@ function OrcamentoPage() {
                 <div className="border-t border-border p-5">
                   <button
                     type="button"
-                    onClick={() => {
-                      if (step === 1 && canGoStep2) setStep(2);
-                      else if (step === 2 && canGoStep3) setStep(3);
-                    }}
-                    disabled={step === 2 && !canGoStep3}
+                    onClick={continueToNextStep}
                     className="inline-flex w-full items-center justify-center gap-2 bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                   >
                     Continuar
@@ -452,8 +505,8 @@ function OrcamentoPage() {
                 <div className="space-y-2 border-t border-border p-5">
                   <button
                     type="button"
-                    onClick={() => void finishQuote()}
-                    disabled={!canFinish || submitted}
+                    onClick={tryFinishQuote}
+                    disabled={submitted}
                     className="inline-flex w-full items-center justify-center gap-2 bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {submitted ? "Salvando orçamento..." : "Finalizar orçamento"}
@@ -466,6 +519,21 @@ function OrcamentoPage() {
                     <ArrowLeft className="h-3 w-3" />
                     Voltar
                   </button>
+                </div>
+              )}
+              {validationErrors.length > 0 && (
+                <div
+                  role="alert"
+                  className="border-t border-destructive/20 bg-destructive/5 px-5 py-4"
+                >
+                  <p className="text-sm font-semibold text-destructive">
+                    Revise os itens abaixo para continuar:
+                  </p>
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed text-destructive">
+                    {validationErrors.map((error) => (
+                      <li key={error}>{error}</li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>
