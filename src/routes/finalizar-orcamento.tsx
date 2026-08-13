@@ -15,6 +15,7 @@ type FinalizationItem = {
 
 type FinalizationContext = {
   orderId: string;
+  emailNotificationToken: string;
   dashboardUrl: string;
   whatsappNumber: string;
   whatsappText: string;
@@ -62,11 +63,7 @@ function FinalizeQuotePage() {
     setSendingEmail(true);
     setEmailError(null);
     const { error } = await publicSupabase.functions.invoke("notify-new-order", {
-      body: {
-        ...context.notificationPayload,
-        channel: "email",
-        dashboard_url: context.dashboardUrl,
-      },
+      body: { order_id: context.orderId, token: context.emailNotificationToken },
     });
     setSendingEmail(false);
     if (error) {

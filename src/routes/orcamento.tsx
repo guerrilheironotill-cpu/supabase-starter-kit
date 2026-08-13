@@ -280,8 +280,8 @@ function OrcamentoPage() {
       companyName: customer.customerType !== "final" ? customer.companyName : null,
     };
     const orderId = crypto.randomUUID();
+    const emailNotificationToken = crypto.randomUUID();
     const notificationPayload = {
-      id: orderId,
       customer_name: customer.name,
       customer_phone: customer.phone,
       customer_email: customer.email,
@@ -290,18 +290,21 @@ function OrcamentoPage() {
       notes: JSON.stringify(meta),
     };
     try {
-      await publicSupabase.from("orders" as never).insert({
+      const { error } = await publicSupabase.from("orders" as never).insert({
         id: orderId,
         status: "orcamento",
         origin: "site",
+        email_notification_token: emailNotificationToken,
         ...notificationPayload,
       } as never);
+      if (error) throw error;
       setSavedOrderId(orderId);
       const dashboardUrl = absoluteUrl(`/dashboard/orcamentos?orcamento=${orderId}`);
       sessionStorage.setItem(
         "arteno:quote-finalization",
         JSON.stringify({
           orderId,
+          emailNotificationToken,
           dashboardUrl,
           whatsappNumber,
           whatsappText: `${buildSummary()}\n\nABRIR ORÇAMENTO NO DASHBOARD\n${dashboardUrl}`,
