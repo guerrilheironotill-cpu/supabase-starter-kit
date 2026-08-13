@@ -2,7 +2,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
-import { maskPhoneBR } from "@/lib/masks";
+import { maskCnpj, maskCpf, maskPhoneBR } from "@/lib/masks";
 import { useQuoteStore } from "@/lib/quote-store";
 import { useLeadsStore } from "@/lib/leads-store";
 import { publicSupabase } from "@/integrations/supabase/client";
@@ -347,7 +347,9 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
                 type="text"
                 value={personType === "fisica" ? cpf : cnpj}
                 onChange={(e) =>
-                  personType === "fisica" ? setCpf(e.target.value) : setCnpj(e.target.value)
+                  personType === "fisica"
+                    ? setCpf(maskCpf(e.target.value))
+                    : setCnpj(maskCnpj(e.target.value))
                 }
                 maxLength={personType === "fisica" ? 14 : 18}
                 required

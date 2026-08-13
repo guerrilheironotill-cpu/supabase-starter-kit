@@ -3,7 +3,7 @@ import { Minus, Plus, Trash2, Check, ArrowLeft, ArrowRight } from "lucide-react"
 import { useEffect, useMemo, useState } from "react";
 import { useQuoteStore, type QuoteItem } from "@/lib/quote-store";
 import { useWhatsAppNumber } from "@/lib/site-settings";
-import { maskPhoneBR } from "@/lib/masks";
+import { maskCnpj, maskCpf, maskPhoneBR } from "@/lib/masks";
 import { publicSupabase } from "@/integrations/supabase/client";
 import { absoluteUrl } from "@/lib/site-config";
 import { fetchProductBySlug } from "@/lib/products";
@@ -893,7 +893,7 @@ function StepCustomer({
               label={customer.customerType === "professional" ? "CPF (opcional)" : "CPF"}
               required={customer.customerType === "final"}
               value={customer.cpf}
-              onChange={(v) => setCustomer((c) => ({ ...c, cpf: v }))}
+              onChange={(v) => setCustomer((c) => ({ ...c, cpf: maskCpf(v) }))}
               maxLength={14}
               placeholder="000.000.000-00"
               className="sm:col-span-2"
@@ -903,7 +903,7 @@ function StepCustomer({
               label={customer.customerType === "professional" ? "CNPJ (opcional)" : "CNPJ"}
               required={customer.customerType === "reseller"}
               value={customer.cnpj}
-              onChange={(v) => setCustomer((c) => ({ ...c, cnpj: v }))}
+              onChange={(v) => setCustomer((c) => ({ ...c, cnpj: maskCnpj(v) }))}
               maxLength={18}
               placeholder="00.000.000/0000-00"
               className="sm:col-span-2"

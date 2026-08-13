@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardSection } from "@/components/dashboard-layout";
-import { maskPhoneBR } from "@/lib/masks";
+import { maskCnpj, maskCpf, maskPhoneBR } from "@/lib/masks";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -1226,8 +1226,8 @@ function NewQuoteDialogImpl({
   const [personType, setPersonType] = useState<"fisica" | "juridica">(
     initialMeta.personType ?? "fisica",
   );
-  const [cpf, setCpf] = useState(initialMeta.cpf ?? "");
-  const [cnpj, setCnpj] = useState(initialMeta.cnpj ?? "");
+  const [cpf, setCpf] = useState(maskCpf(initialMeta.cpf ?? ""));
+  const [cnpj, setCnpj] = useState(maskCnpj(initialMeta.cnpj ?? ""));
   const [companyName, setCompanyName] = useState(initialMeta.companyName ?? "");
   const [address, setAddress] = useState(initialMeta.address);
   const [notes, setNotes] = useState(initialMeta.note);
@@ -1578,7 +1578,7 @@ function NewQuoteDialogImpl({
                 <Label>CPF *</Label>
                 <Input
                   value={cpf}
-                  onChange={(e) => setCpf(e.target.value)}
+                  onChange={(e) => setCpf(maskCpf(e.target.value))}
                   maxLength={14}
                   placeholder="000.000.000-00"
                 />
@@ -1589,7 +1589,7 @@ function NewQuoteDialogImpl({
                   <Label>CNPJ *</Label>
                   <Input
                     value={cnpj}
-                    onChange={(e) => setCnpj(e.target.value)}
+                    onChange={(e) => setCnpj(maskCnpj(e.target.value))}
                     maxLength={18}
                     placeholder="00.000.000/0000-00"
                   />

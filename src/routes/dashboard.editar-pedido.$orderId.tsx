@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { maskCpfCnpj } from "@/lib/masks";
 
 type Item = { id: string; name: string; quantity: number; unit_price: number; total: number };
 type Order = {
@@ -101,7 +102,9 @@ function EditOrderPage() {
     );
     setEmail(order.customer?.email ?? order.customer_email ?? "");
     setPhone(order.customer?.phone ?? order.customer_phone ?? "");
-    setDocument(order.customer?.cpf ?? order.customer?.cnpj ?? order.customer_document ?? "");
+    setDocument(
+      maskCpfCnpj(order.customer?.cpf ?? order.customer?.cnpj ?? order.customer_document ?? ""),
+    );
     setNote(order.customer_note ?? "");
     setShipping(Number(order.shipping_total) || 0);
     setItems(order.items ?? []);
@@ -241,7 +244,11 @@ function EditOrderPage() {
         <Field label="Nome" value={name} onChange={setName} />
         <Field label="E-mail" value={email} onChange={setEmail} />
         <Field label="Telefone" value={phone} onChange={setPhone} />
-        <Field label="CPF/CNPJ" value={document} onChange={setDocument} />
+        <Field
+          label="CPF/CNPJ"
+          value={document}
+          onChange={(value) => setDocument(maskCpfCnpj(value))}
+        />
         {order.customer_id && (
           <Link
             to="/dashboard/editar-cliente/$customerId"

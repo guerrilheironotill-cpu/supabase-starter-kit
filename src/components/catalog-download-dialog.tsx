@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { LeadInterest, ProfessionalType } from "@/lib/commercial-rules";
+import { maskCnpj } from "@/lib/masks";
 
 export const OPEN_CATALOG_EVENT = "arteno:open-catalog";
 
@@ -168,7 +169,7 @@ export function CatalogDownloadDialog({
               CNPJ <span className="text-destructive">*</span>
               <input
                 value={cnpj}
-                onChange={(e) => setCnpj(e.target.value)}
+                onChange={(e) => setCnpj(maskCnpj(e.target.value))}
                 placeholder="00.000.000/0000-00"
                 required
                 className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"

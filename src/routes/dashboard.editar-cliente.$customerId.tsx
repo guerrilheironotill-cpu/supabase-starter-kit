@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, Save, ShoppingCart, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { maskCnpj, maskCpf } from "@/lib/masks";
 
 type Customer = {
   id: string;
@@ -72,7 +73,13 @@ function EditCustomerPage() {
     },
   });
   useEffect(() => {
-    if (customer) setForm(customer);
+    if (customer) {
+      setForm({
+        ...customer,
+        cpf: customer.cpf ? maskCpf(customer.cpf) : null,
+        cnpj: customer.cnpj ? maskCnpj(customer.cnpj) : null,
+      });
+    }
   }, [customer]);
   const set = (key: keyof Customer, value: string | null) =>
     setForm((current) => ({ ...current, [key]: value }));
@@ -193,7 +200,9 @@ function EditCustomerPage() {
             key={key}
             label={label}
             value={String(form[key] ?? "")}
-            onChange={(value) => set(key, value)}
+            onChange={(value) =>
+              set(key, key === "cpf" ? maskCpf(value) : key === "cnpj" ? maskCnpj(value) : value)
+            }
           />
         ))}
         <label className="grid gap-1 text-sm">
