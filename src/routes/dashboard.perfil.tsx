@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Save, ShieldAlert, UserCog, Mail, KeyRound } from "lucide-react";
+import { absoluteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/dashboard/perfil")({
   head: () => ({
@@ -70,7 +71,10 @@ function DashboardProfilePage() {
     }
     setEmailSaving(true);
     setEmailMsg(null);
-    const { error } = await supabase.auth.updateUser({ email: newEmail });
+    const { error } = await supabase.auth.updateUser(
+      { email: newEmail },
+      { emailRedirectTo: absoluteUrl("/dashboard/perfil") },
+    );
     setEmailSaving(false);
     if (error) {
       setEmailMsg({ kind: "err", text: error.message });
