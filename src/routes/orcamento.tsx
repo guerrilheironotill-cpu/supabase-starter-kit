@@ -321,22 +321,24 @@ function OrcamentoPage() {
     } catch (err) {
       console.warn("[orcamento] persist failed", err);
       setSubmitted(false);
-      setValidationErrors([
-        err instanceof Error ? err.message : "Não foi possível salvar o orçamento. Tente novamente.",
-      ]);
-      return null;
+      throw err;
     }
   };
 
   const finishQuote = async () => {
-    const orderId = await persistOrder();
-    if (!orderId) {
+    try {
+      const orderId = await persistOrder();
+      if (!orderId) {
+        throw new Error("O orçamento já está sendo processado. Aguarde alguns segundos.");
+      }
+      await navigate({ to: "/finalizar-orcamento" });
+    } catch (error) {
       setValidationErrors([
-        "Não foi possível salvar o orçamento. Verifique sua conexão e tente novamente.",
+        error instanceof Error
+          ? error.message
+          : "Não foi possível salvar o orçamento. Tente novamente.",
       ]);
-      return;
     }
-    await navigate({ to: "/finalizar-orcamento" });
   };
 
   const productErrors = [

@@ -17,6 +17,7 @@ export const Route = createFileRoute("/api/quotes")({
         const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
         const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
         if (!supabaseUrl || !serviceKey) {
+          console.error("[api/quotes] Supabase não configurado no ambiente do servidor.");
           return Response.json({ ok: false, error: "O serviço de orçamentos está temporariamente indisponível." }, { status: 500 });
         }
 
@@ -51,7 +52,12 @@ export const Route = createFileRoute("/api/quotes")({
         });
 
         if (error) {
-          console.error("[api/quotes]", error.message);
+          console.error("[api/quotes] insert failed", {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+          });
           return Response.json({ ok: false, error: "Não foi possível registrar o orçamento. Tente novamente." }, { status: 500 });
         }
         return Response.json({ ok: true, orderId, emailNotificationToken });
