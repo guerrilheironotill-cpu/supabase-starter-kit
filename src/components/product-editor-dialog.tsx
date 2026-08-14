@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadOptimizedImage } from "@/lib/vps-media";
@@ -567,6 +567,18 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
                 {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 {productId ? "Salvar alterações" : "Cadastrar produto"}
               </button>
+              {mode === "page" && productId && product.slug && (
+                <a
+                  href={`/produto/${product.slug}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Visualizar no site"
+                  aria-label="Visualizar produto no site"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-foreground transition-colors hover:bg-muted"
+                >
+                  <Eye className="h-4 w-4" />
+                </a>
+              )}
             </div>
           </div>
         </>
