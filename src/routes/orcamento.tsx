@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuoteStore, type QuoteItem } from "@/lib/quote-store";
 import { useWhatsAppNumber } from "@/lib/site-settings";
 import { maskCnpj, maskCpf, maskPhoneBR } from "@/lib/masks";
-import { publicSupabase } from "@/integrations/supabase/client";
 import { absoluteUrl } from "@/lib/site-config";
 import { fetchProductBySlug } from "@/lib/products";
 import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
@@ -185,7 +184,6 @@ function OrcamentoPage() {
     delivery === "shipping" && shippingAvailable === false ? "pickup" : delivery;
 
   const subtotal = items.reduce((sum, it) => sum + itemSubtotal(it), 0);
-  const hasPrices = items.some((it) => typeof it.unitPrice === "number");
 
   // If "same as billing" is checked, the delivery address equals the customer address.
   const finalDeliveryAddress = sameAsDelivery ? customerAddress : deliveryAddress;
@@ -282,8 +280,6 @@ function OrcamentoPage() {
           : null,
       companyName: customer.customerType !== "final" ? customer.companyName : null,
     };
-    const orderId = crypto.randomUUID();
-    const emailNotificationToken = crypto.randomUUID();
     const notificationPayload = {
       customer_name: customer.name,
       customer_phone: customer.phone,
@@ -293,14 +289,21 @@ function OrcamentoPage() {
       notes: JSON.stringify(meta),
     };
     try {
-      const { error } = await publicSupabase.from("orders" as never).insert({
-        id: orderId,
-        status: "orcamento",
-        origin: "site",
-        email_notification_token: emailNotificationToken,
-        ...notificationPayload,
-      } as never);
-      if (error) throw error;
+      const response = await fetch("/api/quotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(notificationPayload),
+      });
+      const result = (await response.json()) as {
+        ok?: boolean;
+        orderId?: string;
+        emailNotificationToken?: string;
+        error?: string;
+      };
+      if (!response.ok || !result.ok || !result.orderId || !result.emailNotificationToken) {
+        throw new Error(result.error || "Não foi possível registrar o orçamento.");
+      }
+      const { orderId, emailNotificationToken } = result;
       setSavedOrderId(orderId);
       const dashboardUrl = absoluteUrl(`/dashboard/orcamentos?orcamento=${orderId}`);
       sessionStorage.setItem(
@@ -318,6 +321,9 @@ function OrcamentoPage() {
     } catch (err) {
       console.warn("[orcamento] persist failed", err);
       setSubmitted(false);
+      setValidationErrors([
+        err instanceof Error ? err.message : "Não foi possível salvar o orçamento. Tente novamente.",
+      ]);
       return null;
     }
   };
@@ -498,20 +504,11 @@ function OrcamentoPage() {
                     <span className="min-w-0 flex-1 truncate text-foreground">
                       {it.quantity}× {it.name}
                     </span>
-                    <span className="shrink-0 text-muted-foreground">
-                      {typeof it.unitPrice === "number" ? formatBRL(itemSubtotal(it)) : "—"}
-                    </span>
                   </li>
                 ))}
               </ul>
               <div className="border-t border-border px-5 py-4 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-semibold text-foreground">
-                    {hasPrices ? formatBRL(subtotal) : "A consultar"}
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>Entrega</span>
                   <span>
                     {effectiveDelivery === "pickup" ? "Retirar na fábrica" : "Frete a cotar"}
@@ -772,16 +769,6 @@ function StepProducts({
                       <Plus className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                  {typeof item.unitPrice === "number" && (
-                    <div className="text-right">
-                      <div className="text-xs uppercase tracking-widest text-muted-foreground">
-                        Subtotal
-                      </div>
-                      <div className="font-display text-lg font-semibold text-primary">
-                        {formatBRL(itemSubtotal(item))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </li>

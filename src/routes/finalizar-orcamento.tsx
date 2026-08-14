@@ -39,9 +39,6 @@ export const Route = createFileRoute("/finalizar-orcamento")({
   component: FinalizeQuotePage,
 });
 
-const money = (value: number) =>
-  value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
 function FinalizeQuotePage() {
   const [context, setContext] = useState<FinalizationContext | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -125,14 +122,9 @@ function FinalizeQuotePage() {
                       {[item.size_name, item.finish, item.color].filter(Boolean).join(" · ")}
                     </div>
                   </div>
-                  <span className="shrink-0">{money(item.price * item.quantity)}</span>
                 </li>
               ))}
             </ul>
-            <div className="mt-3 flex justify-between font-semibold">
-              <span>Subtotal</span>
-              <span>{money(context.notificationPayload.total)}</span>
-            </div>
           </section>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
