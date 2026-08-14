@@ -58,6 +58,19 @@ const EMPTY_ADDRESS: Address = {
   state: "",
 };
 
+const QUOTE_DRAFT_KEY = "arteno:quote-form-draft";
+const QUOTE_DRAFT_TTL = 24 * 60 * 60 * 1000;
+
+type QuoteFormDraft = {
+  expiresAt: number;
+  step: 1 | 2 | 3;
+  delivery: "pickup" | "shipping";
+  deliveryAddress: Address;
+  customer: Customer;
+  customerAddress: Address;
+  sameAsDelivery: boolean;
+};
+
 function formatBRL(n: number) {
   return n.toLocaleString("pt-BR", {
     style: "currency",
@@ -131,6 +144,44 @@ function OrcamentoPage() {
   const [submitted, setSubmitted] = useState(false);
   const [savedOrderId, setSavedOrderId] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [draftReady, setDraftReady] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(QUOTE_DRAFT_KEY);
+      if (raw) {
+        const draft = JSON.parse(raw) as Partial<QuoteFormDraft>;
+        if (typeof draft.expiresAt === "number" && draft.expiresAt > Date.now()) {
+          if (draft.step === 1 || draft.step === 2 || draft.step === 3) setStep(draft.step);
+          if (draft.delivery === "pickup" || draft.delivery === "shipping") setDelivery(draft.delivery);
+          if (draft.deliveryAddress) setDeliveryAddress({ ...EMPTY_ADDRESS, ...draft.deliveryAddress });
+          if (draft.customer) setCustomer((current) => ({ ...current, ...draft.customer }));
+          if (draft.customerAddress) setCustomerAddress({ ...EMPTY_ADDRESS, ...draft.customerAddress });
+          if (typeof draft.sameAsDelivery === "boolean") setSameAsDelivery(draft.sameAsDelivery);
+        } else {
+          localStorage.removeItem(QUOTE_DRAFT_KEY);
+        }
+      }
+    } catch {
+      localStorage.removeItem(QUOTE_DRAFT_KEY);
+    } finally {
+      setDraftReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    const draft: QuoteFormDraft = {
+      expiresAt: Date.now() + QUOTE_DRAFT_TTL,
+      step,
+      delivery,
+      deliveryAddress,
+      customer,
+      customerAddress,
+      sameAsDelivery,
+    };
+    localStorage.setItem(QUOTE_DRAFT_KEY, JSON.stringify(draft));
+  }, [draftReady, step, delivery, deliveryAddress, customer, customerAddress, sameAsDelivery]);
 
   useCepAutocomplete(deliveryAddress.cep, (patch) =>
     setDeliveryAddress((a) => ({ ...a, ...patch })),
@@ -331,6 +382,7 @@ function OrcamentoPage() {
       if (!orderId) {
         throw new Error("O orçamento já está sendo processado. Aguarde alguns segundos.");
       }
+      localStorage.removeItem(QUOTE_DRAFT_KEY);
       await navigate({ to: "/finalizar-orcamento" });
     } catch (error) {
       setValidationErrors([
@@ -489,6 +541,10 @@ function OrcamentoPage() {
                   } else {
                     setDeliveryAddress(() => EMPTY_ADDRESS);
                   }
+                }}
+                onBack={() => {
+                  setValidationErrors([]);
+                  setStep(2);
                 }}
               />
             )}
@@ -951,6 +1007,7 @@ function StepDelivery({
   setDeliveryAddress,
   sameAsDelivery,
   onToggleSame,
+  onBack,
 }: {
   delivery: "pickup" | "shipping";
   setDelivery: (d: "pickup" | "shipping") => void;
@@ -960,6 +1017,7 @@ function StepDelivery({
   setDeliveryAddress: (updater: (a: Address) => Address) => void;
   sameAsDelivery: boolean;
   onToggleSame: (v: boolean) => void;
+  onBack: () => void;
 }) {
   return (
     <div className="space-y-8">
@@ -1046,6 +1104,14 @@ function StepDelivery({
             </p>
           )}
         </div>
+        <button
+          type="button"
+          onClick={onBack}
+          className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar para seus dados
+        </button>
       </section>
     </div>
   );
