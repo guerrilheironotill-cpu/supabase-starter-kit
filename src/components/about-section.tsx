@@ -6,10 +6,14 @@ const ABOUT_IMAGES = [
   {
     src: "/images/sobre-arteno-vasos-concreto.webp",
     alt: "Coleção de vasos artesanais em concreto",
+    width: 600,
+    height: 616,
   },
   {
     src: "/images/sobre-arteno-vasos-artesanais.webp",
     alt: "Vasos artesanais da Arteno em diferentes formatos",
+    width: 900,
+    height: 900,
   },
 ];
 
@@ -74,8 +78,8 @@ export function AboutSection() {
             {ABOUT_IMAGES.map((image, index) => (
               <img
                 key={image.src}
-                width={1086}
-                height={1448}
+                width={image.width}
+                height={image.height}
                 src={image.src}
                 alt={image.alt}
                 loading="lazy"
