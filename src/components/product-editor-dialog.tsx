@@ -53,6 +53,23 @@ function explainSaveError(error: unknown, context: string): string {
   const detail = `${dbError?.message ?? ""} ${dbError?.details ?? ""}`.trim();
   const normalized = detail.toLowerCase();
 
+  const missingColumn = detail.match(/null value in column ["']([^"']+)["']/i)?.[1];
+  if (missingColumn) {
+    const fieldLabels: Record<string, string> = {
+      name: "Nome",
+      slug: "Slug",
+      category: "Categoria",
+      price: "Preço normal de pelo menos um tamanho",
+      origin: "Origem",
+      product_id: "Produto",
+      size: "Tamanho",
+      finish: "Acabamento",
+      color: "Cor",
+    };
+    const label = fieldLabels[missingColumn] ?? missingColumn;
+    return `${context}: o campo obrigatório “${label}” não foi preenchido.`;
+  }
+
   if (code === "23505" || normalized.includes("duplicate key")) {
     if (normalized.includes("slug")) {
       return `${context}: já existe um produto usando este slug. Altere o slug e tente novamente.`;
@@ -276,13 +293,20 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
       if (invalidSize) {
         throw new Error("Preencha altura, largura e comprimento de todos os tamanhos.");
       }
+      const regularPrices = sizes
+        .map((size) => Number(size.base_price))
+        .filter((price) => Number.isFinite(price) && price >= 0);
+      const legacyPrice = regularPrices.length > 0 ? Math.min(...regularPrices) : 0;
       const productPayload = {
         name,
         slug,
         description: product.description,
         category: product.category,
         images: product.images,
+        image: product.images[0] ?? null,
+        price: legacyPrice,
         active: product.active,
+        origin: "manual",
         meta_title: product.meta_title,
         meta_description: product.meta_description,
       };
@@ -305,7 +329,10 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
           description: productPayload.description,
           category: productPayload.category,
           images: productPayload.images,
+          image: productPayload.image,
+          price: productPayload.price,
           active: productPayload.active,
+          origin: productPayload.origin,
         };
         const fallbackWrite = product.id
           ? await supabase.from("products").update(fallbackPayload).eq("id", product.id)
