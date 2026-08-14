@@ -153,7 +153,9 @@ function DashboardColorsPage() {
                     if (name !== f.name) {
                       const { error: relationError } = await supabase
                         .from("product_colors")
-                        .update({ name, color: name })
+                        // `name` is generated from `color` in the current schema.
+                        // Updating the source column refreshes it automatically.
+                        .update({ color: name })
                         .eq("name", f.name);
                       if (relationError) throw relationError;
                     }
