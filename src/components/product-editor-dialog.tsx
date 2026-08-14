@@ -37,7 +37,7 @@ type ProductData = {
 type Props = {
   productId: string | null;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (productId: string, slug: string) => void;
   mode?: "dialog" | "page";
 };
 
@@ -186,6 +186,9 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
   const initialSizes = useRef("");
   const initialFinishes = useRef("");
   const initialColors = useRef("");
+  const [savedSignature, setSavedSignature] = useState<string | null>(null);
+
+  const editorSignature = JSON.stringify({ product, sizes, finishes, colors });
 
   useEffect(() => {
     let cancel = false;
@@ -397,13 +400,18 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
       }
       await Promise.all(relationUpdates);
 
+      initialSizes.current = sizesSignature(sizes);
+      initialFinishes.current = attributesSignature(finishes);
+      initialColors.current = attributesSignature(colors);
+      setSavedSignature(editorSignature);
+
       toast.success(
         product.id
           ? `Produto "${name}" salvo com sucesso!`
           : `Produto "${name}" cadastrado com sucesso!`,
       );
-      onSaved();
-      onClose();
+      onSaved(savedProductId, slug);
+      if (mode === "dialog") onClose();
     } catch (e) {
       if (newlyCreatedProductId) {
         await supabase.from("products").delete().eq("id", newlyCreatedProductId);
@@ -520,7 +528,9 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
           </div>
 
           <div className="flex items-center justify-between gap-3 border-t border-border px-6 py-3">
-            <span className="text-xs text-destructive">{error}</span>
+            <span className={cn("text-xs", error ? "text-destructive" : "text-emerald-600")}>
+              {error || (savedSignature === editorSignature ? "Salvo" : "")}
+            </span>
             <div className="flex gap-2">
               <button
                 type="button"

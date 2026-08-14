@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeft, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, Eye, Loader2, Trash2 } from "lucide-react";
 import { ProductEditorDialog } from "@/components/product-editor-dialog";
 import { markCatalogPdfPending } from "@/lib/catalog-pending";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +33,18 @@ function DashboardEditProductPage() {
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const { data: productSummary } = useQuery({
+    queryKey: ["dashboard", "produto-resumo", productId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("slug, name")
+        .eq("id", productId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
   const goBack = () => navigate({ to: "/dashboard/produtos" });
 
   async function deleteProduct() {
@@ -59,9 +71,21 @@ function DashboardEditProductPage() {
   return (
     <div>
       <div className="mb-5 flex items-center justify-between gap-4">
-        <Link to="/dashboard/produtos" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> Voltar para produtos
-        </Link>
+        <div className="flex flex-wrap items-center gap-4">
+          <Link to="/dashboard/produtos" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" /> Voltar para produtos
+          </Link>
+          {productSummary?.slug && (
+            <Link
+              to="/produto/$slug"
+              params={{ slug: productSummary.slug }}
+              target="_blank"
+              className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              <Eye className="h-4 w-4" /> Visualizar no site
+            </Link>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => setConfirmDelete(true)}
@@ -74,11 +98,14 @@ function DashboardEditProductPage() {
         mode="page"
         productId={productId}
         onClose={goBack}
-        onSaved={() => {
+        onSaved={(_, slug) => {
           queryClient.invalidateQueries({ queryKey: ["dashboard", "produtos"] });
           queryClient.invalidateQueries({ queryKey: ["product"] });
           queryClient.invalidateQueries({ queryKey: ["attribute-terms"] });
           markCatalogPdfPending();
+          queryClient.setQueryData(["dashboard", "produto-resumo", productId], (current: { slug: string; name: string } | undefined) =>
+            current ? { ...current, slug } : { slug, name: "" },
+          );
         }}
       />
 

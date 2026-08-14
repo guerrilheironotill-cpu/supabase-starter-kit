@@ -33,11 +33,16 @@ function DashboardCreateProductPage() {
         mode="page"
         productId={null}
         onClose={goBack}
-        onSaved={() => {
+        onSaved={(productId) => {
           queryClient.invalidateQueries({ queryKey: ["dashboard", "produtos"] });
           queryClient.invalidateQueries({ queryKey: ["products"] });
           queryClient.invalidateQueries({ queryKey: ["attribute-terms"] });
           markCatalogPdfPending();
+          void navigate({
+            to: "/dashboard/editar-produto/$productId",
+            params: { productId },
+            replace: true,
+          });
         }}
       />
     </div>
