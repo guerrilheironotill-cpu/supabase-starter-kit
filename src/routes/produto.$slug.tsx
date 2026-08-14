@@ -37,23 +37,55 @@ export const Route = createFileRoute("/produto/$slug")({
   head: ({ loaderData }) => ({
     meta: [
       {
-        title: loaderData ? `${loaderData.product.name} — Arteno` : "Produto — Arteno",
+        title: loaderData
+          ? loaderData.product.meta_title || `${loaderData.product.name} — Arteno`
+          : "Produto — Arteno",
       },
       {
         name: "description",
         content:
-          loaderData?.product.description?.slice(0, 160) ??
+          loaderData?.product.meta_description ||
+          productDescriptionToText(loaderData?.product.description).slice(0, 160) ||
           "Produto de design contemporâneo para casa e jardim.",
       },
       {
         property: "og:title",
-        content: loaderData ? `${loaderData.product.name} — Arteno` : "Produto — Arteno",
+        content: loaderData
+          ? loaderData.product.meta_title || `${loaderData.product.name} — Arteno`
+          : "Produto — Arteno",
+      },
+      {
+        property: "og:description",
+        content:
+          loaderData?.product.meta_description ||
+          productDescriptionToText(loaderData?.product.description).slice(0, 160),
       },
       {
         property: "og:image",
-        content: loaderData?.product.images?.[0] ?? "",
+        content: loaderData?.product.images?.[0]
+          ? absoluteUrl(loaderData.product.images[0])
+          : "",
       },
       { property: "og:type", content: "product" },
+      { name: "twitter:card", content: "summary_large_image" },
+      {
+        name: "twitter:title",
+        content: loaderData
+          ? loaderData.product.meta_title || `${loaderData.product.name} — Arteno`
+          : "Produto — Arteno",
+      },
+      {
+        name: "twitter:description",
+        content:
+          loaderData?.product.meta_description ||
+          productDescriptionToText(loaderData?.product.description).slice(0, 160),
+      },
+      {
+        name: "twitter:image",
+        content: loaderData?.product.images?.[0]
+          ? absoluteUrl(loaderData.product.images[0])
+          : "",
+      },
       ...(loaderData
         ? [{ property: "og:url", content: absoluteUrl(`/produto/${loaderData.product.slug}`) }]
         : []),

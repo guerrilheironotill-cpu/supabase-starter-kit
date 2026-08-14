@@ -7,6 +7,9 @@ export type Product = {
   category: string;
   images: string[];
   description?: string | null;
+  meta_title?: string | null;
+  meta_description?: string | null;
+  seo_keywords?: string[];
 };
 
 export function productDescriptionToText(description: string | null | undefined): string {
@@ -166,7 +169,24 @@ export type ProductDetail = ProductWithSizes & {
 };
 
 export async function fetchProductBySlug(slug: string): Promise<ProductDetail | null> {
-  const { data, error } = await supabase
+  const withSeo = await supabase
+    .from("products")
+    .select(
+      "id, slug, name, category, images, description, meta_title, meta_description, seo_keywords, product_sizes(id, product_id, name, size, base_price, sale_price, sort_order), product_finishes(id, name, sort_order), product_colors(id, name, sort_order)",
+    )
+    .eq("slug", slug)
+    .eq("active", true)
+    .maybeSingle();
+  if (!withSeo.error) return (withSeo.data as ProductDetail | null) ?? null;
+  const message = withSeo.error.message.toLowerCase();
+  if (
+    !message.includes("meta_title") &&
+    !message.includes("meta_description") &&
+    !message.includes("seo_keywords")
+  ) {
+    throw withSeo.error;
+  }
+  const fallback = await supabase
     .from("products")
     .select(
       "id, slug, name, category, images, description, product_sizes(id, product_id, name, size, base_price, sale_price, sort_order), product_finishes(id, name, sort_order), product_colors(id, name, sort_order)",
@@ -174,8 +194,8 @@ export async function fetchProductBySlug(slug: string): Promise<ProductDetail | 
     .eq("slug", slug)
     .eq("active", true)
     .maybeSingle();
-  if (error) throw error;
-  return (data as ProductDetail | null) ?? null;
+  if (fallback.error) throw fallback.error;
+  return (fallback.data as ProductDetail | null) ?? null;
 }
 
 export function parseDims(str: string): {

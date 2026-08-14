@@ -33,6 +33,7 @@ type ProductData = {
   active: boolean;
   meta_title: string | null;
   meta_description: string | null;
+  seo_keywords: string[];
 };
 
 type Props = {
@@ -100,6 +101,7 @@ function isMissingSeoColumnError(error: SupabaseLikeError | null): boolean {
     error.code === "PGRST204" ||
     message.includes("meta_title") ||
     message.includes("meta_description") ||
+    message.includes("seo_keywords") ||
     message.includes("schema cache") ||
     message.includes("could not find")
   );
@@ -116,6 +118,7 @@ function normalizeProduct(row: Partial<ProductData> & { images?: string[] | null
     active: row.active ?? true,
     meta_title: row.meta_title ?? null,
     meta_description: row.meta_description ?? null,
+    seo_keywords: row.seo_keywords ?? [],
   };
 }
 
@@ -156,7 +159,7 @@ const attributesSignature = (rows: AttrRow[]) => JSON.stringify(rows.map((row) =
 async function fetchEditableProduct(productId: string): Promise<ProductData> {
   const withSeo = await supabase
     .from("products")
-    .select("id, slug, name, description, category, images, active, meta_title, meta_description")
+    .select("id, slug, name, description, category, images, active, meta_title, meta_description, seo_keywords")
     .eq("id", productId)
     .maybeSingle();
 
@@ -327,6 +330,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
         origin: "manual",
         meta_title: product.meta_title,
         meta_description: product.meta_description,
+        seo_keywords: product.seo_keywords,
       };
       let savedProductId = product.id;
       const productWrite = product.id
@@ -998,9 +1002,13 @@ function SeoTab({
   product: ProductData;
   setProduct: (p: ProductData) => void;
 }) {
+  const keywords = product.seo_keywords;
+  const titleText = (product.meta_title || product.name).toLocaleLowerCase("pt-BR");
+  const descriptionText = (product.meta_description || "").toLocaleLowerCase("pt-BR");
+  const contentText = (product.description || "").toLocaleLowerCase("pt-BR");
   return (
     <div className="space-y-3">
-      <Field label="Meta title">
+      <Field label="Título SEO">
         <input
           className={inputCls}
           maxLength={60}
@@ -1008,7 +1016,7 @@ function SeoTab({
           onChange={(e) => setProduct({ ...product, meta_title: e.target.value || null })}
         />
       </Field>
-      <Field label="Meta description">
+      <Field label="Descrição SEO">
         <textarea
           rows={3}
           maxLength={160}
@@ -1017,8 +1025,53 @@ function SeoTab({
           onChange={(e) => setProduct({ ...product, meta_description: e.target.value || null })}
         />
       </Field>
+      <Field label="Palavras-chave de foco">
+        <textarea
+          rows={3}
+          className={cn(inputCls, "resize-none")}
+          placeholder="Ex.: vaso de concreto, vaso para área externa, vaso artesanal"
+          value={keywords.join(", ")}
+          onChange={(e) =>
+            setProduct({
+              ...product,
+              seo_keywords: Array.from(
+                new Set(
+                  e.target.value
+                    .split(",")
+                    .map((keyword) => keyword.trim())
+                    .filter(Boolean),
+                ),
+              ).slice(0, 12),
+            })
+          }
+        />
+      </Field>
+      {keywords.length > 0 && (
+        <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
+          <p className="text-xs font-semibold text-foreground">Análise das palavras-chave</p>
+          {keywords.map((keyword) => {
+            const normalized = keyword.toLocaleLowerCase("pt-BR");
+            const locations = [
+              titleText.includes(normalized) && "título",
+              descriptionText.includes(normalized) && "descrição SEO",
+              contentText.includes(normalized) && "conteúdo",
+            ].filter(Boolean);
+            return (
+              <div key={keyword} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <span className="font-medium text-foreground">{keyword}</span>
+                <span className={locations.length ? "text-emerald-600" : "text-amber-600"}>
+                  {locations.length
+                    ? `Presente em: ${locations.join(", ")}`
+                    : "Ainda não aparece no texto"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
       <p className="text-xs text-muted-foreground">
-        Sem preenchimento, o nome e a descrição do produto são usados.
+        Use termos específicos e naturais. O Google ignora a antiga tag meta keywords; estes termos
+        ajudam a alinhar título, descrição e conteúdo sem repetição artificial.
       </p>
     </div>
   );
