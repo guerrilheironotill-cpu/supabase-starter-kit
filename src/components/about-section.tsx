@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ArrowRight } from "lucide-react";
-import { WhatsAppQuoteDrawer } from "./whatsapp-quote-drawer";
+import { useWhatsAppNumber, whatsappLinkFrom } from "@/lib/site-settings";
 
 export function AboutSection() {
-  const [waOpen, setWaOpen] = useState(false);
   const [visible, setVisible] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
+  const whatsappUrl = whatsappLinkFrom(
+    useWhatsAppNumber(),
+    "Olá! Gostaria de falar com a equipe da Arteno.",
+  );
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -91,9 +94,10 @@ export function AboutSection() {
               Explorar Modelos
               <ArrowRight className="h-4 w-4" />
             </a>
-            <button
-              type="button"
-              onClick={() => setWaOpen(true)}
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-3 rounded-full border border-primary/25 bg-transparent px-7 py-3.5 text-sm font-semibold text-primary transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:bg-primary hover:text-white"
             >
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-primary/40">
@@ -102,11 +106,10 @@ export function AboutSection() {
                 </svg>
               </span>
               Fale no WhatsApp
-            </button>
+            </a>
           </div>
         </div>
       </div>
-      <WhatsAppQuoteDrawer open={waOpen} onClose={() => setWaOpen(false)} />
     </section>
   );
 }
