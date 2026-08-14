@@ -211,10 +211,13 @@ function DashboardFinishesPage() {
                       extra_price: Math.max(0, Number(extra_price) || 0),
                     };
                     if (name !== f.name) {
-                      const { error: createError } = await supabase
+                      const { data: savedCatalog, error: createError } = await supabase
                         .from("finish_catalog")
-                        .insert(payload);
+                        .insert(payload)
+                        .select("name, image_url, gallery")
+                        .single();
                       if (createError) throw createError;
+                      if (!savedCatalog) throw new Error("O acabamento não foi confirmado pelo banco de dados.");
 
                       const { error: relationError } = await supabase
                         .from("product_finishes")
@@ -231,13 +234,18 @@ function DashboardFinishesPage() {
                         .eq("name", f.name);
                       if (deleteError) throw deleteError;
                     } else {
-                      const { error } = await supabase
+                      const { data: savedCatalog, error } = await supabase
                         .from("finish_catalog")
-                        .update(payload)
-                        .eq("name", f.name);
+                        .upsert(payload, { onConflict: "name" })
+                        .select("name, image_url, gallery")
+                        .single();
                       if (error) throw error;
+                      if (!savedCatalog) throw new Error("O acabamento não foi confirmado pelo banco de dados.");
                     }
-                    qc.invalidateQueries({ queryKey: ["dashboard", "acabamentos"] });
+                    await Promise.all([
+                      qc.invalidateQueries({ queryKey: ["dashboard", "acabamentos"] }),
+                      qc.invalidateQueries({ queryKey: ["attribute-terms", "product_finishes"] }),
+                    ]);
                     markPdfPending();
                     toast.success(`Acabamento "${name}" salvo!`);
                   }}

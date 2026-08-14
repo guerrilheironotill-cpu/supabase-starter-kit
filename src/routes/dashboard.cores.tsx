@@ -145,21 +145,44 @@ function DashboardColorsPage() {
                       ],
                       description: description ?? null,
                     };
-                    const { error } = await supabase
-                      .from("color_catalog")
-                      .update(payload)
-                      .eq("name", f.name);
-                    if (error) throw error;
                     if (name !== f.name) {
+                      const { data: savedCatalog, error: catalogError } = await supabase
+                        .from("color_catalog")
+                        .insert(payload)
+                        .select("name, image_url, gallery")
+                        .single();
+                      if (catalogError) throw catalogError;
+                      if (!savedCatalog) throw new Error("A cor não foi confirmada pelo banco de dados.");
+
                       const { error: relationError } = await supabase
                         .from("product_colors")
                         // `name` is generated from `color` in the current schema.
                         // Updating the source column refreshes it automatically.
                         .update({ color: name })
                         .eq("name", f.name);
-                      if (relationError) throw relationError;
+                      if (relationError) {
+                        await supabase.from("color_catalog").delete().eq("name", name);
+                        throw relationError;
+                      }
+
+                      const { error: deleteOldError } = await supabase
+                        .from("color_catalog")
+                        .delete()
+                        .eq("name", f.name);
+                      if (deleteOldError) throw deleteOldError;
+                    } else {
+                      const { data: savedCatalog, error: catalogError } = await supabase
+                        .from("color_catalog")
+                        .upsert(payload, { onConflict: "name" })
+                        .select("name, image_url, gallery")
+                        .single();
+                      if (catalogError) throw catalogError;
+                      if (!savedCatalog) throw new Error("A cor não foi confirmada pelo banco de dados.");
                     }
-                    qc.invalidateQueries({ queryKey: ["dashboard", "cores"] });
+                    await Promise.all([
+                      qc.invalidateQueries({ queryKey: ["dashboard", "cores"] }),
+                      qc.invalidateQueries({ queryKey: ["attribute-terms", "product_colors"] }),
+                    ]);
                     schedulePreparedCatalogRefresh();
                     toast.success(`Cor "${name}" salva!`);
                   }}
