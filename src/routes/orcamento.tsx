@@ -355,8 +355,8 @@ function OrcamentoPage() {
       : customer.customerType === "reseller"
         ? cnpjDigits.length === 14
         : customer.professionalDocument === "cpf"
-          ? cpfDigits.length === 0 || cpfDigits.length === 11
-          : cnpjDigits.length === 0 || cnpjDigits.length === 14;
+          ? cpfDigits.length === 11
+          : cnpjDigits.length === 14;
   const canGoStep3 =
     customer.name.trim() !== "" &&
     customer.email.trim() !== "" &&
@@ -375,7 +375,9 @@ function OrcamentoPage() {
             ? "Informe um CNPJ válido com 14 dígitos."
             : customer.customerType === "final"
               ? "Informe um CPF válido com 11 dígitos."
-              : "O CPF ou CNPJ informado está incompleto.",
+              : customer.professionalDocument === "cpf"
+                ? "Informe um CPF válido com 11 dígitos."
+                : "Informe um CNPJ válido com 14 dígitos.",
         ]
       : []),
     ...(customerAddress.cep.replace(/\D/g, "").length !== 8
@@ -883,8 +885,8 @@ function StepCustomer({
           {customer.customerType === "final" ||
           (customer.customerType === "professional" && customer.professionalDocument === "cpf") ? (
             <Field
-              label={customer.customerType === "professional" ? "CPF (opcional)" : "CPF"}
-              required={customer.customerType === "final"}
+              label="CPF"
+              required
               value={customer.cpf}
               onChange={(v) => setCustomer((c) => ({ ...c, cpf: maskCpf(v) }))}
               maxLength={14}
@@ -893,8 +895,8 @@ function StepCustomer({
             />
           ) : (
             <Field
-              label={customer.customerType === "professional" ? "CNPJ (opcional)" : "CNPJ"}
-              required={customer.customerType === "reseller"}
+              label="CNPJ"
+              required
               value={customer.cnpj}
               onChange={(v) => setCustomer((c) => ({ ...c, cnpj: maskCnpj(v) }))}
               maxLength={18}
