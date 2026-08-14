@@ -12,6 +12,7 @@ import { toast } from "sonner";
 type Category = { id: string; name: string; slug: string };
 type SizeRow = {
   id?: string;
+  label: string;
   name: string;
   height: string;
   width: string;
@@ -130,8 +131,15 @@ function parseSizeDimensions(value: string | null | undefined) {
 }
 
 function sizeName(row: SizeRow) {
-  if (!row.height && !row.width && !row.length) return row.name;
-  return `${row.height || 0}x${row.width || 0}x${row.length || 0}cm`;
+  const dimensions =
+    !row.height && !row.width && !row.length
+      ? row.name.split("|").slice(-1)[0].trim()
+      : `${row.height || 0}x${row.width || 0}x${row.length || 0}cm`;
+  return row.label.trim() ? `${row.label.trim()} | ${dimensions}` : dimensions;
+}
+
+function storedSizeLabel(value: string) {
+  return value.includes("|") ? value.split("|")[0].trim() : "";
 }
 
 const sizesSignature = (rows: SizeRow[]) =>
@@ -236,10 +244,13 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
             sale_price: number | null;
             sort_order: number;
           }>
-        ).map((x) => {
+        ).map((x, index, all) => {
           const name = x.name ?? x.size ?? "";
           return {
             id: x.id,
+            label:
+              storedSizeLabel(name) ||
+              (all.length === 1 ? "Único" : ["P", "M", "G", "GG", "XG", "XXG"][index] ?? String(index + 1)),
             name,
             ...parseSizeDimensions(name),
             base_price: x.base_price ?? 0,
@@ -295,6 +306,10 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
       });
       if (invalidSize) {
         throw new Error("Preencha altura, largura e comprimento de todos os tamanhos.");
+      }
+      const sizeWithoutLabel = sizes.find((size) => !size.label.trim());
+      if (sizeWithoutLabel) {
+        throw new Error("Preencha o campo Tamanho de todos os tamanhos, por exemplo P, M ou G.");
       }
       const regularPrices = sizes
         .map((size) => Number(size.base_price))
@@ -776,7 +791,16 @@ function SizesTab({ rows, setRows }: { rows: SizeRow[]; setRows: (r: SizeRow[]) 
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-4">
+            <Field label="Tamanho *">
+              <input
+                type="text"
+                className={inputCls}
+                value={r.label}
+                placeholder="Ex.: P, M, G"
+                onChange={(e) => update(i, { label: e.target.value })}
+              />
+            </Field>
             <Field label="Altura (cm)">
               <input
                 type="number"
@@ -845,6 +869,7 @@ function SizesTab({ rows, setRows }: { rows: SizeRow[]; setRows: (r: SizeRow[]) 
           setRows([
             ...rows,
             {
+              label: "",
               name: "",
               height: "",
               width: "",

@@ -163,6 +163,18 @@ function sizeCode(idx: number, total: number): string {
   return String(idx + 1);
 }
 
+function storedSizeCode(size: { name?: string | null; size?: string | null }, idx: number, total: number) {
+  const value = size.name ?? size.size ?? "";
+  const separator = value.indexOf("|");
+  return separator >= 0 ? value.slice(0, separator).trim() : sizeCode(idx, total);
+}
+
+function storedDimensions(size: { name?: string | null; size?: string | null }) {
+  const value = size.name ?? size.size ?? "";
+  const separator = value.indexOf("|");
+  return separator >= 0 ? value.slice(separator + 1).trim() : value;
+}
+
 function GalleryImage({
   src,
   alt,
@@ -282,9 +294,9 @@ function ProductPage() {
       slug: p.slug,
       image: images[0],
       quantity: qty,
-      sizeLabel: sizeCode(idx, sizes.length),
+      sizeLabel: storedSizeCode(s, idx, sizes.length),
       // Use the canonical name if present; otherwise fall back to the raw size value.
-      dimensions: s.name ?? s.size ?? "",
+      dimensions: storedDimensions(s),
       finish: selectedFinish || undefined,
       color: selectedColor || undefined,
       unitPrice: basePrice + selectedFinishExtra,
@@ -296,7 +308,7 @@ function ProductPage() {
       availableColors: colors.map((color) => color.name),
     });
     setAddedDescription(
-      `${p.name}, tamanho ${sizeCode(idx, sizes.length)}${selectedFinish ? `, acabamento ${selectedFinish}` : ""}`,
+      `${p.name}, tamanho ${storedSizeCode(s, idx, sizes.length)}${selectedFinish ? `, acabamento ${selectedFinish}` : ""}`,
     );
     setOpen(false);
     setAddedOpen(true);
@@ -397,10 +409,10 @@ function ProductPage() {
                     <tbody className="text-primary">
                       {sizes.map((s, i) => {
                         // Use the raw size field when the name does not contain dimensions.
-                        const dims = parseDims(s.name ?? s.size ?? "");
+                        const dims = parseDims(storedDimensions(s));
                         return (
                           <tr key={s.id} className="border-t border-primary/10">
-                            <td className="px-4 py-3 font-medium">{sizeCode(i, sizes.length)}</td>
+                            <td className="px-4 py-3 font-medium">{storedSizeCode(s, i, sizes.length)}</td>
                             <td className="px-4 py-3 text-primary/80">
                               {dims ? dims.altura : "—"}
                             </td>
@@ -416,7 +428,7 @@ function ProductPage() {
                                 type="button"
                                 onClick={() => openProductConfiguration(s.id)}
                                 className="group/add relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#2a2f2c] text-white transition-all hover:scale-105 hover:bg-[#3a403c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2a2f2c]/40"
-                                aria-label={`Adicionar ${p.name}, tamanho ${sizeCode(i, sizes.length)}`}
+                                aria-label={`Adicionar ${p.name}, tamanho ${storedSizeCode(s, i, sizes.length)}`}
                               >
                                 <Plus className="h-4 w-4" />
                                 <span
@@ -552,7 +564,7 @@ function ProductPage() {
               >
                 {sizes.map((s, i) => (
                   <option key={s.id} value={s.id}>
-                    {sizeCode(i, sizes.length)} — {s.name}
+                    {storedSizeCode(s, i, sizes.length)} — {storedDimensions(s)}
                   </option>
                 ))}
               </select>
