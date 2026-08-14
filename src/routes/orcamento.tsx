@@ -206,7 +206,7 @@ function OrcamentoPage() {
       ].filter(Boolean);
       details.forEach((d) => lines.push(`   - ${d}`));
     });
-    if (hasPrices) {
+    if (items.some((item) => typeof item.unitPrice === "number")) {
       lines.push("");
       lines.push(`SUBTOTAL: ${formatBRL(subtotal)}`);
     }
