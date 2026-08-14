@@ -24,6 +24,7 @@ export type AttributeTerm = {
   video_url: string | null;
   extra_price: number;
   count: number;
+  sort_order: number;
 };
 
 function isOptionalMetadataError(error: SupabaseError | null): boolean {
@@ -163,7 +164,7 @@ export async function fetchAttributeTerms(
 
   let catalog = await supabase
     .from(catalogTable)
-    .select("name, image_url, gallery, description, extra_price");
+    .select("name, image_url, gallery, description, extra_price, sort_order");
   if (catalog.error && isOptionalMetadataError(catalog.error)) {
     catalog = await supabase
       .from(catalogTable)
@@ -185,7 +186,7 @@ export async function fetchAttributeTerms(
 
   const meta = new Map<
     string,
-    { image_url: string | null; gallery: string[]; description: string | null; video_url: string | null; extra_price: number }
+    { image_url: string | null; gallery: string[]; description: string | null; video_url: string | null; extra_price: number; sort_order: number }
   >();
   if (!catalog.error) {
     for (const row of catalog.data ?? []) {
@@ -195,6 +196,7 @@ export async function fetchAttributeTerms(
         gallery?: string[] | null;
         description?: string | null;
         extra_price?: number | null;
+        sort_order?: number | null;
       };
       const name = cleanName(item.name);
       if (!name) continue;
@@ -206,13 +208,14 @@ export async function fetchAttributeTerms(
         description: item.description ?? null,
         video_url: videoEntry ? videoEntry.slice("__video__:".length) : null,
         extra_price: Number(item.extra_price) || 0,
+        sort_order: Number.isFinite(Number(item.sort_order)) ? Number(item.sort_order) : 9999,
       });
       if (!counts.has(name)) counts.set(name, 0);
     }
   }
 
   return Array.from(counts.keys())
-    .sort((a, b) => a.localeCompare(b))
+    .sort((a, b) => (meta.get(a)?.sort_order ?? 9999) - (meta.get(b)?.sort_order ?? 9999) || a.localeCompare(b))
     .map((name) => {
       const item = meta.get(name);
       return {
@@ -223,6 +226,7 @@ export async function fetchAttributeTerms(
         video_url: item?.video_url ?? null,
         extra_price: item?.extra_price ?? 0,
         count: counts.get(name) ?? 0,
+        sort_order: item?.sort_order ?? 9999,
       };
     });
 }

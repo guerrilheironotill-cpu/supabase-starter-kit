@@ -297,13 +297,22 @@ function ProductPage() {
     queryFn: () => fetchAttributeTerms("product_finishes", "finish_catalog"),
     staleTime: 60_000,
   });
+  const { data: colorCatalog = [] } = useQuery({
+    queryKey: ["attribute-terms", "product_colors"],
+    queryFn: () => fetchAttributeTerms("product_colors", "color_catalog"),
+    staleTime: 60_000,
+  });
+  const finishOrder = new Map(finishCatalog.map((term, index) => [term.name, index]));
+  const colorOrder = new Map(colorCatalog.map((term, index) => [term.name, index]));
   const finishes = [...(p.product_finishes ?? [])]
-    .sort((a, b) => a.sort_order - b.sort_order)
+    .sort((a, b) => (finishOrder.get(a.name) ?? 9999) - (finishOrder.get(b.name) ?? 9999) || a.sort_order - b.sort_order)
     .map((finish) => ({
       ...finish,
       extra_price: finishCatalog.find((term) => term.name === finish.name)?.extra_price ?? 0,
     }));
-  const colors = [...(p.product_colors ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+  const colors = [...(p.product_colors ?? [])].sort(
+    (a, b) => (colorOrder.get(a.name) ?? 9999) - (colorOrder.get(b.name) ?? 9999) || a.sort_order - b.sort_order,
+  );
 
   const addItem = useQuoteStore((s) => s.addItem);
   const [selectedSizeId, setSelectedSizeId] = useState<string>(sizes[0]?.id ?? "");

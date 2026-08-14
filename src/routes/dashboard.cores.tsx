@@ -5,7 +5,7 @@ import { DashboardSection } from "@/components/dashboard-layout";
 import { DashboardGalleryEditor } from "@/components/dashboard-gallery-editor";
 import { fetchAttributeTerms, type AttributeTerm } from "@/lib/dashboard-taxonomies";
 import { useState } from "react";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +39,26 @@ function DashboardColorsPage() {
     queryFn: fetchColors,
     staleTime: 30_000,
   });
+
+  async function moveColor(index: number, direction: -1 | 1) {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= data.length) return;
+    const current = data[index];
+    const target = data[targetIndex];
+    const currentOrder = current.sort_order === 9999 ? index : current.sort_order;
+    const targetOrder = target.sort_order === 9999 ? targetIndex : target.sort_order;
+    const updates = await Promise.all([
+      supabase.from("color_catalog").upsert({ name: current.name, sort_order: targetOrder }, { onConflict: "name" }),
+      supabase.from("color_catalog").upsert({ name: target.name, sort_order: currentOrder }, { onConflict: "name" }),
+    ]);
+    const error = updates.find((result) => result.error)?.error;
+    if (error) throw error;
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["dashboard", "cores"] }),
+      qc.invalidateQueries({ queryKey: ["attribute-terms", "product_colors"] }),
+    ]);
+    schedulePreparedCatalogRefresh();
+  }
 
   async function deleteColor() {
     if (!colorToDelete || deleting) return;
@@ -108,9 +128,11 @@ function DashboardColorsPage() {
           <p className="text-sm text-muted-foreground">Nenhuma cor cadastrada.</p>
         ) : (
           <div className="grid gap-3">
-            {data.map((f) => (
+            {data.map((f, index) => (
               <div key={f.name} className="relative">
-                <div className="absolute right-4 top-4 z-10">
+                <div className="absolute right-4 top-4 z-10 flex items-center gap-1">
+                  <button type="button" disabled={index === 0} onClick={() => void moveColor(index, -1).catch((error) => toast.error(error.message))} aria-label={`Mover ${f.name} para cima`} className="rounded-md border border-border bg-background p-1.5 text-foreground hover:bg-muted disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
+                  <button type="button" disabled={index === data.length - 1} onClick={() => void moveColor(index, 1).catch((error) => toast.error(error.message))} aria-label={`Mover ${f.name} para baixo`} className="rounded-md border border-border bg-background p-1.5 text-foreground hover:bg-muted disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
                   <RowActionsMenu
                     label={`Ações de ${f.name}`}
                     actions={[

@@ -148,19 +148,22 @@ function OrcamentoPage() {
     let cancelled = false;
     void (async () => {
       const finishCatalog = await fetchAttributeTerms("product_finishes", "finish_catalog");
+      const colorCatalog = await fetchAttributeTerms("product_colors", "color_catalog");
+      const finishOrder = new Map(finishCatalog.map((entry, index) => [entry.name, index]));
+      const colorOrder = new Map(colorCatalog.map((entry, index) => [entry.name, index]));
       await Promise.all(
         legacyItems.map(async (item) => {
           const product = await fetchProductBySlug(item.slug!);
           if (!product || cancelled) return;
           updateConfigurationOptions(item.id, {
             basePrice: item.basePrice ?? item.unitPrice ?? 0,
-            availableFinishes: product.product_finishes.map((finish) => ({
+            availableFinishes: [...product.product_finishes].sort((a, b) => (finishOrder.get(a.name) ?? 9999) - (finishOrder.get(b.name) ?? 9999)).map((finish) => ({
               name: finish.name,
               extraPrice:
                 finishCatalog.find((catalogItem) => catalogItem.name === finish.name)
                   ?.extra_price ?? 0,
             })),
-            availableColors: product.product_colors.map((color) => color.name),
+            availableColors: [...product.product_colors].sort((a, b) => (colorOrder.get(a.name) ?? 9999) - (colorOrder.get(b.name) ?? 9999)).map((color) => color.name),
           });
         }),
       );
