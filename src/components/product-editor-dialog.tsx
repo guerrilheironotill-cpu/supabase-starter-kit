@@ -1041,9 +1041,64 @@ function SeoTab({
   setProduct: (p: ProductData) => void;
 }) {
   const keywords = product.seo_keywords;
+  const [keywordDraft, setKeywordDraft] = useState("");
+  const [popularKeywords, setPopularKeywords] = useState<Array<{ keyword: string; count: number }>>([]);
   const titleText = (product.meta_title || product.name).toLocaleLowerCase("pt-BR");
   const descriptionText = (product.meta_description || "").toLocaleLowerCase("pt-BR");
   const contentText = (product.description || "").toLocaleLowerCase("pt-BR");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.from("products").select("seo_keywords");
+      if (cancelled || error) return;
+      const counts = new Map<string, { keyword: string; count: number }>();
+      for (const row of (data ?? []) as Array<{ seo_keywords: string[] | null }>) {
+        for (const rawKeyword of row.seo_keywords ?? []) {
+          const keyword = rawKeyword.trim();
+          if (!keyword) continue;
+          const normalized = keyword.toLocaleLowerCase("pt-BR");
+          const current = counts.get(normalized);
+          counts.set(normalized, {
+            keyword: current?.keyword ?? keyword,
+            count: (current?.count ?? 0) + 1,
+          });
+        }
+      }
+      setPopularKeywords(
+        Array.from(counts.values()).sort(
+          (a, b) => b.count - a.count || a.keyword.localeCompare(b.keyword, "pt-BR"),
+        ),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function addKeyword(value: string) {
+    const keyword = value.trim().replace(/,+$/, "").trim();
+    if (!keyword || keywords.length >= 12) return;
+    const exists = keywords.some(
+      (item) => item.toLocaleLowerCase("pt-BR") === keyword.toLocaleLowerCase("pt-BR"),
+    );
+    if (!exists) setProduct({ ...product, seo_keywords: [...keywords, keyword] });
+    setKeywordDraft("");
+  }
+
+  function removeKeyword(keyword: string) {
+    setProduct({ ...product, seo_keywords: keywords.filter((item) => item !== keyword) });
+  }
+
+  const availablePopularKeywords = popularKeywords
+    .filter(
+      ({ keyword }) =>
+        !keywords.some(
+          (selected) => selected.toLocaleLowerCase("pt-BR") === keyword.toLocaleLowerCase("pt-BR"),
+        ),
+    )
+    .slice(0, 10);
+
   return (
     <div className="space-y-3">
       <Field label="Título SEO">
@@ -1064,26 +1119,57 @@ function SeoTab({
         />
       </Field>
       <Field label="Palavras-chave de foco">
-        <textarea
-          rows={3}
-          className={cn(inputCls, "resize-none")}
-          placeholder="Ex.: vaso de concreto, vaso para área externa, vaso artesanal"
-          value={keywords.join(", ")}
-          onChange={(e) =>
-            setProduct({
-              ...product,
-              seo_keywords: Array.from(
-                new Set(
-                  e.target.value
-                    .split(",")
-                    .map((keyword) => keyword.trim())
-                    .filter(Boolean),
-                ),
-              ).slice(0, 12),
-            })
-          }
+        <input
+          type="text"
+          className={inputCls}
+          placeholder="Digite uma palavra-chave e pressione Enter"
+          value={keywordDraft}
+          disabled={keywords.length >= 12}
+          onChange={(e) => setKeywordDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" && e.key !== ",") return;
+            e.preventDefault();
+            addKeyword(keywordDraft);
+          }}
+          onBlur={() => addKeyword(keywordDraft)}
         />
       </Field>
+      {keywords.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {keywords.map((keyword) => (
+            <span key={keyword} className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary">
+              {keyword}
+              <button
+                type="button"
+                onClick={() => removeKeyword(keyword)}
+                className="rounded-full p-0.5 text-primary/55 hover:bg-primary/10 hover:text-primary"
+                aria-label={`Remover palavra-chave ${keyword}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+          <span className="self-center text-[11px] text-muted-foreground">{keywords.length}/12</span>
+        </div>
+      )}
+      {availablePopularKeywords.length > 0 && (
+        <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
+          <p className="text-xs font-semibold text-foreground">Palavras-chave mais usadas</p>
+          <div className="flex flex-wrap gap-2">
+            {availablePopularKeywords.map(({ keyword, count }) => (
+              <button
+                key={keyword}
+                type="button"
+                onClick={() => addKeyword(keyword)}
+                disabled={keywords.length >= 12}
+                className="rounded-full border border-border bg-background px-3 py-1.5 text-xs text-foreground hover:border-primary/30 hover:bg-primary/5 disabled:opacity-50"
+              >
+                {keyword} <span className="text-muted-foreground">({count})</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {keywords.length > 0 && (
         <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
           <p className="text-xs font-semibold text-foreground">Análise das palavras-chave</p>
