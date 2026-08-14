@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ArrowRight } from "lucide-react";
 import { WhatsAppQuoteDrawer } from "./whatsapp-quote-drawer";
 
@@ -14,40 +14,32 @@ export function AboutSection() {
       setVisible(true);
       return;
     }
-    let sectionInView = false;
-    let revealed = false;
-    const revealWhenReady = () => {
-      if (revealed || !sectionInView || window.scrollY < 160) return;
-      revealed = true;
-      setVisible(true);
-      observer.disconnect();
-      window.removeEventListener("scroll", revealWhenReady);
-    };
     const observer = new IntersectionObserver(
       ([entry]) => {
-        sectionInView = entry.isIntersecting;
-        revealWhenReady();
+        if (!entry.isIntersecting) return;
+        setVisible(true);
+        observer.disconnect();
       },
-      { threshold: 0.25 },
+      { rootMargin: "0px 0px -8%", threshold: 0.12 },
     );
     observer.observe(section);
-    window.addEventListener("scroll", revealWhenReady, { passive: true });
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("scroll", revealWhenReady);
-    };
+    return () => observer.disconnect();
   }, []);
+
+  const revealStyle = (delay: number, distance = 24): CSSProperties => ({
+    opacity: visible ? 1 : 0,
+    transform: visible ? "translate3d(0, 0, 0)" : `translate3d(0, ${distance}px, 0)`,
+    transition: "opacity 1400ms cubic-bezier(0.16, 1, 0.3, 1), transform 1400ms cubic-bezier(0.16, 1, 0.3, 1)",
+    transitionDelay: visible ? `${delay}ms` : "0ms",
+    willChange: visible ? "auto" : "opacity, transform",
+  });
 
   return (
     <section ref={sectionRef} className="relative overflow-hidden bg-[#eaf3dd]">
       <div className="relative z-10 mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 py-20 sm:px-8 lg:grid-cols-2 lg:gap-20 lg:py-28">
         <div
           className="relative"
-          style={{
-            opacity: visible ? 1 : 0,
-            transform: visible ? "translate3d(0, 0, 0)" : "translate3d(-140px, 0, 0)",
-            transition: "transform 1000ms cubic-bezier(0.22, 1, 0.36, 1), opacity 1000ms ease-out",
-          }}
+          style={revealStyle(0, 32)}
         >
           <div className="aspect-square overflow-hidden rounded-2xl bg-primary/5 shadow-xl ring-1 ring-primary/10">
             <img
@@ -64,36 +56,26 @@ export function AboutSection() {
         <div>
           <h2
             className="font-display text-3xl leading-[1.15] text-primary sm:text-4xl"
-            style={{
-              transform: visible ? "translate3d(0, 0, 0)" : "translate3d(140px, 0, 0)",
-              transition: "transform 1000ms cubic-bezier(0.22, 1, 0.36, 1)",
-              transitionDelay: visible ? "300ms" : "0ms",
-            }}
+            style={revealStyle(180, 26)}
           >
             Utilizamos o concreto como matéria-prima para criar peças artesanais únicas.
           </h2>
-          <div
-            style={{
-              transform: visible ? "translate3d(0, 0, 0)" : "translate3d(140px, 0, 0)",
-              transition: "transform 1000ms cubic-bezier(0.22, 1, 0.36, 1)",
-              transitionDelay: visible ? "600ms" : "0ms",
-            }}
+          <p
+            className="mt-6 max-w-xl text-base text-primary/75 sm:text-lg"
+            style={revealStyle(360, 22)}
           >
-          <p className="mt-6 max-w-xl text-base text-primary/75 sm:text-lg">
             Somos especialistas em traduzir a solidez do cimento em vasos e projetos sob medida.
           </p>
-          <p className="mt-4 max-w-xl text-base text-primary/75 sm:text-lg">
+          <p
+            className="mt-4 max-w-xl text-base text-primary/75 sm:text-lg"
+            style={revealStyle(500, 20)}
+          >
             Cada peça carrega a exclusividade do trabalho feito à mão e a sofisticação do design autoral. Explore nossas criações.
           </p>
-          </div>
 
           <div
             className="mt-10 flex flex-wrap items-center gap-4"
-            style={{
-              opacity: visible ? 1 : 0,
-              transition: "opacity 1000ms ease-out",
-              transitionDelay: visible ? "900ms" : "0ms",
-            }}
+            style={revealStyle(650, 18)}
           >
             <a
               href="/catalogo"
