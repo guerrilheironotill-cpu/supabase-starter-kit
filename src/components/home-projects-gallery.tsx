@@ -37,7 +37,7 @@ export function HomeProjectsGallery({ projects }: { projects: HomeProject[] }) {
   const selected = openIndex === null ? null : projects[openIndex];
 
   return (
-    <section className="bg-white py-12 sm:py-16" aria-labelledby="projects-with-arteno-title">
+    <section className="bg-white pt-12 pb-0 sm:pt-16" aria-labelledby="projects-with-arteno-title">
       <div className="mx-auto max-w-7xl px-4 text-center sm:px-8">
         <span className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-primary/5 text-primary">
           <Images className="h-5 w-5" strokeWidth={1.5} />
