@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Hammer, Palette, Ruler } from "lucide-react";
 import { useWhatsAppNumber, whatsappLinkFrom } from "@/lib/site-settings";
 
 const ABOUT_IMAGES = [
@@ -15,6 +15,12 @@ const ABOUT_IMAGES = [
     width: 900,
     height: 900,
   },
+];
+
+const ABOUT_HIGHLIGHTS = [
+  { icon: Hammer, label: "Produção artesanal" },
+  { icon: Palette, label: "Cores e acabamentos" },
+  { icon: Ruler, label: "Projetos sob medida" },
 ];
 
 export function AboutSection() {
@@ -112,8 +118,27 @@ export function AboutSection() {
           </p>
 
           <div
-            className="mt-10 flex flex-wrap items-center gap-4"
-            style={fadeStyle(1050)}
+            className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3"
+            style={fadeStyle(900)}
+          >
+            {ABOUT_HIGHLIGHTS.map((item) => (
+              <div
+                key={item.label}
+                className="flex items-center gap-3 rounded-xl border border-primary/10 bg-white/35 px-3.5 py-3"
+              >
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+                  <item.icon className="h-4 w-4" strokeWidth={1.6} />
+                </span>
+                <span className="text-xs font-semibold leading-snug text-primary/80">
+                  {item.label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div
+            className="mt-8 flex flex-wrap items-center gap-4"
+            style={fadeStyle(1200)}
           >
             <a
               href="/catalogo"

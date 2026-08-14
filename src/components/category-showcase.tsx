@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Shapes } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { categorySlug } from "@/lib/products";
 import { ScrollReveal } from "@/components/scroll-reveal";
@@ -40,6 +40,9 @@ export function CategoryShowcase() {
   return (
     <section className="bg-white py-10 sm:py-12">
       <ScrollReveal className="mx-auto max-w-7xl px-4 sm:px-8">
+        <span className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-primary/5 text-primary">
+          <Shapes className="h-5 w-5" strokeWidth={1.5} />
+        </span>
         <h2 className="text-center font-display text-3xl text-primary sm:text-4xl">
           Outros produtos
         </h2>

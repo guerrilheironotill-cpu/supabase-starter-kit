@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Images, X } from "lucide-react";
 import type { HomeProject } from "@/lib/home-projects";
 import {
   Carousel,
@@ -39,6 +39,9 @@ export function HomeProjectsGallery({ projects }: { projects: HomeProject[] }) {
   return (
     <section className="bg-white py-12 sm:py-16" aria-labelledby="projects-with-arteno-title">
       <div className="mx-auto max-w-7xl px-4 text-center sm:px-8">
+        <span className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-primary/5 text-primary">
+          <Images className="h-5 w-5" strokeWidth={1.5} />
+        </span>
         <h2 id="projects-with-arteno-title" className="font-display text-3xl text-primary sm:text-4xl">
           Projetos com Arteno
         </h2>

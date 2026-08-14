@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Download } from "lucide-react";
+import { CircleHelp, Download } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -81,6 +81,9 @@ export function HomeFaq() {
     <section className="bg-[#f5f6f2] py-16 text-[#343936] sm:py-20">
       <ScrollReveal className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
         <div>
+          <span className="mb-7 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white">
+            <CircleHelp className="h-5 w-5" strokeWidth={1.5} />
+          </span>
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary/55">
             Dúvidas frequentes
           </p>
