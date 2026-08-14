@@ -629,9 +629,30 @@ function DashboardProductsPage() {
                   return (
                     <tr
                       key={row.id}
-                      className={`border-t border-border ${selectedIds.has(row.id) ? "bg-primary/5" : ""}`}
+                      role="link"
+                      tabIndex={0}
+                      aria-label={`Editar produto ${row.name}`}
+                      onClick={() =>
+                        void navigate({
+                          to: "/dashboard/editar-produto/$productId",
+                          params: { productId: row.id },
+                        })
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") return;
+                        event.preventDefault();
+                        void navigate({
+                          to: "/dashboard/editar-produto/$productId",
+                          params: { productId: row.id },
+                        });
+                      }}
+                      className={`cursor-pointer border-t border-border transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none ${selectedIds.has(row.id) ? "bg-primary/5" : ""}`}
                     >
-                      <td className="px-4 py-3">
+                      <td
+                        className="px-4 py-3"
+                        onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => event.stopPropagation()}
+                      >
                         <input
                           type="checkbox"
                           checked={selectedIds.has(row.id)}
@@ -680,7 +701,11 @@ function DashboardProductsPage() {
                           {row.active ? "Ativo" : "Inativo"}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td
+                        className="px-4 py-3"
+                        onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => event.stopPropagation()}
+                      >
                         <div className="flex items-center justify-end gap-1.5">
                           <RowActionsMenu
                             label={`Ações de ${row.name}`}
