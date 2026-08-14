@@ -4,22 +4,27 @@ import { DashboardSection } from "@/components/dashboard-layout";
 import { cn } from "@/lib/utils";
 import {
   fetchHomeProjects,
+  fetchHomeProjectProductOptions,
   saveHomeProjects,
   uploadHomeProjectImage,
   type HomeProject,
+  type HomeProjectProductOption,
 } from "@/lib/home-projects";
 
 const inputClass = "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40";
 
 export function HomeProjectsAdmin() {
   const [items, setItems] = useState<HomeProject[]>([]);
+  const [products, setProducts] = useState<HomeProjectProductOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
 
   useEffect(() => {
-    void fetchHomeProjects(true).then(setItems).finally(() => setLoading(false));
+    void Promise.all([fetchHomeProjects(true), fetchHomeProjectProductOptions()])
+      .then(([projectItems, productItems]) => { setItems(projectItems); setProducts(productItems); })
+      .finally(() => setLoading(false));
   }, []);
 
   const update = (id: string, patch: Partial<HomeProject>) => {
@@ -72,7 +77,7 @@ export function HomeProjectsAdmin() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((item, index) => (
-            <ProjectEditor key={item.id} item={item} index={index} total={items.length} onChange={(patch) => update(item.id, patch)} onMove={(direction) => move(index, direction)} onRemove={() => { setItems((current) => current.filter((row) => row.id !== item.id)); setDirty(true); }} />
+            <ProjectEditor key={item.id} item={item} products={products} index={index} total={items.length} onChange={(patch) => update(item.id, patch)} onMove={(direction) => move(index, direction)} onRemove={() => { setItems((current) => current.filter((row) => row.id !== item.id)); setDirty(true); }} />
           ))}
         </div>
       )}
@@ -81,7 +86,7 @@ export function HomeProjectsAdmin() {
   );
 }
 
-function ProjectEditor({ item, index, total, onChange, onMove, onRemove }: { item: HomeProject; index: number; total: number; onChange: (patch: Partial<HomeProject>) => void; onMove: (direction: -1 | 1) => void; onRemove: () => void }) {
+function ProjectEditor({ item, products, index, total, onChange, onMove, onRemove }: { item: HomeProject; products: HomeProjectProductOption[]; index: number; total: number; onChange: (patch: Partial<HomeProject>) => void; onMove: (direction: -1 | 1) => void; onRemove: () => void }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function upload(file: File) {
@@ -97,7 +102,7 @@ function ProjectEditor({ item, index, total, onChange, onMove, onRemove }: { ite
       <label className="mt-3 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted">{uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}{item.image ? "Alterar imagem" : "Enviar imagem"}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.target.value = ""; }} /></label>
       {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
       <label className="mt-3 block text-xs font-medium text-muted-foreground">ALT TEXT *<input value={item.alt} onChange={(event) => onChange({ alt: event.target.value })} placeholder="Vaso Atenas em projeto residencial" className={`${inputClass} mt-1`} /></label>
-      <details className="mt-3 text-xs text-muted-foreground"><summary className="cursor-pointer">Informações futuras (opcional)</summary><div className="mt-2 grid gap-2"><input value={item.productName ?? ""} onChange={(event) => onChange({ productName: event.target.value })} placeholder="Nome do produto" className={inputClass} /><input value={item.productUrl ?? ""} onChange={(event) => onChange({ productUrl: event.target.value })} placeholder="Link do produto" className={inputClass} /><input value={item.location ?? ""} onChange={(event) => onChange({ location: event.target.value })} placeholder="Localização" className={inputClass} /><input value={item.category ?? ""} onChange={(event) => onChange({ category: event.target.value })} placeholder="Categoria" className={inputClass} /><input value={item.professional ?? ""} onChange={(event) => onChange({ professional: event.target.value })} placeholder="Arquiteto / paisagista" className={inputClass} /></div></details>
+      <details className="mt-3 text-xs text-muted-foreground"><summary className="cursor-pointer">Informações futuras (opcional)</summary><div className="mt-2 grid gap-2"><label>Produto vinculado<select value={item.productUrl ?? ""} onChange={(event) => { const product = products.find((option) => `/produto/${option.slug}` === event.target.value); onChange({ productUrl: event.target.value || undefined, productName: product?.name || undefined }); }} className={`${inputClass} mt-1`}><option value="">Nenhum produto vinculado</option>{products.map((product) => <option key={product.id} value={`/produto/${product.slug}`}>{product.name}</option>)}</select></label><input value={item.location ?? ""} onChange={(event) => onChange({ location: event.target.value })} placeholder="Localização" className={inputClass} /><input value={item.category ?? ""} onChange={(event) => onChange({ category: event.target.value })} placeholder="Categoria" className={inputClass} /><input value={item.professional ?? ""} onChange={(event) => onChange({ professional: event.target.value })} placeholder="Arquiteto / paisagista" className={inputClass} /></div></details>
     </article>
   );
 }

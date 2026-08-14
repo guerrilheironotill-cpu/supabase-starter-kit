@@ -15,6 +15,8 @@ export type HomeProject = {
   description?: string;
 };
 
+export type HomeProjectProductOption = { id: string; name: string; slug: string };
+
 const BUCKET = "catalog-media";
 const PATH = "home/projects-gallery.json";
 
@@ -47,4 +49,14 @@ export async function saveHomeProjects(items: HomeProject[]) {
 
 export function uploadHomeProjectImage(file: File) {
   return uploadOptimizedImage(file, "projects", "story");
+}
+
+export async function fetchHomeProjectProductOptions(): Promise<HomeProjectProductOption[]> {
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, name, slug")
+    .eq("active", true)
+    .order("name");
+  if (error) throw error;
+  return (data ?? []) as HomeProjectProductOption[];
 }
