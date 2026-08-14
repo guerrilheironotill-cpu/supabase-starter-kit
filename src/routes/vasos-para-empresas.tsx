@@ -25,8 +25,8 @@ function VasosParaEmpresasPage() {
     ]}
     hero="/images/vasos-para-empresas/hero.webp"
     gallery={[
-      { src: "/images/vasos-para-empresas/projeto-1.jpeg", alt: "Vasos personalizados em projeto corporativo" },
-      { src: "/images/vasos-para-empresas/projeto-2.jpeg", alt: "Vasos Arteno em ambiente empresarial" },
+      { src: "/images/vasos-para-empresas/projeto-corporativo-arteno.webp", alt: "Vasos personalizados em projeto corporativo" },
+      { src: "/images/vasos-para-empresas/vasos-restaurante.webp", alt: "Vasos Arteno em ambiente empresarial" },
     ]}
     featuresTitle="Por que escolher nossos vasos para sua empresa"
     features={[

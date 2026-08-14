@@ -23,11 +23,11 @@ type MediaItem = {
 
 const STATIC_MEDIA: MediaItem[] = [
   {
-    url: "https://arteno.com.br/wp-content/uploads/2025/03/Ativo-8-e1782929111841.png",
+    url: "/images/logo-arteno-header-site.svg",
     source: "Logo do site",
   },
   {
-    url: "https://arteno.com.br/wp-content/uploads/2024/09/arteno-vasodecor-p-vaso-cimento-florianopolis-vaso-concreto.jpg",
+    url: "/images/sobre-arteno-vasos-concreto.webp",
     source: "Hero da home",
   },
 ];
