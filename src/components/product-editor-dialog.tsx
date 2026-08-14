@@ -360,7 +360,6 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
             sizes.map((s, i) => ({
               product_id: savedProductId,
               size: sizeName(s),
-              name: sizeName(s),
               base_price: s.base_price,
               sale_price: s.sale_price,
               sort_order: i,
@@ -377,7 +376,6 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
             finishes.map((f, i) => ({
               product_id: savedProductId,
               finish: f.name,
-              name: f.name,
               sort_order: i,
             })),
           ),
@@ -392,7 +390,6 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
             colors.map((c, i) => ({
               product_id: savedProductId,
               color: c.name,
-              name: c.name,
               sort_order: i,
             })),
           ),
