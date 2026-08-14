@@ -5,21 +5,11 @@ import type { Product } from "@/lib/products";
 
 type Props = {
   product: Product;
-  priceFrom?: number | null;
   index?: number;
   variant?: "default" | "home";
 };
 
-function formatBRL(n: number) {
-  return n.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
-}
-
-export function ProductCard({ product, priceFrom, index = 0, variant = "default" }: Props) {
+export function ProductCard({ product, index = 0, variant = "default" }: Props) {
   const images = (product.images ?? []).filter(Boolean);
   const [imageIndex, setImageIndex] = useState(0);
   const [previousImage, setPreviousImage] = useState<string | null>(null);
@@ -155,11 +145,6 @@ export function ProductCard({ product, priceFrom, index = 0, variant = "default"
           {product.name}
         </h3>
       </Link>
-      {typeof priceFrom === "number" && (
-        <p className="mt-1 text-sm text-primary/70">
-          A partir de <span className="font-semibold text-primary">{formatBRL(priceFrom)}</span>
-        </p>
-      )}
     </article>
   );
 }

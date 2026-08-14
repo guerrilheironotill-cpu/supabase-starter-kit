@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { Flower2, Sprout, Armchair, Palette } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
 import { ProductCard } from "@/components/product-card";
-import { priceFromOf } from "@/components/product-filters";
 import {
   fetchCategories,
   fetchProductsWithSizes,
@@ -168,7 +167,6 @@ function CatalogoPage() {
                   index={index}
                   key={product.id}
                   product={product}
-                  priceFrom={priceFromOf(product)}
                 />
               ))}
             </div>

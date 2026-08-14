@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { PageHero } from "@/components/page-hero";
 import { ProductCard } from "@/components/product-card";
-import { priceFromOf } from "@/components/product-filters";
 import { fetchProductsWithSizes } from "@/lib/products";
 
 const searchSchema = z.object({
@@ -81,7 +80,6 @@ function SearchPage() {
                     <ProductCard index={i}
                       key={p.id}
                       product={p}
-                      priceFrom={priceFromOf(p)}
                     />
                   ))}
                 </div>

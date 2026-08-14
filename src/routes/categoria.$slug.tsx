@@ -7,7 +7,6 @@ import { AdminEditBar } from "@/components/admin-edit-bar";
 import {
   ProductFilters,
   applyFilters,
-  priceFromOf,
   type FilterState,
   DEFAULT_FILTERS,
 } from "@/components/product-filters";
@@ -135,7 +134,6 @@ function CategoryPage() {
                 <ProductCard index={i}
                   key={p.id}
                   product={p}
-                  priceFrom={priceFromOf(p)}
                 />
               ))}
             </div>
