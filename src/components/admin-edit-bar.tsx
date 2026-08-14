@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { LayoutDashboard, PackagePlus, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -25,6 +25,16 @@ export function AdminEditBar({ label, to, search, params }: AdminEditBarProps) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [ready, setReady] = useState(false);
 
+  useLayoutEffect(() => {
+    const hasCachedSession = Object.keys(window.localStorage).some(
+      (key) => key.startsWith("sb-") && key.endsWith("-auth-token"),
+    );
+    if (hasCachedSession) {
+      setIsAdmin(true);
+      setReady(true);
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -47,7 +57,7 @@ export function AdminEditBar({ label, to, search, params }: AdminEditBarProps) {
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isAdmin) return;
     const root = document.documentElement;
     root.style.setProperty("--admin-bar-h", "40px");

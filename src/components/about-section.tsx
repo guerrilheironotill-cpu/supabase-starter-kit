@@ -29,9 +29,16 @@ export function AboutSection() {
   const revealStyle = (delay: number, distance = 24): CSSProperties => ({
     opacity: visible ? 1 : 0,
     transform: visible ? "translate3d(0, 0, 0)" : `translate3d(0, ${distance}px, 0)`,
-    transition: "opacity 1400ms cubic-bezier(0.16, 1, 0.3, 1), transform 1400ms cubic-bezier(0.16, 1, 0.3, 1)",
+    transition: "opacity 1800ms cubic-bezier(0.16, 1, 0.3, 1), transform 1800ms cubic-bezier(0.16, 1, 0.3, 1)",
     transitionDelay: visible ? `${delay}ms` : "0ms",
     willChange: visible ? "auto" : "opacity, transform",
+  });
+
+  const fadeStyle = (delay: number): CSSProperties => ({
+    opacity: visible ? 1 : 0,
+    transition: "opacity 1600ms cubic-bezier(0.16, 1, 0.3, 1)",
+    transitionDelay: visible ? `${delay}ms` : "0ms",
+    willChange: visible ? "auto" : "opacity",
   });
 
   return (
@@ -56,26 +63,26 @@ export function AboutSection() {
         <div>
           <h2
             className="font-display text-3xl leading-[1.15] text-primary sm:text-4xl"
-            style={revealStyle(180, 26)}
+            style={revealStyle(240, 26)}
           >
             Utilizamos o concreto como matéria-prima para criar peças artesanais únicas.
           </h2>
           <p
             className="mt-6 max-w-xl text-base text-primary/75 sm:text-lg"
-            style={revealStyle(360, 22)}
+            style={revealStyle(480, 22)}
           >
             Somos especialistas em traduzir a solidez do cimento em vasos e projetos sob medida.
           </p>
           <p
             className="mt-4 max-w-xl text-base text-primary/75 sm:text-lg"
-            style={revealStyle(500, 20)}
+            style={revealStyle(680, 20)}
           >
             Cada peça carrega a exclusividade do trabalho feito à mão e a sofisticação do design autoral. Explore nossas criações.
           </p>
 
           <div
             className="mt-10 flex flex-wrap items-center gap-4"
-            style={revealStyle(650, 18)}
+            style={fadeStyle(1050)}
           >
             <a
               href="/catalogo"
