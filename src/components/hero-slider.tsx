@@ -4,13 +4,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Marquee } from "./marquee";
-import { DEFAULT_SLIDES, fetchHeroSlides } from "@/lib/hero-slides";
+import { fetchHeroSlides, type HeroSlide } from "@/lib/hero-slides";
 
-export function HeroSlider() {
+export function HeroSlider({ initialSlides }: { initialSlides: HeroSlide[] }) {
   const [index, setIndex] = useState(0);
-  const { data: SLIDES = DEFAULT_SLIDES } = useQuery({
+  const { data: SLIDES = [] } = useQuery({
     queryKey: ["home", "hero-slides"],
     queryFn: fetchHeroSlides,
+    initialData: initialSlides,
     staleTime: 60_000,
   });
 
@@ -76,22 +77,22 @@ export function HeroSlider() {
           </div>
         ))}
 
-        <button
+        {SLIDES.length > 1 && <button
           type="button"
           onClick={() => go(-1)}
           aria-label="Slide anterior"
           className="absolute left-4 top-1/2 z-20 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all duration-300 hover:bg-secondary hover:text-primary sm:left-6"
         >
           <ChevronLeft className="h-5 w-5" />
-        </button>
-        <button
+        </button>}
+        {SLIDES.length > 1 && <button
           type="button"
           onClick={() => go(1)}
           aria-label="Próximo slide"
           className="absolute right-4 top-1/2 z-20 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all duration-300 hover:bg-secondary hover:text-primary sm:right-6"
         >
           <ChevronRight className="h-5 w-5" />
-        </button>
+        </button>}
 
         {/* Marquee sits over the slider bottom, inside rounded clip */}
         <div className="pointer-events-none absolute inset-x-0 bottom-4 z-30">

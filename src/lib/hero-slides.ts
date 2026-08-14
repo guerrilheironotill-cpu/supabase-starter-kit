@@ -53,9 +53,9 @@ export async function fetchHeroSlides(): Promise<HeroSlide[]> {
     const r = await fetch(`${publicUrl()}?t=${Date.now()}`, {
       cache: "no-store",
     });
-    if (!r.ok) return DEFAULT_SLIDES;
+    if (!r.ok) return [];
     const json = (await r.json()) as HeroSlide[];
-    if (!Array.isArray(json) || json.length === 0) return DEFAULT_SLIDES;
+    if (!Array.isArray(json) || json.length === 0) return [];
     return json.map((slide) => {
       const normalizedLabel = slide.ctaLabel
         .normalize("NFKD")
@@ -67,7 +67,7 @@ export async function fetchHeroSlides(): Promise<HeroSlide[]> {
         : slide;
     });
   } catch {
-    return DEFAULT_SLIDES;
+    return [];
   }
 }
 

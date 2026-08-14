@@ -5,16 +5,19 @@ import { ProductGrid } from "@/components/product-grid";
 import { AdminEditBar } from "@/components/admin-edit-bar";
 import { CategoryShowcase } from "@/components/category-showcase";
 import { HomeFaq } from "@/components/home-faq";
+import { fetchHeroSlides } from "@/lib/hero-slides";
 
 export const Route = createFileRoute("/")({
+  loader: async () => ({ heroSlides: await fetchHeroSlides() }),
   component: Index,
 });
 
 function Index() {
+  const { heroSlides } = Route.useLoaderData();
   return (
     <>
       <AdminEditBar label="Editar página Home" to="/dashboard/paginas/home" />
-      <HeroSlider />
+      <HeroSlider initialSlides={heroSlides} />
       <AboutSection />
       <ProductGrid
         title="Vasos em Destaque"
