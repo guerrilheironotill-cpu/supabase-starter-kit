@@ -126,6 +126,8 @@ export function SiteHeader() {
             <img
               src="/images/logo-arteno-header-site.svg"
               alt="Casa & Jardim"
+              width={181}
+              height={44}
               className={cn(
                 "absolute inset-0 h-full w-full object-contain object-left transition-opacity duration-500 ease-in-out",
                 scrolled ? "opacity-0" : "opacity-100",
@@ -134,6 +136,8 @@ export function SiteHeader() {
             <img
               src="/images/logo-header-scroll.svg"
               alt=""
+              width={181}
+              height={44}
               aria-hidden="true"
               className={cn(
                 "absolute inset-0 h-full w-full object-contain object-left transition-opacity duration-500 ease-in-out",
@@ -142,7 +146,7 @@ export function SiteHeader() {
             />
           </Link>
 
-          <nav className="hidden items-center gap-1 xl:flex">
+          <nav aria-label="Menu principal" className="hidden items-center gap-1 xl:flex">
             <div
               className="relative"
               onMouseEnter={openProductsMenu}
@@ -205,6 +209,8 @@ export function SiteHeader() {
                           <img
                             src={category.image}
                             alt=""
+                            width={640}
+                            height={480}
                             className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover/category:scale-105"
                           />
                         ) : (
@@ -341,6 +347,7 @@ export function SiteHeader() {
             >
               <Search className={cn("h-4 w-4", scrolled ? "text-white" : "text-primary")} />
               <input
+                aria-label="Buscar produtos"
                 autoFocus
                 type="search"
                 value={searchQuery}
@@ -378,6 +385,7 @@ export function SiteHeader() {
             mobileOpen ? "pointer-events-auto" : "pointer-events-none",
           )}
           aria-hidden={!mobileOpen}
+          inert={!mobileOpen ? true : undefined}
         >
           <div
             className={cn(
@@ -396,6 +404,8 @@ export function SiteHeader() {
               <img
                 src="/images/logo-arteno-header-site.svg"
                 alt="Casa & Jardim"
+                width={181}
+                height={56}
                 className="h-14 w-auto object-contain"
               />
               <button
@@ -415,6 +425,7 @@ export function SiteHeader() {
               >
                 <Search className="h-4 w-4 text-primary" />
                 <input
+                  aria-label="Buscar produtos no menu"
                   type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -424,7 +435,7 @@ export function SiteHeader() {
               </form>
             </div>
 
-            <nav className="flex-1 overflow-y-auto px-3 py-4">
+            <nav aria-label="Menu para dispositivos móveis" className="flex-1 overflow-y-auto px-3 py-4">
               <ul className="space-y-1">
                 <li>
                   <button
@@ -456,6 +467,8 @@ export function SiteHeader() {
                                 <img
                                   src={category.image}
                                   alt=""
+                                  width={160}
+                                  height={120}
                                   className="h-full w-full object-cover"
                                 />
                               )}

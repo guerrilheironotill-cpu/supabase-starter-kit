@@ -7,7 +7,7 @@ export const Route = createFileRoute("/robots.txt")({
     handlers: {
       GET: () => {
         const body = IS_STAGING
-          ? "User-agent: *\nDisallow: /\n"
+          ? `User-agent: *\nDisallow: /\n\nSitemap: ${SITE_URL}/sitemap.xml\n`
           : [
               "User-agent: *",
               "Allow: /",

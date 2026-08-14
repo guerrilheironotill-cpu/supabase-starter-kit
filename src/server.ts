@@ -50,6 +50,15 @@ function withNoStoreForHtml(response: Response): Response {
   if (!contentType.includes("text/html")) return response;
 
   const headers = noStoreHtmlHeaders(response.headers);
+  headers.set("strict-transport-security", "max-age=31536000; includeSubDomains");
+  headers.set("x-content-type-options", "nosniff");
+  headers.set("x-frame-options", "SAMEORIGIN");
+  headers.set("referrer-policy", "strict-origin-when-cross-origin");
+  headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()");
+  headers.set(
+    "content-security-policy",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss:; frame-src 'self' https:; media-src 'self' blob: https:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self' https://wa.me",
+  );
   if (process.env.APP_ENV === "staging") {
     headers.set("x-robots-tag", "noindex, nofollow, noarchive");
   }

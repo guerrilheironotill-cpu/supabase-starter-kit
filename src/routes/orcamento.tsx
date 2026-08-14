@@ -654,7 +654,7 @@ function StepProducts({
             <li key={item.id} className="flex gap-5 p-5">
               <div className="h-28 w-28 shrink-0 overflow-hidden bg-muted sm:h-32 sm:w-32">
                 {item.image && (
-                  <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+                  <img src={item.image} alt={item.name} width={320} height={320} className="h-full w-full object-cover" />
                 )}
               </div>
               <div className="flex min-w-0 flex-1 flex-col">

@@ -37,10 +37,15 @@ export function HeroSlider({ initialSlides }: { initialSlides: HeroSlide[] }) {
                 : "pointer-events-none z-0 opacity-0 scale-[1.03]",
             )}
             aria-hidden={i !== index}
+            inert={i !== index ? true : undefined}
           >
             <img
               src={s.image}
               alt={s.title}
+              width={1920}
+              height={1080}
+              fetchPriority={i === 0 ? "high" : "auto"}
+              loading={i === 0 ? "eager" : "lazy"}
               className={cn(
                 "absolute inset-0 h-full w-full object-cover transition-transform duration-[9000ms] ease-out",
                 i === index ? "scale-110" : "scale-100",

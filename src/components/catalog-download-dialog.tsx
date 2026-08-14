@@ -94,6 +94,7 @@ export function CatalogDownloadDialog({
             <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
               Nome <span className="text-destructive">*</span>
               <input
+                aria-label="Nome"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Seu nome completo"
@@ -104,6 +105,7 @@ export function CatalogDownloadDialog({
             <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
               Telefone <span className="text-destructive">*</span>
               <input
+                aria-label="E-mail"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="(00) 00000-0000"
@@ -114,6 +116,7 @@ export function CatalogDownloadDialog({
             <label className="flex flex-col gap-1 text-xs font-semibold text-primary sm:col-span-2">
               E-mail <span className="text-destructive">*</span>
               <input
+                aria-label="Telefone"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -134,6 +137,7 @@ export function CatalogDownloadDialog({
               ].map(([value, label]) => (
                 <label key={value} className="flex items-center gap-2 text-sm">
                   <input
+                    aria-label="Nome da empresa"
                     type="radio"
                     name="catalog-client-type"
                     checked={clientType === value}
@@ -149,6 +153,7 @@ export function CatalogDownloadDialog({
             <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
               Área profissional <span className="text-destructive">*</span>
               <select
+                aria-label="Perfil do cliente"
                 value={professionalType}
                 required
                 onChange={(e) => setProfessionalType(e.target.value as ProfessionalType)}
@@ -168,6 +173,7 @@ export function CatalogDownloadDialog({
             <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
               CNPJ <span className="text-destructive">*</span>
               <input
+                aria-label="Cidade"
                 value={cnpj}
                 onChange={(e) => setCnpj(maskCnpj(e.target.value))}
                 placeholder="00.000.000/0000-00"

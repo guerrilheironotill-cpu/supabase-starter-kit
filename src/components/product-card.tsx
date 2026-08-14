@@ -87,6 +87,8 @@ export function ProductCard({ product, priceFrom, index = 0, variant = "default"
               <img
                 src={previousImage}
                 alt=""
+                width={800}
+                height={800}
                 aria-hidden="true"
                 className={`absolute inset-0 h-full w-full object-cover product-card-image-out product-card-image-out--${imageTransition}`}
               />
@@ -95,6 +97,8 @@ export function ProductCard({ product, priceFrom, index = 0, variant = "default"
               key={`${imageIndex}-${imageTransition}`}
               src={img}
               alt={product.name}
+              width={800}
+              height={800}
               loading="lazy"
               className={`absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 product-card-image-in product-card-image-in--${imageTransition}`}
             />

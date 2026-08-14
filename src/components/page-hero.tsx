@@ -20,6 +20,8 @@ export function PageHero({ title, eyebrow, count, crumbs = [], image }: Props) {
     <section className="relative w-full px-4 sm:px-8 lg:px-[50px]">
       <div className="relative h-[38vh] min-h-[280px] w-full overflow-hidden rounded-3xl bg-primary">
         <img
+          width={1920}
+          height={720}
           src={bg}
           alt=""
           aria-hidden

@@ -259,6 +259,7 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
     <div
       className={cn("fixed inset-0 z-[60]", open ? "pointer-events-auto" : "pointer-events-none")}
       aria-hidden={!open}
+      inert={!open ? true : undefined}
     >
       <div
         className={cn(
@@ -279,7 +280,7 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
         <div className="flex items-center justify-between border-b border-border px-6 py-5">
           <div>
             <p className="text-xs uppercase tracking-widest text-muted-foreground">Orçamento</p>
-            <h2 className="font-display text-2xl">Fale conosco</h2>
+            <p className="font-display text-2xl">Fale conosco</p>
           </div>
           <button
             type="button"
@@ -303,6 +304,7 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
                 Nome <span className="text-destructive">*</span>
               </span>
               <input
+                aria-label="Nome"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -322,6 +324,7 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
                 Perfil do cliente <span className="text-destructive">*</span>
               </span>
               <select
+                aria-label="Perfil do cliente"
                 value={customerType}
                 onChange={(e) =>
                   setCustomerType(e.target.value as "final" | "professional" | "reseller")
@@ -341,6 +344,7 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
                   Nome da empresa
                 </span>
                 <input
+                  aria-label="Nome da empresa"
                   type="text"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
@@ -360,6 +364,7 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
                   Documento
                 </span>
                 <select
+                  aria-label="Tipo de documento"
                   value={professionalDocument}
                   onChange={(e) => setProfessionalDocument(e.target.value as "cpf" | "cnpj")}
                   className="mt-2 block w-full rounded-full border border-border bg-background px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary"
@@ -376,6 +381,7 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
                 {customerType !== "professional" && <span className="text-destructive">*</span>}
               </span>
               <input
+                aria-label={customerType === "final" || professionalDocument === "cpf" ? "CPF" : "CNPJ"}
                 type="text"
                 value={customerType === "final" || professionalDocument === "cpf" ? cpf : cnpj}
                 onChange={(e) =>
@@ -404,6 +410,7 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
                 Telefone <span className="text-destructive">*</span>
               </span>
               <input
+                aria-label="Telefone"
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(maskPhoneBR(e.target.value))}

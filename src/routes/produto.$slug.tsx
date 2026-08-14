@@ -38,7 +38,7 @@ export const Route = createFileRoute("/produto/$slug")({
     meta: [
       {
         title: loaderData
-          ? loaderData.product.meta_title || `${loaderData.product.name} — Arteno`
+          ? loaderData.product.meta_title || `${loaderData.product.name} | ${loaderData.product.category} — Arteno`
           : "Produto — Arteno",
       },
       {
@@ -46,45 +46,53 @@ export const Route = createFileRoute("/produto/$slug")({
         content:
           loaderData?.product.meta_description ||
           productDescriptionToText(loaderData?.product.description).slice(0, 160) ||
-          "Produto de design contemporâneo para casa e jardim.",
+          (loaderData
+            ? `Conheça ${loaderData.product.name}, da categoria ${loaderData.product.category} da Arteno. Consulte tamanhos, cores e acabamentos e solicite seu orçamento personalizado.`
+            : "Conheça os produtos artesanais da Arteno e solicite um orçamento personalizado."),
       },
       {
         property: "og:title",
         content: loaderData
-          ? loaderData.product.meta_title || `${loaderData.product.name} — Arteno`
+          ? loaderData.product.meta_title || `${loaderData.product.name} | ${loaderData.product.category} — Arteno`
           : "Produto — Arteno",
       },
       {
         property: "og:description",
         content:
           loaderData?.product.meta_description ||
-          productDescriptionToText(loaderData?.product.description).slice(0, 160),
+          productDescriptionToText(loaderData?.product.description).slice(0, 160) ||
+          (loaderData
+            ? `Conheça ${loaderData.product.name}, da categoria ${loaderData.product.category} da Arteno. Consulte tamanhos, cores e acabamentos e solicite seu orçamento personalizado.`
+            : "Produtos artesanais Arteno."),
       },
       {
         property: "og:image",
         content: loaderData?.product.images?.[0]
           ? absoluteUrl(loaderData.product.images[0])
-          : "",
+          : absoluteUrl("/images/og-arteno.jpg"),
       },
       { property: "og:type", content: "product" },
       { name: "twitter:card", content: "summary_large_image" },
       {
         name: "twitter:title",
         content: loaderData
-          ? loaderData.product.meta_title || `${loaderData.product.name} — Arteno`
+          ? loaderData.product.meta_title || `${loaderData.product.name} | ${loaderData.product.category} — Arteno`
           : "Produto — Arteno",
       },
       {
         name: "twitter:description",
         content:
           loaderData?.product.meta_description ||
-          productDescriptionToText(loaderData?.product.description).slice(0, 160),
+          productDescriptionToText(loaderData?.product.description).slice(0, 160) ||
+          (loaderData
+            ? `Conheça ${loaderData.product.name}, da categoria ${loaderData.product.category} da Arteno. Consulte tamanhos, cores e acabamentos.`
+            : "Produtos artesanais Arteno."),
       },
       {
         name: "twitter:image",
         content: loaderData?.product.images?.[0]
           ? absoluteUrl(loaderData.product.images[0])
-          : "",
+          : absoluteUrl("/images/og-arteno.jpg"),
       },
       ...(loaderData
         ? [{ property: "og:url", content: absoluteUrl(`/produto/${loaderData.product.slug}`) }]
@@ -259,6 +267,8 @@ function GalleryImage({
       <img
         src={src}
         alt={alt}
+        width={1200}
+        height={1200}
         loading={eager ? "eager" : "lazy"}
         className="h-full w-full object-cover"
       />
@@ -426,6 +436,9 @@ function ProductPage() {
                 </h2>
                 <div className="bg-white ring-1 ring-primary/10">
                   <table className="w-full text-left text-sm">
+                    <caption className="sr-only">
+                      Tamanhos, dimensões e disponibilidade de {product.name}
+                    </caption>
                     <thead className="border-b border-primary/10 text-xs font-semibold text-primary">
                       <tr>
                         <th className="px-4 py-3">Tam.</th>
@@ -528,6 +541,8 @@ function ProductPage() {
                 <img
                   src={images[lightboxIndex]}
                   alt={`${p.name} — imagem ${lightboxIndex + 1}`}
+                  width={1600}
+                  height={1200}
                   className="max-h-[72vh] max-w-full object-contain"
                 />
                 {images.length > 1 && (
@@ -570,7 +585,7 @@ function ProductPage() {
                         className={`h-16 w-16 shrink-0 overflow-hidden rounded-md border-2 bg-white transition ${index === lightboxIndex ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"}`}
                         aria-label={`Abrir imagem ${index + 1}`}
                       >
-                        <img src={url} alt="" className="h-full w-full object-cover" />
+                        <img src={url} alt="" width={160} height={160} className="h-full w-full object-cover" />
                       </button>
                     ))}
                   </div>

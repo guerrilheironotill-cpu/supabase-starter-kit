@@ -129,7 +129,7 @@ function AvailableAttributeSection({ kind, availableNames }: { kind: AttributeKi
                   >
                     <span className="relative flex h-[150px] w-[150px] max-w-full items-center justify-center overflow-hidden rounded-full transition duration-300 group-enabled:hover:scale-[1.03]">
                       {finish.image_url ? (
-                        <img src={finish.image_url} alt={finish.name} className="h-full w-full object-cover transition duration-500 group-enabled:hover:scale-105" loading="lazy" />
+                        <img src={finish.image_url} alt={finish.name} width={400} height={400} className="h-full w-full object-cover transition duration-500 group-enabled:hover:scale-105" loading="lazy" />
                       ) : (
                         <span className="px-3 text-xs font-medium text-primary/45">Imagem em breve</span>
                       )}
@@ -171,7 +171,7 @@ function AvailableAttributeSection({ kind, availableNames }: { kind: AttributeKi
                     />
                   </div>
                 ) : (
-                  <img src={images[mediaIndex]} alt={`${selected.name} — imagem ${mediaIndex + 1}`} className="max-h-[72vh] w-full object-contain" />
+                  <img src={images[mediaIndex]} alt={`${selected.name} — imagem ${mediaIndex + 1}`} width={1200} height={900} className="max-h-[72vh] w-full object-contain" />
                 )}
                 {mediaCount > 1 && (
                   <>
@@ -198,7 +198,7 @@ function AvailableAttributeSection({ kind, availableNames }: { kind: AttributeKi
                   <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
                     {images.map((url, index) => (
                       <button key={url} type="button" onClick={() => setMediaIndex(index)} className={`h-14 w-14 shrink-0 overflow-hidden rounded-md border-2 transition ${index === mediaIndex ? "border-[#2a2f2c]" : "border-transparent opacity-60 hover:opacity-100"}`} aria-label={`Abrir imagem ${index + 1}`}>
-                        <img src={url} alt="" className="h-full w-full object-cover" />
+                        <img src={url} alt="" width={240} height={180} className="h-full w-full object-cover" />
                       </button>
                     ))}
                     {video && (

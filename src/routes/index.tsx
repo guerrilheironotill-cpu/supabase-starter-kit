@@ -6,9 +6,11 @@ import { AdminEditBar } from "@/components/admin-edit-bar";
 import { CategoryShowcase } from "@/components/category-showcase";
 import { HomeFaq } from "@/components/home-faq";
 import { fetchHeroSlides } from "@/lib/hero-slides";
+import { absoluteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/")({
   loader: async () => ({ heroSlides: await fetchHeroSlides() }),
+  head: () => ({ links: [{ rel: "canonical", href: absoluteUrl("/") }] }),
   component: Index,
 });
 

@@ -31,7 +31,7 @@ export const Route = createFileRoute("/projetos-personalizados")({
       },
       {
         property: "og:image",
-        content: absoluteUrl("/images/projetos-personalizados/hero-projeto-personalizado.png"),
+        content: absoluteUrl("/images/projetos-personalizados/hero-projeto-personalizado.webp"),
       },
       { property: "og:url", content: absoluteUrl("/projetos-personalizados") },
     ],
@@ -74,7 +74,9 @@ function CustomProjectsPage() {
       <section className="px-4 sm:px-8 lg:px-[50px]">
         <div className="relative min-h-[72vh] overflow-hidden rounded-3xl bg-[#2a2f2c]">
           <img
-            src="/images/projetos-personalizados/hero-projeto-personalizado.png"
+            src="/images/projetos-personalizados/hero-projeto-personalizado.webp"
+            width={1774}
+            height={887}
             alt="Projeto sob medida com vasos, banco de concreto, madeira e estrutura metálica"
             className="absolute inset-0 h-full w-full object-cover"
             fetchPriority="high"
@@ -99,6 +101,7 @@ function CustomProjectsPage() {
             <a
               href={projectWhatsAppUrl}
               target="_blank"
+              aria-label="Conte sobre seu projeto pelo WhatsApp (abre em nova aba)"
               rel="noopener noreferrer"
               className="mt-8 inline-flex w-fit animate-fade-in items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#2a2f2c] transition hover:-translate-y-0.5 hover:shadow-xl"
               style={{ animationDelay: "260ms" }}
@@ -128,7 +131,9 @@ function CustomProjectsPage() {
       <section className="px-4 sm:px-8 lg:px-[50px]">
         <div className="relative min-h-[62vh] overflow-hidden rounded-3xl bg-neutral-100">
           <img
-            src="/images/projetos-personalizados/materiais-oficina.png"
+            src="/images/projetos-personalizados/materiais-oficina.webp"
+            width={1672}
+            height={941}
             alt="Processo artesanal combinando concreto, madeira e metal"
             loading="lazy"
             className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1600ms] hover:scale-[1.02]"
@@ -181,7 +186,9 @@ function CustomProjectsPage() {
         <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-center">
           <div className="overflow-hidden rounded-3xl">
             <img
-              src="/images/projetos-personalizados/colaboracao-arquitetos.png"
+              src="/images/projetos-personalizados/colaboracao-arquitetos.webp"
+              width={1713}
+              height={918}
               alt="Colaboração entre arquitetos, paisagistas e especialista em produção"
               loading="lazy"
               className="aspect-[16/10] h-full w-full object-cover transition-transform duration-[1600ms] hover:scale-[1.02]"
@@ -235,7 +242,9 @@ function CustomProjectsPage() {
       <section className="px-4 pb-20 sm:px-8 sm:pb-28 lg:px-[50px]">
         <div className="group relative min-h-[520px] overflow-hidden rounded-3xl bg-[#2a2f2c] text-white sm:min-h-[560px]">
           <img
-            src="/images/projetos-personalizados/cta-casa-vasos-v1.png"
+            src="/images/projetos-personalizados/cta-casa-vasos-v1.webp"
+            width={1774}
+            height={887}
             alt="Casa contemporânea com vasos de concreto em projeto paisagístico"
             loading="lazy"
             className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-[1800ms] ease-out group-hover:scale-[1.025]"
@@ -256,6 +265,7 @@ function CustomProjectsPage() {
             <a
               href={projectWhatsAppUrl}
               target="_blank"
+              aria-label="Solicitar projeto pelo WhatsApp (abre em nova aba)"
               rel="noopener noreferrer"
               className="mt-8 inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#2a2f2c] transition hover:-translate-y-0.5 hover:shadow-xl"
             >

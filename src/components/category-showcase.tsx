@@ -57,6 +57,8 @@ export function CategoryShowcase() {
                 >
                   {category.image ? (
                     <img
+                      width={900}
+                      height={675}
                       src={category.image}
                       alt=""
                       loading="lazy"

@@ -29,7 +29,7 @@ export function SeoLandingPage({ eyebrow, title, subtitle, intro, hero, gallery,
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">{eyebrow}</p>
             <h1 className="mt-5 font-display text-4xl leading-[1.04] sm:text-6xl">{title}</h1>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/80 sm:text-lg">{subtitle}</p>
-            <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="mt-8 inline-flex w-fit items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#2a2f2c] transition-colors hover:bg-white/90">
+            <a href={whatsapp} target="_blank" rel="noopener noreferrer" aria-label={`${ctaLabel} pelo WhatsApp (abre em nova aba)`} className="mt-8 inline-flex w-fit items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#2a2f2c] transition-colors hover:bg-white/90">
               {ctaLabel}<ArrowRight className="h-4 w-4" />
             </a>
           </div>
@@ -86,7 +86,7 @@ export function SeoLandingPage({ eyebrow, title, subtitle, intro, hero, gallery,
       <section className="px-4 py-20 sm:px-8 lg:px-[50px]">
         <div className="flex flex-col items-start justify-between gap-8 rounded-3xl bg-[#2a2f2c] px-6 py-12 text-white sm:px-12 lg:flex-row lg:items-end">
           <h2 className="max-w-3xl font-display text-4xl leading-tight sm:text-5xl">Vamos desenvolver uma solução para o seu projeto?</h2>
-          <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#2a2f2c]">{ctaLabel}<ArrowRight className="h-4 w-4" /></a>
+          <a href={whatsapp} target="_blank" rel="noopener noreferrer" aria-label={`${ctaLabel} pelo WhatsApp (abre em nova aba)`} className="inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#2a2f2c]">{ctaLabel}<ArrowRight className="h-4 w-4" /></a>
         </div>
       </section>
     </main>

@@ -31,18 +31,18 @@ export const Route = createFileRoute("/categoria/$slug")({
     meta: [
       {
         title: loaderData
-          ? `${loaderData.category} — Arteno`
+          ? `${loaderData.category} artesanais para projetos | Arteno`
           : "Categoria — Arteno",
       },
       {
         name: "description",
         content: loaderData
-          ? `Confira nossa seleção de ${loaderData.category.toLowerCase()} com design contemporâneo.`
+          ? `Conheça a seleção de ${loaderData.category.toLowerCase()} artesanais da Arteno, com design contemporâneo, opções de cores, acabamentos e tamanhos para seu projeto.`
           : "Categoria não encontrada.",
       },
       {
         property: "og:title",
-        content: loaderData ? `${loaderData.category} — Arteno` : "Categoria — Arteno",
+        content: loaderData ? `${loaderData.category} artesanais para projetos | Arteno` : "Categoria — Arteno",
       },
       ...(loaderData
         ? [{ property: "og:url", content: absoluteUrl(`/categoria/${categorySlug(loaderData.category)}`) }]

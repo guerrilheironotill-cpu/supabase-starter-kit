@@ -17,6 +17,7 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/vasos-para-empresas", changefreq: "monthly", priority: "0.8" },
           { path: "/mobiliario-urbano", changefreq: "monthly", priority: "0.8" },
           { path: "/projetos-personalizados", changefreq: "monthly", priority: "0.8" },
+          { path: "/politica-de-cookies", changefreq: "yearly", priority: "0.2" },
         ];
 
         try {

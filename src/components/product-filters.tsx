@@ -122,9 +122,9 @@ export function ProductFilters({ products, value, onChange }: Props) {
         {hasDimensions && (
           <div className="min-w-0 flex-1">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-primary/70">
+              <p className="text-xs font-semibold uppercase tracking-widest text-primary/70">
                 Tamanho
-              </h3>
+              </p>
               <div className="inline-flex rounded-full border border-primary/20 bg-white p-0.5 text-xs">
                 <button
                   type="button"
@@ -186,10 +186,11 @@ export function ProductFilters({ products, value, onChange }: Props) {
 
         {priceMax > 0 && (
           <div className="w-full sm:w-72">
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary/70">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary/70">
               Preço até
-            </h3>
+            </p>
             <input
+              aria-label="Preço máximo"
               type="range"
               min={priceMin}
               max={priceMax}

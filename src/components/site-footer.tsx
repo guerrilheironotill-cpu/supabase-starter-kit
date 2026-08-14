@@ -46,12 +46,14 @@ export function SiteFooter() {
           <div className="flex flex-col items-center justify-between gap-8 lg:flex-row">
             <Link to="/" className="flex items-center">
               <img
+                width={181}
+                height={44}
                 src="/images/logo-header-scroll.svg"
                 alt="Arteno"
                 className="h-11 w-[181px] object-contain"
               />
             </Link>
-            <nav className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+            <nav aria-label="Navegação do rodapé" className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
               {LINKS.map((l) =>
                 l.downloadIcon ? (
                   <button
@@ -79,7 +81,7 @@ export function SiteFooter() {
               href="https://www.instagram.com/"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Instagram"
+              aria-label="Instagram da Arteno (abre em nova aba)"
               className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-secondary text-secondary transition-colors hover:bg-secondary hover:text-primary"
             >
               <Instagram className="h-5 w-5" />
@@ -108,14 +110,9 @@ export function SiteFooter() {
             </div>
             <p className="inline-flex items-center gap-1.5">
               <span>Desenvolvido por:</span>
-              <a
-                href="https://studiovogel.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-secondary hover:underline"
-              >
+              <span className="font-semibold text-secondary">
                 StudioVogel
-              </a>
+              </span>
             </p>
           </div>
         </div>
@@ -125,7 +122,7 @@ export function SiteFooter() {
         href={adminWhatsAppUrl}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label="Solicitar orçamento pelo WhatsApp"
+        aria-label="Solicitar orçamento pelo WhatsApp (abre em nova aba)"
         className="fixed bottom-5 right-5 z-40 hidden h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform duration-300 hover:-translate-y-0.5 hover:scale-105 lg:inline-flex"
       >
         <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor" aria-hidden="true">
