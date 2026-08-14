@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { ArrowDown, ArrowUp, Eye, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Eye, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadOptimizedImage } from "@/lib/vps-media";
@@ -790,6 +790,20 @@ function SizesTab({ rows, setRows }: { rows: SizeRow[]; setRows: (r: SizeRow[]) 
   function update(i: number, patch: Partial<SizeRow>) {
     setRows(rows.map((r, k) => (k === i ? { ...r, ...patch } : r)));
   }
+
+  function duplicate(i: number) {
+    const source = rows[i];
+    const copy: SizeRow = {
+      ...source,
+      id: undefined,
+      label: source.label.trim() ? `${source.label.trim()} cópia` : "",
+      sort_order: i + 1,
+    };
+    const nextRows = [...rows];
+    nextRows.splice(i + 1, 0, copy);
+    setRows(nextRows.map((row, index) => ({ ...row, sort_order: index })));
+  }
+
   return (
     <div className="space-y-3">
       {rows.map((r, i) => (
@@ -798,14 +812,26 @@ function SizesTab({ rows, setRows }: { rows: SizeRow[]; setRows: (r: SizeRow[]) 
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Tamanho {i + 1}
             </p>
-            <button
-              type="button"
-              onClick={() => setRows(rows.filter((_, k) => k !== i))}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-destructive hover:bg-muted"
-              aria-label={`Excluir tamanho ${i + 1}`}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => duplicate(i)}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground hover:bg-muted"
+                aria-label={`Duplicar tamanho ${i + 1}`}
+                title="Duplicar tamanho"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                Duplicar
+              </button>
+              <button
+                type="button"
+                onClick={() => setRows(rows.filter((_, k) => k !== i))}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-destructive hover:bg-muted"
+                aria-label={`Excluir tamanho ${i + 1}`}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-4">
             <Field label="Tamanho *">
