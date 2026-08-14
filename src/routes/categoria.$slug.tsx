@@ -77,6 +77,8 @@ export const Route = createFileRoute("/categoria/$slug")({
 
 function CategoryPage() {
   const { category, coverImage } = Route.useLoaderData();
+  const categoryPath = categorySlug(category);
+  const showFilters = categoryPath !== "mesas" && categoryPath !== "bancos";
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
   const { data: products = [], isLoading } = useQuery({
@@ -86,8 +88,8 @@ function CategoryPage() {
   });
 
   const filtered = useMemo(
-    () => applyFilters(products, filters),
-    [products, filters],
+    () => (showFilters ? applyFilters(products, filters) : products),
+    [products, filters, showFilters],
   );
 
   const heroImage = coverImage ?? products[0]?.images?.[0];
@@ -107,11 +109,13 @@ function CategoryPage() {
       />
       <section className="bg-white py-12 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-8">
-          <ProductFilters
-            products={products}
-            value={filters}
-            onChange={setFilters}
-          />
+          {showFilters && (
+            <ProductFilters
+              products={products}
+              value={filters}
+              onChange={setFilters}
+            />
+          )}
           {isLoading ? (
             <div className="mt-10 grid grid-cols-2 gap-5 sm:gap-6 lg:grid-cols-3">
               {Array.from({ length: 8 }).map((_, i) => (

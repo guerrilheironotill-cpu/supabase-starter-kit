@@ -1,9 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 
-const DEFAULT_BG =
-  "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=1920&q=80";
-
 export type Crumb = { label: string; to?: string };
 
 type Props = {
@@ -15,18 +12,19 @@ type Props = {
 };
 
 export function PageHero({ title, eyebrow, count, crumbs = [], image }: Props) {
-  const bg = image || DEFAULT_BG;
   return (
     <section className="relative w-full px-4 sm:px-8 lg:px-[50px]">
       <div className="relative h-[38vh] min-h-[280px] w-full overflow-hidden rounded-3xl bg-primary">
-        <img
-          width={1920}
-          height={720}
-          src={bg}
-          alt=""
-          aria-hidden
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        {image && (
+          <img
+            width={1920}
+            height={720}
+            src={image}
+            alt=""
+            aria-hidden
+            className="absolute inset-0 h-full w-full object-cover animate-fade-in"
+          />
+        )}
         <div className="absolute inset-0 bg-black/45" />
 
         <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 text-center text-white sm:px-8">
