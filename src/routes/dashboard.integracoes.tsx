@@ -8,7 +8,6 @@ import {
   BarChart3,
   Facebook,
   ShoppingBag,
-  Rss,
   Search,
 } from "lucide-react";
 
@@ -30,7 +29,6 @@ function DashboardIntegrationsPage() {
   const [ga4, setGa4] = useState("");
   const [metaPixel, setMetaPixel] = useState("");
   const [fbCatalogId, setFbCatalogId] = useState("");
-  const [merchantId, setMerchantId] = useState("");
   const [integSaved, setIntegSaved] = useState(false);
 
   useEffect(() => {
@@ -41,7 +39,6 @@ function DashboardIntegrationsPage() {
         setGa4(p.ga4 ?? "");
         setMetaPixel(p.metaPixel ?? "");
         setFbCatalogId(p.fbCatalogId ?? "");
-        setMerchantId(p.merchantId ?? "");
       }
     } catch {
       /* ignore */
@@ -68,7 +65,7 @@ function DashboardIntegrationsPage() {
     e.preventDefault();
     localStorage.setItem(
       "integrations",
-      JSON.stringify({ ga4, metaPixel, fbCatalogId, merchantId }),
+      JSON.stringify({ ga4, metaPixel, fbCatalogId }),
     );
     setIntegSaved(true);
     setTimeout(() => setIntegSaved(false), 2500);
@@ -185,23 +182,6 @@ function DashboardIntegrationsPage() {
             "Em Configurações do catálogo, copie o ID do catálogo (número longo).",
             "Depois de colar aqui, avise para eu ativar o feed em /feeds/facebook-catalog.xml.",
             "No Commerce Manager, vá em Fontes de dados → Adicionar itens → Feed de dados → Feed programado e cole a URL do feed.",
-          ]}
-        />
-
-        <IntegrationField
-          icon={<Rss className="h-4 w-4" />}
-          label="Google Merchant Center — Merchant ID"
-          placeholder="123456789"
-          value={merchantId}
-          onChange={setMerchantId}
-          validate={(v) => /^\d{6,12}$/.test(v.trim())}
-          hint="Formato esperado: 6 a 12 dígitos numéricos."
-          steps={[
-            "Acesse merchants.google.com e faça login com a conta do site.",
-            "O Merchant ID aparece no canto superior direito, ao lado do nome da conta.",
-            "Copie o número e cole ao lado.",
-            "Depois de colar, avise para eu ativar o feed em /feeds/google-merchant.xml.",
-            "No Merchant Center, vá em Produtos → Feeds → + → Feed programado e cole a URL do feed.",
           ]}
         />
 

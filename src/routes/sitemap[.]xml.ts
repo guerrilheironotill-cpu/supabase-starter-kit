@@ -6,6 +6,13 @@ import { SITE_URL } from "@/lib/site-config";
 
 type Entry = { path: string; changefreq?: string; priority?: string; lastmod?: string };
 
+function isIndexableProduct(product: { slug: string; name: string; category: string }) {
+  return (
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(product.slug) &&
+    product.name.trim().toLowerCase() !== "modelo sem nome"
+  );
+}
+
 export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
@@ -27,19 +34,29 @@ export const Route = createFileRoute("/sitemap.xml")({
             const supabase = createClient(url, key, {
               auth: { persistSession: false, autoRefreshToken: false },
             });
-            const { data: products } = await supabase
+            const { data: products, error: productsError } = await supabase
               .from("products")
-              .select("slug, category")
+              .select("slug, name, category, created_at")
               .eq("active", true);
+            if (productsError) throw productsError;
             const cats = new Set<string>();
             for (const p of products ?? []) {
-              const row = p as { slug: string; category: string };
+              const row = p as {
+                slug: string;
+                name: string;
+                category: string;
+                created_at: string | null;
+              };
+              if (!isIndexableProduct(row)) continue;
               entries.push({
                 path: `/produto/${row.slug}`,
                 changefreq: "monthly",
                 priority: "0.7",
+                lastmod: row.created_at?.slice(0, 10),
               });
-              cats.add(row.category);
+              if (row.category.trim().toLowerCase() !== "sem categoria") {
+                cats.add(row.category);
+              }
             }
             for (const c of cats) {
               entries.push({
@@ -49,11 +66,12 @@ export const Route = createFileRoute("/sitemap.xml")({
               });
             }
           }
-        } catch {
-          // ignore — static entries still serve
+        } catch (error) {
+          console.error("[sitemap] Failed to load catalog entries", error);
         }
 
-        const urls = entries
+        const uniqueEntries = Array.from(new Map(entries.map((entry) => [entry.path, entry])).values());
+        const urls = uniqueEntries
           .map((e) =>
             [
               `  <url>`,
@@ -73,7 +91,7 @@ export const Route = createFileRoute("/sitemap.xml")({
         return new Response(xml, {
           headers: {
             "Content-Type": "application/xml",
-            "Cache-Control": "public, max-age=3600",
+            "Cache-Control": "public, max-age=3600, s-maxage=3600",
           },
         });
       },

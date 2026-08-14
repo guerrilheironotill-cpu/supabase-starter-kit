@@ -30,7 +30,6 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
-import { Route as FeedsGoogleMerchantDotxmlRouteImport } from './routes/feeds/google-merchant[.]xml'
 import { Route as DashboardSeoRouteImport } from './routes/dashboard.seo'
 import { Route as DashboardProdutosRouteImport } from './routes/dashboard.produtos'
 import { Route as DashboardPerfilRouteImport } from './routes/dashboard.perfil'
@@ -55,9 +54,7 @@ import { Route as ApiStorageUsageRouteImport } from './routes/api/storage-usage'
 import { Route as ApiServerStorageRouteImport } from './routes/api/server-storage'
 import { Route as ApiQuotesRouteImport } from './routes/api/quotes'
 import { Route as ApiProductImageSourcesRouteImport } from './routes/api/product-image-sources'
-import { Route as ApiImportProductImagesRouteImport } from './routes/api/import-product-images'
 import { Route as ApiHealthEnvRouteImport } from './routes/api/health-env'
-import { Route as ApiCleanupExternalImagesRouteImport } from './routes/api/cleanup-external-images'
 import { Route as ApiAdminLeadsBulkRouteImport } from './routes/api/admin-leads-bulk'
 import { Route as ApiAdminLeadsRouteImport } from './routes/api/admin-leads'
 import { Route as DashboardPaginasIndexRouteImport } from './routes/dashboard.paginas.index'
@@ -173,12 +170,6 @@ const ProdutoSlugRoute = ProdutoSlugRouteImport.update({
   path: '/produto/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FeedsGoogleMerchantDotxmlRoute =
-  FeedsGoogleMerchantDotxmlRouteImport.update({
-    id: '/feeds/google-merchant.xml',
-    path: '/feeds/google-merchant.xml',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const DashboardSeoRoute = DashboardSeoRouteImport.update({
   id: '/seo',
   path: '/seo',
@@ -300,22 +291,11 @@ const ApiProductImageSourcesRoute = ApiProductImageSourcesRouteImport.update({
   path: '/api/product-image-sources',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiImportProductImagesRoute = ApiImportProductImagesRouteImport.update({
-  id: '/api/import-product-images',
-  path: '/api/import-product-images',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiHealthEnvRoute = ApiHealthEnvRouteImport.update({
   id: '/api/health-env',
   path: '/api/health-env',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiCleanupExternalImagesRoute =
-  ApiCleanupExternalImagesRouteImport.update({
-    id: '/api/cleanup-external-images',
-    path: '/api/cleanup-external-images',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiAdminLeadsBulkRoute = ApiAdminLeadsBulkRouteImport.update({
   id: '/api/admin-leads-bulk',
   path: '/api/admin-leads-bulk',
@@ -393,9 +373,7 @@ export interface FileRoutesByFullPath {
   '/api': typeof Api_rootRoute
   '/api/admin-leads': typeof ApiAdminLeadsRoute
   '/api/admin-leads-bulk': typeof ApiAdminLeadsBulkRoute
-  '/api/cleanup-external-images': typeof ApiCleanupExternalImagesRoute
   '/api/health-env': typeof ApiHealthEnvRoute
-  '/api/import-product-images': typeof ApiImportProductImagesRoute
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
   '/api/quotes': typeof ApiQuotesRoute
   '/api/server-storage': typeof ApiServerStorageRoute
@@ -420,7 +398,6 @@ export interface FileRoutesByFullPath {
   '/dashboard/perfil': typeof DashboardPerfilRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
-  '/feeds/google-merchant.xml': typeof FeedsGoogleMerchantDotxmlRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
@@ -453,9 +430,7 @@ export interface FileRoutesByTo {
   '/api': typeof Api_rootRoute
   '/api/admin-leads': typeof ApiAdminLeadsRoute
   '/api/admin-leads-bulk': typeof ApiAdminLeadsBulkRoute
-  '/api/cleanup-external-images': typeof ApiCleanupExternalImagesRoute
   '/api/health-env': typeof ApiHealthEnvRoute
-  '/api/import-product-images': typeof ApiImportProductImagesRoute
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
   '/api/quotes': typeof ApiQuotesRoute
   '/api/server-storage': typeof ApiServerStorageRoute
@@ -479,7 +454,6 @@ export interface FileRoutesByTo {
   '/dashboard/perfil': typeof DashboardPerfilRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
-  '/feeds/google-merchant.xml': typeof FeedsGoogleMerchantDotxmlRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
@@ -514,9 +488,7 @@ export interface FileRoutesById {
   '/api/__root': typeof Api_rootRoute
   '/api/admin-leads': typeof ApiAdminLeadsRoute
   '/api/admin-leads-bulk': typeof ApiAdminLeadsBulkRoute
-  '/api/cleanup-external-images': typeof ApiCleanupExternalImagesRoute
   '/api/health-env': typeof ApiHealthEnvRoute
-  '/api/import-product-images': typeof ApiImportProductImagesRoute
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
   '/api/quotes': typeof ApiQuotesRoute
   '/api/server-storage': typeof ApiServerStorageRoute
@@ -541,7 +513,6 @@ export interface FileRoutesById {
   '/dashboard/perfil': typeof DashboardPerfilRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
-  '/feeds/google-merchant.xml': typeof FeedsGoogleMerchantDotxmlRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
@@ -577,9 +548,7 @@ export interface FileRouteTypes {
     | '/api'
     | '/api/admin-leads'
     | '/api/admin-leads-bulk'
-    | '/api/cleanup-external-images'
     | '/api/health-env'
-    | '/api/import-product-images'
     | '/api/product-image-sources'
     | '/api/quotes'
     | '/api/server-storage'
@@ -604,7 +573,6 @@ export interface FileRouteTypes {
     | '/dashboard/perfil'
     | '/dashboard/produtos'
     | '/dashboard/seo'
-    | '/feeds/google-merchant.xml'
     | '/produto/$slug'
     | '/dashboard/'
     | '/api/gsc/overview'
@@ -637,9 +605,7 @@ export interface FileRouteTypes {
     | '/api'
     | '/api/admin-leads'
     | '/api/admin-leads-bulk'
-    | '/api/cleanup-external-images'
     | '/api/health-env'
-    | '/api/import-product-images'
     | '/api/product-image-sources'
     | '/api/quotes'
     | '/api/server-storage'
@@ -663,7 +629,6 @@ export interface FileRouteTypes {
     | '/dashboard/perfil'
     | '/dashboard/produtos'
     | '/dashboard/seo'
-    | '/feeds/google-merchant.xml'
     | '/produto/$slug'
     | '/dashboard'
     | '/api/gsc/overview'
@@ -697,9 +662,7 @@ export interface FileRouteTypes {
     | '/api/__root'
     | '/api/admin-leads'
     | '/api/admin-leads-bulk'
-    | '/api/cleanup-external-images'
     | '/api/health-env'
-    | '/api/import-product-images'
     | '/api/product-image-sources'
     | '/api/quotes'
     | '/api/server-storage'
@@ -724,7 +687,6 @@ export interface FileRouteTypes {
     | '/dashboard/perfil'
     | '/dashboard/produtos'
     | '/dashboard/seo'
-    | '/feeds/google-merchant.xml'
     | '/produto/$slug'
     | '/dashboard/'
     | '/api/gsc/overview'
@@ -759,16 +721,13 @@ export interface RootRouteChildren {
   Api_rootRoute: typeof Api_rootRoute
   ApiAdminLeadsRoute: typeof ApiAdminLeadsRoute
   ApiAdminLeadsBulkRoute: typeof ApiAdminLeadsBulkRoute
-  ApiCleanupExternalImagesRoute: typeof ApiCleanupExternalImagesRoute
   ApiHealthEnvRoute: typeof ApiHealthEnvRoute
-  ApiImportProductImagesRoute: typeof ApiImportProductImagesRoute
   ApiProductImageSourcesRoute: typeof ApiProductImageSourcesRoute
   ApiQuotesRoute: typeof ApiQuotesRoute
   ApiServerStorageRoute: typeof ApiServerStorageRoute
   ApiStorageUsageRoute: typeof ApiStorageUsageRoute
   ApiUploadMediaRoute: typeof ApiUploadMediaRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
-  FeedsGoogleMerchantDotxmlRoute: typeof FeedsGoogleMerchantDotxmlRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
   ApiGscOverviewRoute: typeof ApiGscOverviewRoute
   ApiOrdersReconcilePersonRoute: typeof ApiOrdersReconcilePersonRoute
@@ -921,13 +880,6 @@ declare module '@tanstack/react-router' {
       path: '/produto/$slug'
       fullPath: '/produto/$slug'
       preLoaderRoute: typeof ProdutoSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/feeds/google-merchant.xml': {
-      id: '/feeds/google-merchant.xml'
-      path: '/feeds/google-merchant.xml'
-      fullPath: '/feeds/google-merchant.xml'
-      preLoaderRoute: typeof FeedsGoogleMerchantDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/seo': {
@@ -1098,25 +1050,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiProductImageSourcesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/import-product-images': {
-      id: '/api/import-product-images'
-      path: '/api/import-product-images'
-      fullPath: '/api/import-product-images'
-      preLoaderRoute: typeof ApiImportProductImagesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/health-env': {
       id: '/api/health-env'
       path: '/api/health-env'
       fullPath: '/api/health-env'
       preLoaderRoute: typeof ApiHealthEnvRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/cleanup-external-images': {
-      id: '/api/cleanup-external-images'
-      path: '/api/cleanup-external-images'
-      fullPath: '/api/cleanup-external-images'
-      preLoaderRoute: typeof ApiCleanupExternalImagesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin-leads-bulk': {
@@ -1293,16 +1231,13 @@ const rootRouteChildren: RootRouteChildren = {
   Api_rootRoute: Api_rootRoute,
   ApiAdminLeadsRoute: ApiAdminLeadsRoute,
   ApiAdminLeadsBulkRoute: ApiAdminLeadsBulkRoute,
-  ApiCleanupExternalImagesRoute: ApiCleanupExternalImagesRoute,
   ApiHealthEnvRoute: ApiHealthEnvRoute,
-  ApiImportProductImagesRoute: ApiImportProductImagesRoute,
   ApiProductImageSourcesRoute: ApiProductImageSourcesRoute,
   ApiQuotesRoute: ApiQuotesRoute,
   ApiServerStorageRoute: ApiServerStorageRoute,
   ApiStorageUsageRoute: ApiStorageUsageRoute,
   ApiUploadMediaRoute: ApiUploadMediaRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
-  FeedsGoogleMerchantDotxmlRoute: FeedsGoogleMerchantDotxmlRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
   ApiGscOverviewRoute: ApiGscOverviewRoute,
   ApiOrdersReconcilePersonRoute: ApiOrdersReconcilePersonRoute,

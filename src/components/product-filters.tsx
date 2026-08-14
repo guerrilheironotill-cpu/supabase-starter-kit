@@ -8,7 +8,6 @@ export type DimensionAxis = "altura" | "largura";
 export type FilterState = {
   axis: DimensionAxis;
   ranges: string[]; // range ids from RANGES
-  maxPrice: number | null;
 };
 
 type Range = { id: string; label: string; min: number; max: number };
@@ -27,7 +26,6 @@ const RANGES: Range[] = [
 export const DEFAULT_FILTERS: FilterState = {
   axis: "altura",
   ranges: [],
-  maxPrice: null,
 };
 
 /**
@@ -63,17 +61,12 @@ type Props = {
 };
 
 export function ProductFilters({ products, value, onChange }: Props) {
-  const { availableRanges, priceMin, priceMax, hasDimensions } = useMemo(() => {
-    let min = Infinity;
-    let max = 0;
+  const { availableRanges, hasDimensions } = useMemo(() => {
     const availA = new Set<string>();
     const availL = new Set<string>();
     let hasDim = false;
     for (const p of products) {
       for (const s of p.product_sizes ?? []) {
-        const price = s.sale_price ?? s.base_price;
-        if (price < min) min = price;
-        if (price > max) max = price;
         const parsed = parseSize(s.name);
         if (!parsed) continue;
         hasDim = true;
@@ -85,14 +78,11 @@ export function ProductFilters({ products, value, onChange }: Props) {
     }
     return {
       availableRanges: value.axis === "altura" ? availA : availL,
-      priceMin: Number.isFinite(min) ? Math.floor(min) : 0,
-      priceMax: Math.ceil(max) || 1000,
       hasDimensions: hasDim,
     };
   }, [products, value.axis]);
 
-  const currentMax = value.maxPrice ?? priceMax;
-  const hasFilters = value.ranges.length > 0 || value.maxPrice !== null;
+  const hasFilters = value.ranges.length > 0;
 
   function toggleRange(id: string) {
     const next = value.ranges.includes(id)
@@ -106,15 +96,7 @@ export function ProductFilters({ products, value, onChange }: Props) {
     onChange({ ...value, axis, ranges: [] });
   }
 
-  function fmt(n: number) {
-    return n.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      maximumFractionDigits: 0,
-    });
-  }
-
-  if (!hasDimensions && priceMax === 0) return null;
+  if (!hasDimensions) return null;
 
   return (
     <div className="rounded-2xl border border-primary/10 bg-white/60 p-5 shadow-sm backdrop-blur-sm">
@@ -184,36 +166,10 @@ export function ProductFilters({ products, value, onChange }: Props) {
           </div>
         )}
 
-        {priceMax > 0 && (
-          <div className="w-full sm:w-72">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary/70">
-              Preço até
-            </p>
-            <input
-              aria-label="Preço máximo"
-              type="range"
-              min={priceMin}
-              max={priceMax}
-              step={Math.max(50, Math.round((priceMax - priceMin) / 40))}
-              value={currentMax}
-              onChange={(e) =>
-                onChange({ ...value, maxPrice: Number(e.target.value) })
-              }
-              className="w-full accent-primary"
-            />
-            <div className="mt-1 flex justify-between text-xs text-primary/70">
-              <span>{fmt(priceMin)}</span>
-              <span className="font-semibold text-primary">
-                {fmt(currentMax)}
-              </span>
-            </div>
-          </div>
-        )}
-
         {hasFilters && (
           <button
             type="button"
-            onClick={() => onChange({ ...value, ranges: [], maxPrice: null })}
+            onClick={() => onChange({ ...value, ranges: [] })}
             className="inline-flex items-center gap-1 self-end rounded-full border border-primary/20 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/5"
           >
             <X className="h-3 w-3" />
@@ -240,18 +196,6 @@ export function applyFilters(
       });
       if (!has) return false;
     }
-    if (filters.maxPrice !== null) {
-      const hasFit = sizes.some(
-        (s) => (s.sale_price ?? s.base_price) <= filters.maxPrice!,
-      );
-      if (!hasFit) return false;
-    }
     return true;
   });
-}
-
-export function priceFromOf(p: ProductWithSizes): number | null {
-  const sizes = p.product_sizes ?? [];
-  if (sizes.length === 0) return null;
-  return Math.min(...sizes.map((s) => s.sale_price ?? s.base_price));
 }

@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { canonicalHostRedirectFor, legacyRedirectFor } from "./lib/legacy-redirects";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -57,7 +58,7 @@ function withNoStoreForHtml(response: Response): Response {
   headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()");
   headers.set(
     "content-security-policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss:; frame-src 'self' https:; media-src 'self' blob: https:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self' https://wa.me",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss:; frame-src 'self' https:; media-src 'self' blob: https:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self' https://wa.me",
   );
   if (process.env.APP_ENV === "staging") {
     headers.set("x-robots-tag", "noindex, nofollow, noarchive");
@@ -82,6 +83,9 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const requestUrl = new URL(request.url);
+      const redirect = canonicalHostRedirectFor(requestUrl) ?? legacyRedirectFor(requestUrl);
+      if (redirect) return Response.redirect(redirect, 301);
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return withNoStoreForHtml(await normalizeCatastrophicSsrResponse(response));

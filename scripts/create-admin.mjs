@@ -10,8 +10,13 @@ if (!url || !serviceKey) {
   process.exit(1);
 }
 
-const EMAIL = "contato@arteno.com.br";
-const PASSWORD = "123mudar";
+const EMAIL = process.env.ADMIN_EMAIL;
+const PASSWORD = process.env.ADMIN_PASSWORD;
+
+if (!EMAIL || !PASSWORD || PASSWORD.length < 12) {
+  console.error("Set ADMIN_EMAIL and an ADMIN_PASSWORD with at least 12 characters.");
+  process.exit(1);
+}
 
 const admin = createClient(url, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },

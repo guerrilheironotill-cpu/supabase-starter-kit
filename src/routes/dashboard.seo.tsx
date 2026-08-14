@@ -212,26 +212,7 @@ function DashboardSeoPage() {
             ]}
           />
           <GuideBlock
-            title="4. Catálogo do Facebook (Commerce Manager)"
-            steps={[
-              "Em business.facebook.com → Gerenciador de Comércio, reutilize o catálogo do site atual ou crie um novo (tipo E-commerce).",
-              "Copie o Catalog ID em Configurações do catálogo e cole em Dashboard → Configurações → Integrações.",
-              "Avise para eu publicar o feed em /feeds/facebook-catalog.xml.",
-              "No Commerce Manager: Fontes de dados → Adicionar itens → Feed de dados → Feed programado, cole a URL do feed e defina frequência diária.",
-            ]}
-          />
-          <GuideBlock
-            title="5. Google Merchant Center (Shopping)"
-            steps={[
-              "Acesse merchants.google.com e reutilize a conta do site atual (ou crie uma nova).",
-              "Preencha informações da empresa, frete e impostos conforme já configurados hoje.",
-              "Copie o Merchant ID (canto superior direito) e cole em Dashboard → Configurações → Integrações.",
-              "Avise para eu publicar o feed em /feeds/google-merchant.xml.",
-              "No Merchant Center: Produtos → Feeds → + → Feed programado, cole a URL e defina frequência diária.",
-            ]}
-          />
-          <GuideBlock
-            title="6. Redirecionamentos do site antigo (WordPress → novo)"
+            title="4. Redirecionamentos do site antigo (WordPress → novo)"
             steps={[
               "Liste as URLs mais acessadas do site atual (Search Console → Desempenho, exportar top 100).",
               "Me envie a lista com a URL equivalente aqui — configuro os redirects 301 antes do go-live.",
@@ -239,10 +220,10 @@ function DashboardSeoPage() {
             ]}
           />
           <GuideBlock
-            title="7. Go-live (troca de DNS)"
+            title="5. Go-live no VPS"
             steps={[
-              "Quando estivermos prontos, publique o projeto na Lovable e configure o domínio custom.",
-              "Atualize o DNS no seu registrador (Registro.br ou outro) apontando para os registros da Lovable.",
+              "Publique a versão de produção no VPS e aponte o virtual host principal para a aplicação.",
+              "Mantenha um backup do WordPress e da configuração anterior para retorno rápido.",
               "Após propagar, reenvie o sitemap no Search Console e re-verifique o Pixel em Events Manager → Testar eventos.",
             ]}
           />

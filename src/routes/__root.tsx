@@ -19,6 +19,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { useApplySiteSeo } from "../lib/site-seo-store";
 import { absoluteUrl, IS_STAGING, SITE_NAME, SITE_URL } from "../lib/site-config";
 import { CookieConsentBanner } from "../components/cookie-consent-banner";
+import { AnalyticsLoader } from "../components/analytics-loader";
 
 function NotFoundComponent() {
   return (
@@ -85,18 +86,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Arteno - Vasos de concreto e mobiliário estilo industrial" },
+      { title: "Vasos de concreto, jardineiras e mobiliário | Arteno" },
       {
         name: "description",
-        content: "Peças artesanais em concreto e mobiliário estilo industrial com design autoral.",
+        content: "Vasos, jardineiras e mobiliário artesanal em concreto, prontos ou sob medida. Produção local em Florianópolis para residências e empresas.",
       },
       {
         property: "og:title",
-        content: "Arteno - Vasos de concreto e mobiliário estilo industrial",
+        content: "Vasos de concreto, jardineiras e mobiliário | Arteno",
       },
       {
         property: "og:description",
-        content: "Peças artesanais em concreto e mobiliário estilo industrial com design autoral.",
+        content: "Vasos, jardineiras e mobiliário artesanal em concreto, prontos ou sob medida. Produção local em Florianópolis.",
       },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "Arteno" },
@@ -108,6 +109,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:image:alt", content: "Arteno Vaso & Decor" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: absoluteUrl("/images/og-arteno.jpg") },
+      { name: "facebook-domain-verification", content: "14y7rwuqviyl32ykl5nlgal8nu9pzo" },
       ...(IS_STAGING ? [{ name: "robots", content: "noindex, nofollow, noarchive" }] : []),
     ],
     links: [
@@ -217,6 +219,7 @@ function RootComponent() {
         {!isDashboard && <SiteFooter />}
       </div>
       {!isDashboard && <CookieConsentBanner />}
+      {!isDashboard && <AnalyticsLoader />}
       <Toaster position="bottom-right" richColors closeButton />
     </QueryClientProvider>
   );
