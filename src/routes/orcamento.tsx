@@ -300,6 +300,7 @@ function OrcamentoPage() {
       price: i.unitPrice ?? 0,
       size_id: null,
       size_name: i.sizeLabel ?? null,
+      dimensions: i.dimensions ?? null,
       finish: i.finish ?? null,
       color: i.color ?? null,
       product_url: i.slug ? absoluteUrl(`/produto/${i.slug}`) : null,

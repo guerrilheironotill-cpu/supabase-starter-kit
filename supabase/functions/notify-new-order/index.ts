@@ -19,6 +19,7 @@ type QuoteItem = {
   quantity?: number;
   price?: number;
   size_name?: string | null;
+  dimensions?: string | null;
   finish?: string | null;
   color?: string | null;
   product_url?: string | null;
@@ -37,6 +38,24 @@ const money = (value: unknown) =>
     style: "currency",
     currency: "BRL",
   });
+
+function formatItemDetails(item: QuoteItem) {
+  const rows: string[] = [];
+  if (item.size_name) rows.push(`<strong>Tamanho:</strong> ${escapeHtml(item.size_name)}`);
+  if (item.dimensions) {
+    const values = String(item.dimensions).match(/\d+(?:[.,]\d+)?/g) ?? [];
+    if (values.length >= 3) {
+      rows.push(
+        `<strong>Altura:</strong> ${escapeHtml(values[0])} cm &nbsp; <strong>Largura:</strong> ${escapeHtml(values[1])} cm &nbsp; <strong>Comprimento:</strong> ${escapeHtml(values[2])} cm`,
+      );
+    } else {
+      rows.push(`<strong>Medidas:</strong> ${escapeHtml(item.dimensions)}`);
+    }
+  }
+  if (item.finish) rows.push(`<strong>Acabamento:</strong> ${escapeHtml(item.finish)}`);
+  if (item.color) rows.push(`<strong>Cor:</strong> ${escapeHtml(item.color)}`);
+  return rows.length ? `<div style="color:#666;font-size:13px;line-height:1.7;margin-top:5px">${rows.join("<br>")}</div>` : "";
+}
 
 async function sendEmail(message: Record<string, unknown>) {
   const response = await fetch("https://api.resend.com/emails", {
@@ -143,11 +162,11 @@ Deno.serve(async (req) => {
     const dashboardUrl = `${SITE_URL}/dashboard/orcamentos?orcamento=${encodeURIComponent(order.id)}`;
     const itemRows = items
       .map((item) => {
-        const details = [item.size_name, item.finish, item.color].filter(Boolean).join(" · ");
+        const details = formatItemDetails(item);
         const link = item.product_url
           ? `<br><a href="${escapeHtml(item.product_url)}" style="color:#315c49">Ver produto</a>`
           : "";
-        return `<tr style="border-bottom:1px solid #ecece7"><td style="padding:12px 0"><strong>${Number(item.quantity ?? 1)}× ${escapeHtml(item.name)}</strong>${details ? `<br><span style="color:#666;font-size:13px">${escapeHtml(details)}</span>` : ""}${link}</td><td style="padding:12px 0;text-align:right">${money(Number(item.price ?? 0) * Number(item.quantity ?? 1))}</td></tr>`;
+        return `<tr style="border-bottom:1px solid #ecece7"><td style="padding:12px 0"><strong>${Number(item.quantity ?? 1)}× ${escapeHtml(item.name)}</strong>${details}${link}</td><td style="padding:12px 0;text-align:right">${money(Number(item.price ?? 0) * Number(item.quantity ?? 1))}</td></tr>`;
       })
       .join("");
 
