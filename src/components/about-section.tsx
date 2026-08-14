@@ -48,7 +48,7 @@ export function AboutSection() {
   useEffect(() => {
     const timer = window.setInterval(() => {
       setActiveImage((current) => (current + 1) % ABOUT_IMAGES.length);
-    }, 7000);
+    }, 4000);
     return () => window.clearInterval(timer);
   }, []);
 
