@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 
-const folders = new Set(["products", "categories", "finishes", "colors", "banners", "pages"]);
+const folders = new Set(["products", "categories", "finishes", "colors", "banners", "pages", "projects"]);
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 const maxUploadBytes = 15 * 1024 * 1024;
 
@@ -60,6 +60,7 @@ export const Route = createFileRoute("/api/upload-media")({
         const form = await request.formData();
         const file = form.get("file");
         const folder = String(form.get("folder") ?? "");
+        const format = String(form.get("format") ?? "");
         if (!(file instanceof File) || !folders.has(folder)) {
           return Response.json(
             { ok: false, error: "Arquivo ou pasta inválida." },
@@ -86,9 +87,11 @@ export const Route = createFileRoute("/api/upload-media")({
           const filename = `${randomUUID()}.webp`;
           const destination = join(directory, filename);
           const source = Buffer.from(await file.arrayBuffer());
-          const { data: optimized, info } = await sharp(source, { limitInputPixels: 64_000_000 })
-            .rotate()
-            .resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true })
+          const pipeline = sharp(source, { limitInputPixels: 64_000_000 }).rotate();
+          const resized = format === "story"
+            ? pipeline.resize({ width: 1080, height: 1920, fit: "cover", position: "centre", withoutEnlargement: true })
+            : pipeline.resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true });
+          const { data: optimized, info } = await resized
             .webp({ quality: 82, effort: 5, smartSubsample: true })
             .toBuffer({ resolveWithObject: true });
           const limitBytes =

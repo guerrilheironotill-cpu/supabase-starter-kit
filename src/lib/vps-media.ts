@@ -1,8 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type MediaFolder = "products" | "categories" | "finishes" | "colors" | "banners" | "pages";
+export type MediaFolder = "products" | "categories" | "finishes" | "colors" | "banners" | "pages" | "projects";
 
-export async function uploadOptimizedImage(file: File, folder: MediaFolder): Promise<string> {
+export async function uploadOptimizedImage(file: File, folder: MediaFolder, format?: "story"): Promise<string> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("Sessão administrativa expirada.");
@@ -10,6 +10,7 @@ export async function uploadOptimizedImage(file: File, folder: MediaFolder): Pro
   const body = new FormData();
   body.append("file", file);
   body.append("folder", folder);
+  if (format) body.append("format", format);
   const response = await fetch("/api/upload-media", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },

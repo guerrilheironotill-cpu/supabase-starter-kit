@@ -11,6 +11,7 @@ import {
   type HeroSlide,
 } from "@/lib/hero-slides";
 import { cn } from "@/lib/utils";
+import { HomeProjectsAdmin } from "@/components/home-projects-admin";
 
 export const Route = createFileRoute("/dashboard/paginas/home")({
   head: () => ({
@@ -171,6 +172,9 @@ function DashboardPaginasPage() {
           {ok && <span className="text-emerald-500">{ok}</span>}
         </div>
       </DashboardSection>
+      <div className="mt-8">
+        <HomeProjectsAdmin />
+      </div>
     </>
   );
 }

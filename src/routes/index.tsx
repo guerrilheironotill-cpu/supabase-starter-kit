@@ -7,15 +7,20 @@ import { CategoryShowcase } from "@/components/category-showcase";
 import { HomeFaq } from "@/components/home-faq";
 import { fetchHeroSlides } from "@/lib/hero-slides";
 import { absoluteUrl } from "@/lib/site-config";
+import { fetchHomeProjects } from "@/lib/home-projects";
+import { HomeProjectsGallery } from "@/components/home-projects-gallery";
 
 export const Route = createFileRoute("/")({
-  loader: async () => ({ heroSlides: await fetchHeroSlides() }),
+  loader: async () => {
+    const [heroSlides, projects] = await Promise.all([fetchHeroSlides(), fetchHomeProjects()]);
+    return { heroSlides, projects };
+  },
   head: () => ({ links: [{ rel: "canonical", href: absoluteUrl("/") }] }),
   component: Index,
 });
 
 function Index() {
-  const { heroSlides } = Route.useLoaderData();
+  const { heroSlides, projects } = Route.useLoaderData();
   return (
     <>
       <AdminEditBar label="Editar página Home" to="/dashboard/paginas/home" />
@@ -37,6 +42,7 @@ function Index() {
       />
       <ProductGrid title="Jardineiras" category="Jardineiras" limit={12} carousel />
       <CategoryShowcase />
+      <HomeProjectsGallery projects={projects} />
       <HomeFaq />
     </>
   );
