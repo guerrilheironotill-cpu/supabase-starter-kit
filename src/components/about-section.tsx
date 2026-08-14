@@ -2,8 +2,20 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ArrowRight } from "lucide-react";
 import { useWhatsAppNumber, whatsappLinkFrom } from "@/lib/site-settings";
 
+const ABOUT_IMAGES = [
+  {
+    src: "/images/sobre-arteno-vasos-concreto.webp",
+    alt: "Coleção de vasos artesanais em concreto",
+  },
+  {
+    src: "/images/sobre-arteno-vasos-artesanais.webp",
+    alt: "Vasos artesanais da Arteno em diferentes formatos",
+  },
+];
+
 export function AboutSection() {
   const [visible, setVisible] = useState(false);
+  const [activeImage, setActiveImage] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
   const whatsappUrl = whatsappLinkFrom(
     useWhatsAppNumber(),
@@ -29,6 +41,13 @@ export function AboutSection() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActiveImage((current) => (current + 1) % ABOUT_IMAGES.length);
+    }, 7000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const revealStyle = (delay: number, distance = 24): CSSProperties => ({
     opacity: visible ? 1 : 0,
     transform: visible ? "translate3d(0, 0, 0)" : `translate3d(0, ${distance}px, 0)`,
@@ -51,15 +70,20 @@ export function AboutSection() {
           className="relative"
           style={revealStyle(0, 32)}
         >
-          <div className="aspect-square overflow-hidden rounded-2xl bg-primary/5 shadow-xl ring-1 ring-primary/10">
-            <img
-              width={600}
-              height={616}
-              src="/images/sobre-arteno-vasos-concreto.webp"
-              alt="Coleção de vasos artesanais em concreto"
-              loading="lazy"
-              className="h-full w-full object-cover"
-            />
+          <div className="relative aspect-square overflow-hidden rounded-2xl bg-primary/5 shadow-xl ring-1 ring-primary/10">
+            {ABOUT_IMAGES.map((image, index) => (
+              <img
+                key={image.src}
+                width={1086}
+                height={1448}
+                src={image.src}
+                alt={image.alt}
+                loading="lazy"
+                aria-hidden={index !== activeImage}
+                className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[2200ms] ease-in-out"
+                style={{ opacity: index === activeImage ? 1 : 0 }}
+              />
+            ))}
           </div>
         </div>
 
