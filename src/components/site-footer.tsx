@@ -78,7 +78,7 @@ export function SiteFooter() {
               )}
             </nav>
             <a
-              href="https://www.instagram.com/"
+              href="https://www.instagram.com/artenovasodecor"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Instagram da Arteno (abre em nova aba)"

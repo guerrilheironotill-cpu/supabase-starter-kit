@@ -142,7 +142,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
               image: absoluteUrl("/images/og-arteno.jpg"),
               telephone: "+55 48 98848-6279",
               email: "contato@arteno.com.br",
-              sameAs: ["https://www.instagram.com/arteno.vasos/"],
+              sameAs: ["https://www.instagram.com/artenovasodecor"],
               address: {
                 "@type": "PostalAddress",
                 addressLocality: "Florianópolis",
