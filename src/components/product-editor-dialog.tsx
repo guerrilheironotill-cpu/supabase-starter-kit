@@ -145,6 +145,40 @@ function storedSizeLabel(value: string) {
   return value.includes("|") ? value.split("|")[0].trim() : "";
 }
 
+const KEYWORD_SIMILARITY_LIMIT = 0.85;
+
+function normalizeKeyword(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function keywordSimilarity(left: string, right: string) {
+  const a = normalizeKeyword(left);
+  const b = normalizeKeyword(right);
+  if (a === b) return 1;
+  if (!a.length || !b.length) return 0;
+  const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= a.length; i += 1) {
+    let diagonal = previous[0];
+    previous[0] = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      const above = previous[j];
+      previous[j] = Math.min(
+        previous[j] + 1,
+        previous[j - 1] + 1,
+        diagonal + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+      diagonal = above;
+    }
+  }
+  return 1 - previous[b.length] / Math.max(a.length, b.length);
+}
+
 const sizesSignature = (rows: SizeRow[]) =>
   JSON.stringify(
     rows.map((row) => ({
@@ -1079,10 +1113,35 @@ function SeoTab({
   function addKeyword(value: string) {
     const keyword = value.trim().replace(/,+$/, "").trim();
     if (!keyword || keywords.length >= 12) return;
-    const exists = keywords.some(
-      (item) => item.toLocaleLowerCase("pt-BR") === keyword.toLocaleLowerCase("pt-BR"),
+    const normalizedKeyword = normalizeKeyword(keyword);
+    const selectedMatch = keywords.find(
+      (existing) => normalizeKeyword(existing) === normalizedKeyword,
     );
-    if (!exists) setProduct({ ...product, seo_keywords: [...keywords, keyword] });
+    if (selectedMatch) {
+      toast.warning(`A palavra-chave “${selectedMatch}” já foi adicionada a este produto.`);
+      return;
+    }
+    const catalogMatch = popularKeywords.find(
+      (existing) => normalizeKeyword(existing.keyword) === normalizedKeyword,
+    );
+    if (catalogMatch) {
+      setProduct({ ...product, seo_keywords: [...keywords, catalogMatch.keyword] });
+      setKeywordDraft("");
+      return;
+    }
+    const candidates = Array.from(
+      new Set([...keywords, ...popularKeywords.map((item) => item.keyword)]),
+    );
+    const closest = candidates
+      .map((existing) => ({ existing, similarity: keywordSimilarity(keyword, existing) }))
+      .sort((a, b) => b.similarity - a.similarity)[0];
+    if (closest && closest.similarity >= KEYWORD_SIMILARITY_LIMIT) {
+      toast.warning(
+        `Palavra-chave muito semelhante a “${closest.existing}” (${Math.round(closest.similarity * 100)}% de correspondência).`,
+      );
+      return;
+    }
+    setProduct({ ...product, seo_keywords: [...keywords, keyword] });
     setKeywordDraft("");
   }
 
