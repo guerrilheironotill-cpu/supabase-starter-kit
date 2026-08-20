@@ -129,7 +129,10 @@ export function AdminOrdersManager() {
       return;
     setWorking(true);
     try {
-      const result = await authorizedRequest("/api/admin-orders-bulk", "DELETE", { ids });
+      const result = await authorizedRequest("/api/admin-orders-bulk", "POST", {
+        action: "delete",
+        ids,
+      });
       const deleted = Number(result.deleted) || 0;
       if (deleted !== ids.length) {
         throw new Error(`Foram excluídos ${deleted} de ${ids.length} pedidos selecionados.`);
@@ -144,7 +147,7 @@ export function AdminOrdersManager() {
     }
   }
 
-  async function authorizedRequest(path: string, method: "POST" | "DELETE", body?: unknown) {
+  async function authorizedRequest(path: string, method: "POST", body?: unknown) {
     const { data } = await supabase.auth.getSession();
     const response = await fetch(path, {
       method,
@@ -154,8 +157,19 @@ export function AdminOrdersManager() {
       },
       body: body ? JSON.stringify(body) : undefined,
     });
-    const json = await response.json();
-    if (!response.ok || !json.ok) throw new Error(json.error || "Operação não concluída.");
+    const contentType = response.headers.get("content-type") ?? "";
+    const responseText = await response.text();
+    const json = contentType.includes("application/json")
+      ? (JSON.parse(responseText) as { ok?: boolean; error?: string; deleted?: number })
+      : null;
+    if (!response.ok || !json?.ok) {
+      throw new Error(
+        json?.error ||
+          (response.status === 403
+            ? "A hospedagem bloqueou esta operação. Atualize a página e tente novamente."
+            : `Operação não concluída (HTTP ${response.status}).`),
+      );
+    }
     return json;
   }
 

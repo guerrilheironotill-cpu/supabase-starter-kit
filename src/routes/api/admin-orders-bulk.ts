@@ -48,10 +48,13 @@ function errorResponse(error: unknown) {
 export const Route = createFileRoute("/api/admin-orders-bulk")({
   server: {
     handlers: {
-      DELETE: async ({ request }) => {
+      POST: async ({ request }) => {
         try {
           const admin = await getAdminClient(request);
-          const body = (await request.json()) as { ids?: string[] };
+          const body = (await request.json()) as { action?: string; ids?: string[] };
+          if (body.action !== "delete") {
+            return Response.json({ ok: false, error: "Ação inválida." }, { status: 400 });
+          }
           const ids = Array.from(new Set(body.ids ?? [])).filter(Boolean);
           if (!ids.length) {
             return Response.json(
