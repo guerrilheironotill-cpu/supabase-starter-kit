@@ -1475,6 +1475,22 @@ function NewQuoteDialogImpl({
       toast.error("Adicione ao menos um item");
       return;
     }
+    for (const [index, item] of items.entries()) {
+      if (item.kind !== "catalog" || !item.product_id || !item.name.trim()) continue;
+      const product = products.find((candidate) => candidate.id === item.product_id);
+      if ((product?.product_finishes?.length ?? 0) > 0 && !item.finish) {
+        setStep(1);
+        setExpandedItems((current) => new Set(current).add(index));
+        toast.error(`Selecione o acabamento de ${item.name}`);
+        return;
+      }
+      if ((product?.product_colors?.length ?? 0) > 0 && !item.color) {
+        setStep(1);
+        setExpandedItems((current) => new Set(current).add(index));
+        toast.error(`Selecione a cor de ${item.name}`);
+        return;
+      }
+    }
     setSaving(true);
     try {
       const cleanItems = items
@@ -2022,7 +2038,7 @@ function NewQuoteDialogImpl({
                                   )}
                                   {finishes.length > 0 && (
                                     <div>
-                                      <Label className="text-xs">Acabamento</Label>
+                                      <Label className="text-xs">Acabamento *</Label>
                                       <Select
                                         value={it.finish ?? ""}
                                         onValueChange={(v) => updateItem(idx, { finish: v })}
@@ -2042,7 +2058,7 @@ function NewQuoteDialogImpl({
                                   )}
                                   {colors.length > 0 && (
                                     <div>
-                                      <Label className="text-xs">Cor</Label>
+                                      <Label className="text-xs">Cor *</Label>
                                       <Select
                                         value={it.color ?? ""}
                                         onValueChange={(v) => updateItem(idx, { color: v })}

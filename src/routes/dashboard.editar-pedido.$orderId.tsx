@@ -6,7 +6,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { maskCpfCnpj } from "@/lib/masks";
 
-type Item = { id: string; name: string; quantity: number; unit_price: number; total: number };
+type Item = {
+  id: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+  meta: {
+    size_name?: string | null;
+    finish?: string | null;
+    color?: string | null;
+  } | null;
+};
+type QuoteMeta = {
+  deadline: string;
+  payment: string;
+  pix: string;
+  freightNote: string;
+  address: string;
+};
 type Order = {
   id: string;
   number: number;
@@ -33,7 +51,35 @@ type Order = {
     cnpj: string | null;
   } | null;
   items: Item[];
+  quoteMeta: QuoteMeta;
 };
+
+const emptyQuoteMeta: QuoteMeta = {
+  deadline: "",
+  payment: "",
+  pix: "",
+  freightNote: "",
+  address: "",
+};
+
+function parseQuoteMeta(raw: string | null | undefined): QuoteMeta {
+  if (!raw) return emptyQuoteMeta;
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (parsed.__meta) {
+      return {
+        deadline: String(parsed.deadline ?? ""),
+        payment: String(parsed.payment ?? ""),
+        pix: String(parsed.pix ?? ""),
+        freightNote: String(parsed.freightNote ?? ""),
+        address: String(parsed.address ?? ""),
+      };
+    }
+  } catch {
+    // Pedidos antigos podem ter observações em texto simples.
+  }
+  return emptyQuoteMeta;
+}
 
 const statuses = [
   "pending",
@@ -90,12 +136,22 @@ function EditOrderPage() {
       const { data, error } = await supabase
         .from("app_orders" as never)
         .select(
-          "id, number, external_number, status, currency, shipping_total, subtotal, total, customer_note, customer_id, customer_name, customer_email, customer_phone, customer_document, created_at, customer:customers(id,first_name,last_name,email,phone,cpf,cnpj), items:app_order_items(id,name,quantity,unit_price,total)",
+          "id, number, external_number, status, currency, shipping_total, subtotal, total, customer_note, customer_id, customer_name, customer_email, customer_phone, customer_document, created_at, customer:customers(id,first_name,last_name,email,phone,cpf,cnpj), items:app_order_items(id,name,quantity,unit_price,total,meta)",
         )
         .eq("id", orderId)
         .single();
       if (error) throw new Error(error.message);
-      return data as unknown as Order;
+      const { data: linkedQuotes } = await supabase
+        .from("orders" as never)
+        .select("notes")
+        .ilike("notes", `%${orderId}%`)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const linkedQuote = (linkedQuotes?.[0] ?? null) as { notes?: string | null } | null;
+      return {
+        ...(data as unknown as Omit<Order, "quoteMeta">),
+        quoteMeta: parseQuoteMeta(linkedQuote?.notes),
+      };
     },
   });
 
@@ -224,7 +280,11 @@ function EditOrderPage() {
     const rows = items
       .map(
         (item) => `<tr>
-          <td>${escapeHtml(item.name)}</td>
+          <td>${escapeHtml(item.name)}
+            ${item.meta?.size_name ? `<div class="item-meta">Tamanho: ${escapeHtml(item.meta.size_name)}</div>` : ""}
+            ${item.meta?.finish ? `<div class="item-meta">Acabamento: ${escapeHtml(item.meta.finish)}</div>` : ""}
+            ${item.meta?.color ? `<div class="item-meta">Cor: ${escapeHtml(item.meta.color)}</div>` : ""}
+          </td>
           <td>${Number(item.quantity) || 0}</td>
           <td>${money(Number(item.unit_price) || 0)}</td>
           <td>${money((Number(item.quantity) || 0) * (Number(item.unit_price) || 0))}</td>
@@ -248,13 +308,14 @@ function EditOrderPage() {
         th, td { padding: 10px 5px; border-bottom: 1px solid #eee; text-align: left; font-size: 13px; }
         th { color: #777; font-size: 10px; text-transform: uppercase; letter-spacing: .1em; }
         th:last-child, td:last-child { text-align: right; }
+        .item-meta { margin-top: 3px; color: #777; font-size: 11px; }
         .total { margin-top: 8px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 18px; }
         .note { white-space: pre-wrap; font-size: 13px; line-height: 1.55; }
         .print { display: block; margin: 24px auto 0; border: 0; border-radius: 6px; padding: 11px 20px; background: #222; color: #fff; cursor: pointer; }
         @media print { body { padding: 20px; } .print { display: none; } }
       </style></head><body>
       <header>
-        <img src="https://arteno.com.br/images/logo-header-scroll.svg" alt="Arteno"/>
+        <img src="https://arteno.com.br/images/logo-arteno-header-site.svg" alt="Arteno"/>
         <div class="document">Orçamento<strong>#${reference}</strong></div>
       </header>
       <section><h2>Cliente</h2>
@@ -266,9 +327,19 @@ function EditOrderPage() {
       <section><h2>Itens</h2><table><thead><tr><th>Descrição</th><th>Qtd.</th><th>Unitário</th><th>Subtotal</th></tr></thead><tbody>${rows}</tbody></table></section>
       <section><h2>Valores</h2>
         <div class="row"><span>Subtotal</span><strong>${money(subtotal)}</strong></div>
-        ${shipping ? `<div class="row"><span>Frete</span><strong>${money(shipping)}</strong></div>` : ""}
+        ${shipping ? `<div class="row"><span>Frete${order.quoteMeta.freightNote ? ` (${escapeHtml(order.quoteMeta.freightNote)})` : ""}</span><strong>${money(shipping)}</strong></div>` : ""}
         <div class="row total"><span>Total</span><strong>${money(total)}</strong></div>
       </section>
+      ${
+        order.quoteMeta.deadline || order.quoteMeta.payment || order.quoteMeta.pix
+          ? `<section><h2>Condições</h2>
+            ${order.quoteMeta.deadline ? `<div class="row"><span>Prazo de produção</span><strong>${escapeHtml(order.quoteMeta.deadline)}</strong></div>` : ""}
+            ${order.quoteMeta.payment ? `<div class="row"><span>Forma de pagamento</span><strong>${escapeHtml(order.quoteMeta.payment)}</strong></div>` : ""}
+            ${order.quoteMeta.pix ? `<div class="row"><span>Link Pix</span><strong><a href="${escapeHtml(order.quoteMeta.pix)}">${escapeHtml(order.quoteMeta.pix)}</a></strong></div>` : ""}
+          </section>`
+          : ""
+      }
+      ${order.quoteMeta.address ? `<section><h2>Entrega</h2><div class="note">${escapeHtml(order.quoteMeta.address)}</div></section>` : ""}
       ${note ? `<section><h2>Observações</h2><div class="note">${escapeHtml(note)}</div></section>` : ""}
       <button class="print" onclick="window.print()">Salvar como PDF</button>
       <script>setTimeout(function(){ window.print(); }, 400);</script>
