@@ -3,6 +3,7 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { canonicalHostRedirectFor, legacyRedirectFor } from "./lib/legacy-redirects";
+import { renderMaintenancePage } from "./lib/maintenance-page";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -12,6 +13,58 @@ const HTML_NO_STORE =
   "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0";
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
+
+const MAINTENANCE_COOKIE = "arteno_maintenance_preview";
+
+function maintenanceResponse() {
+  return new Response(renderMaintenancePage(), {
+    status: 503,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": HTML_NO_STORE,
+      "cdn-cache-control": "no-store",
+      "retry-after": "3600",
+      "x-robots-tag": "noindex, nofollow, noarchive",
+    },
+  });
+}
+
+function hasMaintenancePreview(request: Request) {
+  const token = process.env.MAINTENANCE_BYPASS_TOKEN;
+  if (!token) return false;
+  return request.headers
+    .get("cookie")
+    ?.split(";")
+    .some((part) => part.trim() === `${MAINTENANCE_COOKIE}=${encodeURIComponent(token)}`);
+}
+
+function maintenancePreviewRedirect(request: Request, url: URL) {
+  const token = process.env.MAINTENANCE_BYPASS_TOKEN;
+  const supplied = url.searchParams.get("preview");
+  if (!token || !supplied || supplied !== token) return null;
+  const cleanUrl = new URL(url);
+  cleanUrl.searchParams.delete("preview");
+  return new Response(null, {
+    status: 302,
+    headers: {
+      location: cleanUrl.toString(),
+      "set-cookie": `${MAINTENANCE_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400`,
+      "cache-control": HTML_NO_STORE,
+    },
+  });
+}
+
+function shouldBypassMaintenance(request: Request, url: URL) {
+  if (hasMaintenancePreview(request)) return true;
+  if (request.method !== "GET" && request.method !== "HEAD") return true;
+  return (
+    url.pathname === "/health" ||
+    url.pathname === "/health-cache" ||
+    url.pathname.startsWith("/uploads/") ||
+    url.pathname.startsWith("/assets/") ||
+    url.pathname === "/favicon.png"
+  );
+}
 
 async function getServerEntry(): Promise<ServerEntry> {
   if (!serverEntryPromise) {
@@ -84,6 +137,11 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const requestUrl = new URL(request.url);
+      if (process.env.MAINTENANCE_MODE === "true") {
+        const previewRedirect = maintenancePreviewRedirect(request, requestUrl);
+        if (previewRedirect) return previewRedirect;
+        if (!shouldBypassMaintenance(request, requestUrl)) return maintenanceResponse();
+      }
       const redirect = canonicalHostRedirectFor(requestUrl) ?? legacyRedirectFor(requestUrl);
       if (redirect) return Response.redirect(redirect, 301);
       const handler = await getServerEntry();

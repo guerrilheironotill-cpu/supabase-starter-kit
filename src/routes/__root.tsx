@@ -86,18 +86,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Vasos de concreto, jardineiras e mobiliário | Arteno" },
+      { title: "Vasos de concreto em Florianópolis e região | Arteno" },
       {
         name: "description",
-        content: "Vasos, jardineiras e mobiliário artesanal em concreto, prontos ou sob medida. Produção local em Florianópolis para residências e empresas.",
+        content:
+          "Vasos de concreto, jardineiras e mobiliário artesanal produzidos em Florianópolis, com atendimento prioritário na Grande Florianópolis.",
       },
       {
         property: "og:title",
-        content: "Vasos de concreto, jardineiras e mobiliário | Arteno",
+        content: "Vasos de concreto em Florianópolis e região | Arteno",
       },
       {
         property: "og:description",
-        content: "Vasos, jardineiras e mobiliário artesanal em concreto, prontos ou sob medida. Produção local em Florianópolis.",
+        content:
+          "Vasos, jardineiras e mobiliário artesanal produzidos em Florianópolis, com atendimento na Grande Florianópolis.",
       },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "Arteno" },
@@ -151,6 +153,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
                 addressRegion: "SC",
                 addressCountry: "BR",
               },
+              areaServed: ["Florianópolis", "São José", "Palhoça", "Biguaçu"].map((name) => ({
+                "@type": "City",
+                name,
+                containedInPlace: { "@type": "State", name: "Santa Catarina" },
+              })),
             },
             {
               "@type": "WebSite",

@@ -153,10 +153,13 @@ function OrcamentoPage() {
         const draft = JSON.parse(raw) as Partial<QuoteFormDraft>;
         if (typeof draft.expiresAt === "number" && draft.expiresAt > Date.now()) {
           if (draft.step === 1 || draft.step === 2 || draft.step === 3) setStep(draft.step);
-          if (draft.delivery === "pickup" || draft.delivery === "shipping") setDelivery(draft.delivery);
-          if (draft.deliveryAddress) setDeliveryAddress({ ...EMPTY_ADDRESS, ...draft.deliveryAddress });
+          if (draft.delivery === "pickup" || draft.delivery === "shipping")
+            setDelivery(draft.delivery);
+          if (draft.deliveryAddress)
+            setDeliveryAddress({ ...EMPTY_ADDRESS, ...draft.deliveryAddress });
           if (draft.customer) setCustomer((current) => ({ ...current, ...draft.customer }));
-          if (draft.customerAddress) setCustomerAddress({ ...EMPTY_ADDRESS, ...draft.customerAddress });
+          if (draft.customerAddress)
+            setCustomerAddress({ ...EMPTY_ADDRESS, ...draft.customerAddress });
           if (typeof draft.sameAsDelivery === "boolean") setSameAsDelivery(draft.sameAsDelivery);
         } else {
           localStorage.removeItem(QUOTE_DRAFT_KEY);
@@ -207,13 +210,17 @@ function OrcamentoPage() {
           if (!product || cancelled) return;
           updateConfigurationOptions(item.id, {
             basePrice: item.basePrice ?? item.unitPrice ?? 0,
-            availableFinishes: [...product.product_finishes].sort((a, b) => (finishOrder.get(a.name) ?? 9999) - (finishOrder.get(b.name) ?? 9999)).map((finish) => ({
-              name: finish.name,
-              extraPrice:
-                finishCatalog.find((catalogItem) => catalogItem.name === finish.name)
-                  ?.extra_price ?? 0,
-            })),
-            availableColors: [...product.product_colors].sort((a, b) => (colorOrder.get(a.name) ?? 9999) - (colorOrder.get(b.name) ?? 9999)).map((color) => color.name),
+            availableFinishes: [...product.product_finishes]
+              .sort((a, b) => (finishOrder.get(a.name) ?? 9999) - (finishOrder.get(b.name) ?? 9999))
+              .map((finish) => ({
+                name: finish.name,
+                extraPrice:
+                  finishCatalog.find((catalogItem) => catalogItem.name === finish.name)
+                    ?.extra_price ?? 0,
+              })),
+            availableColors: [...product.product_colors]
+              .sort((a, b) => (colorOrder.get(a.name) ?? 9999) - (colorOrder.get(b.name) ?? 9999))
+              .map((color) => color.name),
           });
         }),
       );
@@ -293,12 +300,12 @@ function OrcamentoPage() {
     setSubmitted(true);
     const cleanItems = items.map((i) => ({
       kind: "catalog" as const,
-      product_id: null,
+      product_id: i.productId ?? i.id.split(":")[0] ?? null,
       name: i.name,
       description: null,
       quantity: i.quantity,
       price: i.unitPrice ?? 0,
-      size_id: null,
+      size_id: i.sizeId ?? i.id.split(":")[1] ?? null,
       size_name: i.sizeLabel ?? null,
       dimensions: i.dimensions ?? null,
       finish: i.finish ?? null,
@@ -565,10 +572,17 @@ function OrcamentoPage() {
                     <span className="min-w-0 flex-1 truncate text-foreground">
                       {it.quantity}× {it.name}
                     </span>
+                    <span className="shrink-0 font-medium text-foreground">
+                      {formatBRL(itemSubtotal(it))}
+                    </span>
                   </li>
                 ))}
               </ul>
               <div className="border-t border-border px-5 py-4 text-sm">
+                <div className="mb-3 flex items-center justify-between font-semibold text-primary">
+                  <span>Subtotal</span>
+                  <span>{formatBRL(subtotal)}</span>
+                </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>Entrega</span>
                   <span>
@@ -715,7 +729,13 @@ function StepProducts({
             <li key={item.id} className="flex gap-5 p-5">
               <div className="h-28 w-28 shrink-0 overflow-hidden bg-muted sm:h-32 sm:w-32">
                 {item.image && (
-                  <img src={item.image} alt={item.name} width={320} height={320} className="h-full w-full object-cover" />
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    width={320}
+                    height={320}
+                    className="h-full w-full object-cover"
+                  />
                 )}
               </div>
               <div className="flex min-w-0 flex-1 flex-col">

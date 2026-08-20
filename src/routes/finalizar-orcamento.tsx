@@ -3,6 +3,7 @@ import { Mail, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { publicSupabase } from "@/integrations/supabase/client";
 import { whatsappLinkFrom } from "@/lib/site-settings";
+import { formatBRL } from "@/lib/products";
 
 type FinalizationItem = {
   name: string;
@@ -122,9 +123,16 @@ function FinalizeQuotePage() {
                       {[item.size_name, item.finish, item.color].filter(Boolean).join(" · ")}
                     </div>
                   </div>
+                  <strong className="shrink-0 text-foreground">
+                    {formatBRL(item.price * item.quantity)}
+                  </strong>
                 </li>
               ))}
             </ul>
+            <div className="flex items-center justify-between border-t border-border pt-4 font-semibold text-primary">
+              <span>Subtotal</span>
+              <span>{formatBRL(context.notificationPayload.total)}</span>
+            </div>
           </section>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">

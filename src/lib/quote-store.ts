@@ -3,6 +3,8 @@ import { persist } from "zustand/middleware";
 
 export type QuoteItem = {
   id: string;
+  productId?: string;
+  sizeId?: string;
   name: string;
   slug?: string;
   image?: string;

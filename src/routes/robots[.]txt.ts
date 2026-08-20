@@ -20,6 +20,7 @@ export const Route = createFileRoute("/robots.txt")({
               "Disallow: /supabase-check",
               "",
               `Sitemap: ${SITE_URL}/sitemap.xml`,
+              `# Google Merchant feed: ${SITE_URL}/google-shopping.xml`,
               "",
             ].join("\n");
 

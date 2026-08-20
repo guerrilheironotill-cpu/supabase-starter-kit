@@ -9,6 +9,7 @@ import { fetchHeroSlides } from "@/lib/hero-slides";
 import { absoluteUrl } from "@/lib/site-config";
 import { fetchHomeProjects } from "@/lib/home-projects";
 import { HomeProjectsGallery } from "@/components/home-projects-gallery";
+import { LocalServiceArea } from "@/components/local-service-area";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
@@ -33,7 +34,7 @@ function Index() {
           "vaso-atenas",
           "vaso-beirute",
           "vaso-dublin",
-          "vaso-bali",
+          "vaso-santa-fe",
           "vaso-daka",
           "vaso-toquio",
           "vaso-dacar",
@@ -41,6 +42,7 @@ function Index() {
         ]}
       />
       <ProductGrid title="Jardineiras" category="Jardineiras" limit={12} carousel />
+      <LocalServiceArea />
       <CategoryShowcase />
       <HomeProjectsGallery projects={projects} />
       <HomeFaq />

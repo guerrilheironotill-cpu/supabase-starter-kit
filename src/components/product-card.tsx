@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import type { Product } from "@/lib/products";
+import { formatBRL, productPriceRange, type Product } from "@/lib/products";
 
 type Props = {
   product: Product;
@@ -13,20 +13,23 @@ export function ProductCard({ product, index = 0, variant = "default" }: Props) 
   const images = (product.images ?? []).filter(Boolean);
   const [imageIndex, setImageIndex] = useState(0);
   const [previousImage, setPreviousImage] = useState<string | null>(null);
-  const [imageTransition, setImageTransition] = useState<"fade" | "slide-left" | "slide-right">("fade");
+  const [imageTransition, setImageTransition] = useState<"fade" | "slide-left" | "slide-right">(
+    "fade",
+  );
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const img = images[imageIndex];
   const hasGalleryNavigation = images.length > 2;
   const homeStyle = variant === "home";
+  const priceRange = productPriceRange(product);
 
-  useEffect(() => () => {
-    if (transitionTimer.current) clearTimeout(transitionTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (transitionTimer.current) clearTimeout(transitionTimer.current);
+    },
+    [],
+  );
 
-  const changeImage = (
-    nextIndex: number,
-    transition: "fade" | "slide-left" | "slide-right",
-  ) => {
+  const changeImage = (nextIndex: number, transition: "fade" | "slide-left" | "slide-right") => {
     if (nextIndex === imageIndex || !img) return;
     if (transitionTimer.current) clearTimeout(transitionTimer.current);
     setPreviousImage(img);
@@ -144,6 +147,13 @@ export function ProductCard({ product, index = 0, variant = "default" }: Props) 
         <h3 className="mt-4 font-display text-lg font-semibold text-primary sm:text-xl">
           {product.name}
         </h3>
+        {priceRange && (
+          <p className="mt-1 text-sm font-semibold text-primary">
+            {priceRange.min === priceRange.max
+              ? formatBRL(priceRange.min)
+              : `A partir de ${formatBRL(priceRange.min)}`}
+          </p>
+        )}
       </Link>
     </article>
   );

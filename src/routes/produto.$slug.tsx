@@ -7,6 +7,9 @@ import {
   slugify,
   type ProductDetail,
   type ProductSize,
+  currentPrice,
+  validSalePrice,
+  formatBRL,
 } from "@/lib/products";
 import { ChevronLeft, ChevronRight, Download, MessageCircle, Minus, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -29,6 +32,9 @@ import { absoluteUrl } from "@/lib/site-config";
 import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
 
 export const Route = createFileRoute("/produto/$slug")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    tamanho: typeof search.tamanho === "string" ? search.tamanho : undefined,
+  }),
   loader: async ({ params }) => {
     const product = await fetchProductBySlug(params.slug);
     if (!product) throw notFound();
@@ -38,7 +44,8 @@ export const Route = createFileRoute("/produto/$slug")({
     meta: [
       {
         title: loaderData
-          ? loaderData.product.meta_title || `${loaderData.product.name} | ${loaderData.product.category} — Arteno`
+          ? loaderData.product.meta_title ||
+            `${loaderData.product.name} | ${loaderData.product.category} — Arteno`
           : "Produto — Arteno",
       },
       {
@@ -53,7 +60,8 @@ export const Route = createFileRoute("/produto/$slug")({
       {
         property: "og:title",
         content: loaderData
-          ? loaderData.product.meta_title || `${loaderData.product.name} | ${loaderData.product.category} — Arteno`
+          ? loaderData.product.meta_title ||
+            `${loaderData.product.name} | ${loaderData.product.category} — Arteno`
           : "Produto — Arteno",
       },
       {
@@ -76,7 +84,8 @@ export const Route = createFileRoute("/produto/$slug")({
       {
         name: "twitter:title",
         content: loaderData
-          ? loaderData.product.meta_title || `${loaderData.product.name} | ${loaderData.product.category} — Arteno`
+          ? loaderData.product.meta_title ||
+            `${loaderData.product.name} | ${loaderData.product.category} — Arteno`
           : "Produto — Arteno",
       },
       {
@@ -141,6 +150,32 @@ function productStructuredData(product: ProductDetail) {
     .filter(Boolean)
     .map((image) => (image.startsWith("http") ? image : absoluteUrl(image)));
   const description = productDescriptionToText(product.description ?? "").slice(0, 5000);
+  const offers = [...(product.product_sizes ?? [])]
+    .filter((size) => Number(size.base_price) > 0)
+    .map((size) => {
+      const sale = validSalePrice(size);
+      return {
+        "@type": "Offer",
+        sku: size.id,
+        url: `${url}?tamanho=${encodeURIComponent(size.id)}`,
+        priceCurrency: "BRL",
+        price: currentPrice(size).toFixed(2),
+        availability: "https://schema.org/PreOrder",
+        itemCondition: "https://schema.org/NewCondition",
+        ...(sale
+          ? {
+              priceSpecification: [
+                {
+                  "@type": "UnitPriceSpecification",
+                  priceType: "https://schema.org/ListPrice",
+                  price: Number(size.base_price).toFixed(2),
+                  priceCurrency: "BRL",
+                },
+              ],
+            }
+          : {}),
+      };
+    });
 
   return {
     "@context": "https://schema.org",
@@ -154,6 +189,7 @@ function productStructuredData(product: ProductDetail) {
         category: product.category,
         brand: { "@type": "Brand", name: "Arteno" },
         url,
+        offers,
       },
       {
         "@type": "BreadcrumbList",
@@ -203,7 +239,11 @@ function sizeCode(idx: number, total: number): string {
   return String(idx + 1);
 }
 
-function storedSizeCode(size: { name?: string | null; size?: string | null }, idx: number, total: number) {
+function storedSizeCode(
+  size: { name?: string | null; size?: string | null },
+  idx: number,
+  total: number,
+) {
   const value = size.name ?? size.size ?? "";
   const separator = value.indexOf("|");
   return separator >= 0 ? value.slice(0, separator).trim() : sizeCode(idx, total);
@@ -278,6 +318,7 @@ function GalleryImage({
 
 function ProductPage() {
   const { product: initial } = Route.useLoaderData();
+  const { tamanho } = Route.useSearch();
   const { data: product = initial } = useQuery({
     queryKey: ["product", initial.slug],
     queryFn: () => fetchProductBySlug(initial.slug),
@@ -305,17 +346,25 @@ function ProductPage() {
   const finishOrder = new Map(finishCatalog.map((term, index) => [term.name, index]));
   const colorOrder = new Map(colorCatalog.map((term, index) => [term.name, index]));
   const finishes = [...(p.product_finishes ?? [])]
-    .sort((a, b) => (finishOrder.get(a.name) ?? 9999) - (finishOrder.get(b.name) ?? 9999) || a.sort_order - b.sort_order)
+    .sort(
+      (a, b) =>
+        (finishOrder.get(a.name) ?? 9999) - (finishOrder.get(b.name) ?? 9999) ||
+        a.sort_order - b.sort_order,
+    )
     .map((finish) => ({
       ...finish,
       extra_price: finishCatalog.find((term) => term.name === finish.name)?.extra_price ?? 0,
     }));
   const colors = [...(p.product_colors ?? [])].sort(
-    (a, b) => (colorOrder.get(a.name) ?? 9999) - (colorOrder.get(b.name) ?? 9999) || a.sort_order - b.sort_order,
+    (a, b) =>
+      (colorOrder.get(a.name) ?? 9999) - (colorOrder.get(b.name) ?? 9999) ||
+      a.sort_order - b.sort_order,
   );
 
   const addItem = useQuoteStore((s) => s.addItem);
-  const [selectedSizeId, setSelectedSizeId] = useState<string>(sizes[0]?.id ?? "");
+  const [selectedSizeId, setSelectedSizeId] = useState<string>(
+    sizes.some((size) => size.id === tamanho) ? tamanho! : (sizes[0]?.id ?? ""),
+  );
   const [selectedFinish, setSelectedFinish] = useState<string>("");
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [qty, setQty] = useState<number>(1);
@@ -325,6 +374,10 @@ function ProductPage() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const selectedFinishExtra =
     finishes.find((finish) => finish.name === selectedFinish)?.extra_price ?? 0;
+  const selectedSize = sizes.find((size) => size.id === selectedSizeId);
+  const selectedRegularPrice = Number(selectedSize?.base_price ?? 0) + selectedFinishExtra;
+  const selectedSale = selectedSize ? validSalePrice(selectedSize) : null;
+  const selectedUnitPrice = (selectedSize ? currentPrice(selectedSize) : 0) + selectedFinishExtra;
 
   function openProductConfiguration(sizeId: string) {
     setSelectedSizeId(sizeId);
@@ -341,6 +394,8 @@ function ProductPage() {
     const basePrice = s.sale_price ?? s.base_price;
     addItem({
       id: `${p.id}:${s.id}:${selectedFinish}:${selectedColor}`,
+      productId: p.id,
+      sizeId: s.id,
       name: p.name,
       slug: p.slug,
       image: images[0],
@@ -455,6 +510,7 @@ function ProductPage() {
                         <th className="px-4 py-3">Larg.</th>
                         <th className="px-4 py-3">Comp.</th>
                         <th className="px-4 py-3">Estoque</th>
+                        <th className="px-4 py-3 text-right">Preço</th>
                         <th className="px-4 py-3 text-center">
                           <span className="sr-only">Adicionar</span>
                         </th>
@@ -466,7 +522,9 @@ function ProductPage() {
                         const dims = parseDims(storedDimensions(s));
                         return (
                           <tr key={s.id} className="border-t border-primary/10">
-                            <td className="px-4 py-3 font-medium">{storedSizeCode(s, i, sizes.length)}</td>
+                            <td className="px-4 py-3 font-medium">
+                              {storedSizeCode(s, i, sizes.length)}
+                            </td>
                             <td className="px-4 py-3 text-primary/80">
                               {dims ? dims.altura : "—"}
                             </td>
@@ -477,6 +535,18 @@ function ProductPage() {
                               {dims ? dims.comprimento : "—"}
                             </td>
                             <td className="px-4 py-3 text-primary/80">Sob Encomenda</td>{" "}
+                            <td className="px-4 py-3 text-right font-semibold whitespace-nowrap">
+                              {validSalePrice(s) ? (
+                                <span className="flex flex-col items-end">
+                                  <span className="text-xs font-normal text-primary/50 line-through">
+                                    {formatBRL(Number(s.base_price))}
+                                  </span>
+                                  <span>{formatBRL(currentPrice(s))}</span>
+                                </span>
+                              ) : (
+                                formatBRL(currentPrice(s))
+                              )}
+                            </td>
                             <td className="px-4 py-3 text-center">
                               <button
                                 type="button"
@@ -522,8 +592,8 @@ function ProductPage() {
               </button>
             </div>
             <div className="mt-4 border border-primary/15 bg-primary/5 px-4 py-3 text-sm leading-relaxed text-primary/80">
-              Para ver os preços, adicione os produtos ao orçamento pelo botão + e finalize sua
-              solicitação.
+              Selecione tamanho, acabamento e cor para calcular o valor final da peça. Frete e prazo
+              de produção são confirmados na finalização.
             </div>
           </div>
         </div>
@@ -594,7 +664,13 @@ function ProductPage() {
                         className={`h-16 w-16 shrink-0 overflow-hidden rounded-md border-2 bg-white transition ${index === lightboxIndex ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"}`}
                         aria-label={`Abrir imagem ${index + 1}`}
                       >
-                        <img src={url} alt="" width={160} height={160} className="h-full w-full object-cover" />
+                        <img
+                          src={url}
+                          alt=""
+                          width={160}
+                          height={160}
+                          className="h-full w-full object-cover"
+                        />
                       </button>
                     ))}
                   </div>
@@ -686,6 +762,30 @@ function ProductPage() {
               </div>
             </label>
           </div>
+          {selectedSize && (
+            <div className="border border-primary/15 bg-primary/5 p-4 text-sm">
+              <div className="flex items-center justify-between gap-4">
+                <span>Valor unitário</span>
+                <span className="text-right">
+                  {selectedSale !== null && (
+                    <span className="mr-2 text-xs text-primary/50 line-through">
+                      {formatBRL(selectedRegularPrice)}
+                    </span>
+                  )}
+                  <strong className="text-base text-primary">{formatBRL(selectedUnitPrice)}</strong>
+                </span>
+              </div>
+              {selectedFinishExtra > 0 && (
+                <p className="mt-1 text-xs text-primary/60">
+                  Inclui {formatBRL(selectedFinishExtra)} do acabamento selecionado.
+                </p>
+              )}
+              <div className="mt-2 flex items-center justify-between border-t border-primary/10 pt-2 font-semibold">
+                <span>Subtotal</span>
+                <span>{formatBRL(selectedUnitPrice * qty)}</span>
+              </div>
+            </div>
+          )}
           <DialogFooter>
             <div className="w-full">
               {(!selectedFinish || !selectedColor) && (

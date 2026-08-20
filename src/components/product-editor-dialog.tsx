@@ -84,7 +84,11 @@ function explainSaveError(error: unknown, context: string): string {
   if (code === "23514" || normalized.includes("check constraint")) {
     return `${context}: um valor não é permitido. Confira medidas, preços e demais números informados.`;
   }
-  if (code === "42501" || normalized.includes("permission denied") || normalized.includes("row-level security")) {
+  if (
+    code === "42501" ||
+    normalized.includes("permission denied") ||
+    normalized.includes("row-level security")
+  ) {
     return `${context}: seu usuário não tem permissão para realizar esta operação. Entre novamente como administrador.`;
   }
   if (code === "22P02") {
@@ -193,7 +197,9 @@ const attributesSignature = (rows: AttrRow[]) => JSON.stringify(rows.map((row) =
 async function fetchEditableProduct(productId: string): Promise<ProductData> {
   const withSeo = await supabase
     .from("products")
-    .select("id, slug, name, description, category, images, active, meta_title, meta_description, seo_keywords")
+    .select(
+      "id, slug, name, description, category, images, active, meta_title, meta_description, seo_keywords",
+    )
     .eq("id", productId)
     .maybeSingle();
 
@@ -287,7 +293,9 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
             id: x.id,
             label:
               storedSizeLabel(name) ||
-              (all.length === 1 ? "Único" : ["P", "M", "G", "GG", "XG", "XXG"][index] ?? String(index + 1)),
+              (all.length === 1
+                ? "Único"
+                : (["P", "M", "G", "GG", "XG", "XXG"][index] ?? String(index + 1))),
             name,
             ...parseSizeDimensions(name),
             base_price: x.base_price ?? 0,
@@ -347,6 +355,25 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
       const sizeWithoutLabel = sizes.find((size) => !size.label.trim());
       if (sizeWithoutLabel) {
         throw new Error("Preencha o campo Tamanho de todos os tamanhos, por exemplo P, M ou G.");
+      }
+      if (product.active && sizes.length === 0) {
+        throw new Error("Cadastre pelo menos um tamanho com preço antes de publicar o produto.");
+      }
+      const invalidRegularPrice = sizes.find(
+        (size) => !Number.isFinite(Number(size.base_price)) || Number(size.base_price) <= 0,
+      );
+      if (product.active && invalidRegularPrice) {
+        throw new Error(
+          "Todo tamanho de um produto publicado precisa ter preço normal maior que zero.",
+        );
+      }
+      const invalidSalePrice = sizes.find((size) => {
+        if (size.sale_price == null) return false;
+        const sale = Number(size.sale_price);
+        return !Number.isFinite(sale) || sale <= 0 || sale >= Number(size.base_price);
+      });
+      if (invalidSalePrice) {
+        throw new Error("O preço promocional deve ser maior que zero e menor que o preço normal.");
       }
       const regularPrices = sizes
         .map((size) => Number(size.base_price))
@@ -487,7 +514,8 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
     rows: Array<Record<string, unknown>>,
   ) {
     const { error: delErr } = await supabase.from(table).delete().eq("product_id", productId);
-    if (delErr) throw new Error(explainSaveError(delErr, `${context} (remoção dos vínculos antigos)`));
+    if (delErr)
+      throw new Error(explainSaveError(delErr, `${context} (remoção dos vínculos antigos)`));
     if (rows.length === 0) return;
     const { error: insErr } = await supabase.from(table).insert(rows);
     if (insErr) throw new Error(explainSaveError(insErr, context));
@@ -1076,7 +1104,9 @@ function SeoTab({
 }) {
   const keywords = product.seo_keywords;
   const [keywordDraft, setKeywordDraft] = useState("");
-  const [popularKeywords, setPopularKeywords] = useState<Array<{ keyword: string; count: number }>>([]);
+  const [popularKeywords, setPopularKeywords] = useState<Array<{ keyword: string; count: number }>>(
+    [],
+  );
   const titleText = (product.meta_title || product.name).toLocaleLowerCase("pt-BR");
   const descriptionText = (product.meta_description || "").toLocaleLowerCase("pt-BR");
   const contentText = (product.description || "").toLocaleLowerCase("pt-BR");
@@ -1196,7 +1226,10 @@ function SeoTab({
       {keywords.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {keywords.map((keyword) => (
-            <span key={keyword} className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary">
+            <span
+              key={keyword}
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary"
+            >
               {keyword}
               <button
                 type="button"
@@ -1208,7 +1241,9 @@ function SeoTab({
               </button>
             </span>
           ))}
-          <span className="self-center text-[11px] text-muted-foreground">{keywords.length}/12</span>
+          <span className="self-center text-[11px] text-muted-foreground">
+            {keywords.length}/12
+          </span>
         </div>
       )}
       {availablePopularKeywords.length > 0 && (
@@ -1240,7 +1275,10 @@ function SeoTab({
               contentText.includes(normalized) && "conteúdo",
             ].filter(Boolean);
             return (
-              <div key={keyword} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div
+                key={keyword}
+                className="flex flex-wrap items-center justify-between gap-2 text-xs"
+              >
                 <span className="font-medium text-foreground">{keyword}</span>
                 <span className={locations.length ? "text-emerald-600" : "text-amber-600"}>
                   {locations.length

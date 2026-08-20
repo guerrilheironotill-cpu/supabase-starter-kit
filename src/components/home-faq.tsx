@@ -35,8 +35,8 @@ const FAQS: { question: string; answer: ReactNode }[] = [
     answer: (
       <>
         <p>
-          Adicione os produtos ao orçamento e, ao finalizar, receba a relação completa com os
-          respectivos valores.
+          As medidas, o preço normal e o preço promocional ficam visíveis na página de cada produto.
+          O valor final é atualizado conforme o tamanho e o acabamento escolhidos.
         </p>
         <button
           type="button"

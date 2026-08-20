@@ -10,7 +10,34 @@ export type Product = {
   meta_title?: string | null;
   meta_description?: string | null;
   seo_keywords?: string[];
+  product_sizes?: ProductSize[];
 };
+
+export function validSalePrice(size: Pick<ProductSize, "base_price" | "sale_price">) {
+  const regular = Number(size.base_price);
+  const sale = size.sale_price == null ? null : Number(size.sale_price);
+  return Number.isFinite(sale) && sale! > 0 && sale! < regular ? sale : null;
+}
+
+export function currentPrice(size: Pick<ProductSize, "base_price" | "sale_price">) {
+  return validSalePrice(size) ?? Number(size.base_price);
+}
+
+export function productPriceRange(product: Pick<Product, "product_sizes">) {
+  const sizes = (product.product_sizes ?? []).filter((size) => Number(size.base_price) > 0);
+  if (!sizes.length) return null;
+  const prices = sizes.map(currentPrice);
+  return { min: Math.min(...prices), max: Math.max(...prices) };
+}
+
+export function formatBRL(value: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
 
 export function productDescriptionToText(description: string | null | undefined): string {
   if (!description) return "";
@@ -72,7 +99,9 @@ export function categorySlug(category: string): string {
 export async function fetchProductsByCategory(category: string, limit = 8): Promise<Product[]> {
   const { data, error } = await supabase
     .from("products")
-    .select("id, slug, name, category, images")
+    .select(
+      "id, slug, name, category, images, product_sizes(id, product_id, name, size, base_price, sale_price, sort_order)",
+    )
     .eq("category", category)
     .eq("active", true)
     .order("created_at", { ascending: false })
@@ -86,7 +115,9 @@ export async function fetchProductsBySlugs(slugs: string[]): Promise<Product[]> 
   if (slugs.length === 0) return [];
   const { data, error } = await supabase
     .from("products")
-    .select("id, slug, name, category, images")
+    .select(
+      "id, slug, name, category, images, product_sizes(id, product_id, name, size, base_price, sale_price, sort_order)",
+    )
     .in("slug", slugs)
     .eq("active", true);
   if (error) throw error;

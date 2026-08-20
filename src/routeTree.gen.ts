@@ -21,6 +21,7 @@ import { Route as OrcamentoRouteImport } from './routes/orcamento'
 import { Route as MobiliarioUrbanoRouteImport } from './routes/mobiliario-urbano'
 import { Route as HealthCacheRouteImport } from './routes/health-cache'
 import { Route as HealthRouteImport } from './routes/health'
+import { Route as GoogleShoppingDotxmlRouteImport } from './routes/google-shopping[.]xml'
 import { Route as FinalizarOrcamentoRouteImport } from './routes/finalizar-orcamento'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CatalogoPdfRouteImport } from './routes/catalogo-pdf'
@@ -123,6 +124,11 @@ const HealthCacheRoute = HealthCacheRouteImport.update({
 const HealthRoute = HealthRouteImport.update({
   id: '/health',
   path: '/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoogleShoppingDotxmlRoute = GoogleShoppingDotxmlRouteImport.update({
+  id: '/google-shopping.xml',
+  path: '/google-shopping.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FinalizarOrcamentoRoute = FinalizarOrcamentoRouteImport.update({
@@ -359,6 +365,7 @@ export interface FileRoutesByFullPath {
   '/catalogo-pdf': typeof CatalogoPdfRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/finalizar-orcamento': typeof FinalizarOrcamentoRoute
+  '/google-shopping.xml': typeof GoogleShoppingDotxmlRoute
   '/health': typeof HealthRoute
   '/health-cache': typeof HealthCacheRoute
   '/mobiliario-urbano': typeof MobiliarioUrbanoRoute
@@ -416,6 +423,7 @@ export interface FileRoutesByTo {
   '/catalogo': typeof CatalogoRoute
   '/catalogo-pdf': typeof CatalogoPdfRoute
   '/finalizar-orcamento': typeof FinalizarOrcamentoRoute
+  '/google-shopping.xml': typeof GoogleShoppingDotxmlRoute
   '/health': typeof HealthRoute
   '/health-cache': typeof HealthCacheRoute
   '/mobiliario-urbano': typeof MobiliarioUrbanoRoute
@@ -474,6 +482,7 @@ export interface FileRoutesById {
   '/catalogo-pdf': typeof CatalogoPdfRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/finalizar-orcamento': typeof FinalizarOrcamentoRoute
+  '/google-shopping.xml': typeof GoogleShoppingDotxmlRoute
   '/health': typeof HealthRoute
   '/health-cache': typeof HealthCacheRoute
   '/mobiliario-urbano': typeof MobiliarioUrbanoRoute
@@ -534,6 +543,7 @@ export interface FileRouteTypes {
     | '/catalogo-pdf'
     | '/dashboard'
     | '/finalizar-orcamento'
+    | '/google-shopping.xml'
     | '/health'
     | '/health-cache'
     | '/mobiliario-urbano'
@@ -591,6 +601,7 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/catalogo-pdf'
     | '/finalizar-orcamento'
+    | '/google-shopping.xml'
     | '/health'
     | '/health-cache'
     | '/mobiliario-urbano'
@@ -648,6 +659,7 @@ export interface FileRouteTypes {
     | '/catalogo-pdf'
     | '/dashboard'
     | '/finalizar-orcamento'
+    | '/google-shopping.xml'
     | '/health'
     | '/health-cache'
     | '/mobiliario-urbano'
@@ -707,6 +719,7 @@ export interface RootRouteChildren {
   CatalogoPdfRoute: typeof CatalogoPdfRoute
   DashboardRoute: typeof DashboardRouteWithChildren
   FinalizarOrcamentoRoute: typeof FinalizarOrcamentoRoute
+  GoogleShoppingDotxmlRoute: typeof GoogleShoppingDotxmlRoute
   HealthRoute: typeof HealthRoute
   HealthCacheRoute: typeof HealthCacheRoute
   MobiliarioUrbanoRoute: typeof MobiliarioUrbanoRoute
@@ -817,6 +830,13 @@ declare module '@tanstack/react-router' {
       path: '/health'
       fullPath: '/health'
       preLoaderRoute: typeof HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/google-shopping.xml': {
+      id: '/google-shopping.xml'
+      path: '/google-shopping.xml'
+      fullPath: '/google-shopping.xml'
+      preLoaderRoute: typeof GoogleShoppingDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/finalizar-orcamento': {
@@ -1217,6 +1237,7 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogoPdfRoute: CatalogoPdfRoute,
   DashboardRoute: DashboardRouteWithChildren,
   FinalizarOrcamentoRoute: FinalizarOrcamentoRoute,
+  GoogleShoppingDotxmlRoute: GoogleShoppingDotxmlRoute,
   HealthRoute: HealthRoute,
   HealthCacheRoute: HealthCacheRoute,
   MobiliarioUrbanoRoute: MobiliarioUrbanoRoute,
