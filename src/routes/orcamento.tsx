@@ -849,6 +849,7 @@ function StepProducts({
                         {item.availableFinishes.map((option) => (
                           <option key={option.name} value={option.name}>
                             {option.name}
+                            {option.extraPrice > 0 ? ` (+ ${formatBRL(option.extraPrice)})` : ""}
                           </option>
                         ))}
                       </select>

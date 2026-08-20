@@ -773,6 +773,7 @@ function ProductPage() {
                   {finishes.map((f) => (
                     <option key={f.id} value={f.name}>
                       {f.name}
+                      {f.extra_price > 0 ? ` (+ ${formatBRL(f.extra_price)})` : ""}
                     </option>
                   ))}
                 </select>
