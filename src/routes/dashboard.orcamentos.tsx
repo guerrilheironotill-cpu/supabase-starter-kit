@@ -1194,7 +1194,7 @@ ${meta.note ? module("Observações", `<div style="font-size:13px;line-height:1.
       return;
     }
     const text = encodeURIComponent(`${summary()}\n\n${shareUrl()}`);
-    window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+    window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${text}`, "_blank");
   };
 
   const sendEmail = () => {

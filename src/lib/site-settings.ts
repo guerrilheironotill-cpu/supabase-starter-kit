@@ -35,6 +35,6 @@ export function useWhatsAppNumber(): string {
 }
 
 export function whatsappLinkFrom(number: string, text?: string) {
-  const base = `https://wa.me/${digitsOnly(number)}`;
-  return text ? `${base}?text=${encodeURIComponent(text)}` : base;
+  const base = `https://web.whatsapp.com/send?phone=${digitsOnly(number)}`;
+  return text ? `${base}&text=${encodeURIComponent(text)}` : base;
 }

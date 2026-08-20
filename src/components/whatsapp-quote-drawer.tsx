@@ -253,7 +253,7 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
       }
     })();
 
-    const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+    const url = `https://web.whatsapp.com/send?phone=${whatsappNumber}&text=${encodeURIComponent(message)}`;
     window.open(url, "_blank", "noopener,noreferrer");
     onClose();
   };

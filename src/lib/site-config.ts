@@ -14,6 +14,6 @@ export function absoluteUrl(path = "/") {
 }
 
 export function whatsappLink(text?: string) {
-  const base = `https://wa.me/${WHATSAPP_NUMBER}`;
-  return text ? `${base}?text=${encodeURIComponent(text)}` : base;
+  const base = `https://web.whatsapp.com/send?phone=${WHATSAPP_NUMBER}`;
+  return text ? `${base}&text=${encodeURIComponent(text)}` : base;
 }
