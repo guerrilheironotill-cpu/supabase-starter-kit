@@ -55,8 +55,12 @@ function DashboardFinishesPage() {
     const currentOrder = current.sort_order === 9999 ? index : current.sort_order;
     const targetOrder = target.sort_order === 9999 ? targetIndex : target.sort_order;
     const updates = await Promise.all([
-      supabase.from("finish_catalog").upsert({ name: current.name, sort_order: targetOrder }, { onConflict: "name" }),
-      supabase.from("finish_catalog").upsert({ name: target.name, sort_order: currentOrder }, { onConflict: "name" }),
+      supabase
+        .from("finish_catalog")
+        .upsert({ name: current.name, sort_order: targetOrder }, { onConflict: "name" }),
+      supabase
+        .from("finish_catalog")
+        .upsert({ name: target.name, sort_order: currentOrder }, { onConflict: "name" }),
     ]);
     const error = updates.find((result) => result.error)?.error;
     if (error) throw error;
@@ -186,8 +190,28 @@ function DashboardFinishesPage() {
             {data.map((f, index) => (
               <div key={f.name} className="relative">
                 <div className="absolute right-4 top-4 z-10 flex items-center gap-1">
-                  <button type="button" disabled={index === 0} onClick={() => void moveFinish(index, -1).catch((error) => toast.error(error.message))} aria-label={`Mover ${f.name} para cima`} className="rounded-md border border-border bg-background p-1.5 text-foreground hover:bg-muted disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
-                  <button type="button" disabled={index === data.length - 1} onClick={() => void moveFinish(index, 1).catch((error) => toast.error(error.message))} aria-label={`Mover ${f.name} para baixo`} className="rounded-md border border-border bg-background p-1.5 text-foreground hover:bg-muted disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
+                  <button
+                    type="button"
+                    disabled={index === 0}
+                    onClick={() =>
+                      void moveFinish(index, -1).catch((error) => toast.error(error.message))
+                    }
+                    aria-label={`Mover ${f.name} para cima`}
+                    className="rounded-md border border-border bg-background p-1.5 text-foreground hover:bg-muted disabled:opacity-30"
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={index === data.length - 1}
+                    onClick={() =>
+                      void moveFinish(index, 1).catch((error) => toast.error(error.message))
+                    }
+                    aria-label={`Mover ${f.name} para baixo`}
+                    className="rounded-md border border-border bg-background p-1.5 text-foreground hover:bg-muted disabled:opacity-30"
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                  </button>
                   <RowActionsMenu
                     label={`Ações de ${f.name}`}
                     actions={[
@@ -236,10 +260,14 @@ function DashboardFinishesPage() {
                       const { data: savedCatalog, error: createError } = await supabase
                         .from("finish_catalog")
                         .insert(payload)
-                        .select("name, image_url, gallery")
+                        .select("name, image_url, gallery, extra_price")
                         .single();
                       if (createError) throw createError;
-                      if (!savedCatalog) throw new Error("O acabamento não foi confirmado pelo banco de dados.");
+                      if (!savedCatalog)
+                        throw new Error("O acabamento não foi confirmado pelo banco de dados.");
+                      if (Number(savedCatalog.extra_price) !== payload.extra_price) {
+                        throw new Error("O banco não confirmou o acréscimo informado.");
+                      }
 
                       const { error: relationError } = await supabase
                         .from("product_finishes")
@@ -259,10 +287,14 @@ function DashboardFinishesPage() {
                       const { data: savedCatalog, error } = await supabase
                         .from("finish_catalog")
                         .upsert(payload, { onConflict: "name" })
-                        .select("name, image_url, gallery")
+                        .select("name, image_url, gallery, extra_price")
                         .single();
                       if (error) throw error;
-                      if (!savedCatalog) throw new Error("O acabamento não foi confirmado pelo banco de dados.");
+                      if (!savedCatalog)
+                        throw new Error("O acabamento não foi confirmado pelo banco de dados.");
+                      if (Number(savedCatalog.extra_price) !== payload.extra_price) {
+                        throw new Error("O banco não confirmou o acréscimo informado.");
+                      }
                     }
                     await Promise.all([
                       qc.invalidateQueries({ queryKey: ["dashboard", "acabamentos"] }),

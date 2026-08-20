@@ -55,9 +55,7 @@ export async function fetchCategoryTerms(): Promise<CategoryTerm[]> {
   if (productsError) throw productsError;
   if (baseError && !isOptionalMetadataError(baseError)) throw baseError;
 
-  const metadata = await supabase
-    .from("categories")
-    .select("slug, name, cover_image, icon_svg");
+  const metadata = await supabase.from("categories").select("slug, name, cover_image, icon_svg");
   if (metadata.error && !isOptionalMetadataError(metadata.error)) throw metadata.error;
 
   const counts = new Map<string, number>();
@@ -67,10 +65,7 @@ export async function fetchCategoryTerms(): Promise<CategoryTerm[]> {
     counts.set(name, (counts.get(name) ?? 0) + 1);
   }
 
-  const metaBySlug = new Map<
-    string,
-    { cover_image: string | null; icon_svg: string | null }
-  >();
+  const metaBySlug = new Map<string, { cover_image: string | null; icon_svg: string | null }>();
   if (!metadata.error) {
     for (const row of metadata.data ?? []) {
       const item = row as {
@@ -90,10 +85,7 @@ export async function fetchCategoryTerms(): Promise<CategoryTerm[]> {
 
   const terms = new Map<string, CategoryTerm & { sort_order: number }>();
 
-  const baseBySlug = new Map<
-    string,
-    { id: string; name: string; sort_order: number }
-  >();
+  const baseBySlug = new Map<string, { id: string; name: string; sort_order: number }>();
   for (const row of baseCategories ?? []) {
     const item = row as {
       id: string;
@@ -146,7 +138,9 @@ export async function fetchCategoryTerms(): Promise<CategoryTerm[]> {
     .map(({ sort_order: _sortOrder, ...term }) => term);
 }
 
-export async function fetchProductCategoryOptions(): Promise<Array<{ id: string; name: string; slug: string }>> {
+export async function fetchProductCategoryOptions(): Promise<
+  Array<{ id: string; name: string; slug: string }>
+> {
   const terms = await fetchCategoryTerms();
   return terms.map((term) => ({
     id: term.id ?? term.slug,
@@ -162,18 +156,27 @@ export async function fetchAttributeTerms(
   const rows = await supabase.from(relationTable).select("name");
   if (rows.error) throw rows.error;
 
-  let catalog = await supabase
-    .from(catalogTable)
-    .select("name, image_url, gallery, description, extra_price, sort_order");
+  let catalog =
+    catalogTable === "finish_catalog"
+      ? await supabase
+          .from("finish_catalog")
+          .select("name, image_url, gallery, description, extra_price, sort_order")
+      : await supabase
+          .from("color_catalog")
+          .select("name, image_url, gallery, description, sort_order");
   if (catalog.error && isOptionalMetadataError(catalog.error)) {
-    catalog = await supabase
-      .from(catalogTable)
-      .select("name, image_url, gallery, description") as typeof catalog;
+    catalog = (
+      catalogTable === "finish_catalog"
+        ? await supabase
+            .from("finish_catalog")
+            .select("name, image_url, gallery, description, extra_price")
+        : await supabase.from("color_catalog").select("name, image_url, gallery, description")
+    ) as typeof catalog;
   }
-  if (catalog.error && catalogTable === "color_catalog" && isOptionalMetadataError(catalog.error)) {
-    catalog = await supabase
+  if (catalog.error && isOptionalMetadataError(catalog.error)) {
+    catalog = (await supabase
       .from(catalogTable)
-      .select("name, image_url, description") as typeof catalog;
+      .select("name, image_url, description")) as typeof catalog;
   }
   if (catalog.error && !isOptionalMetadataError(catalog.error)) throw catalog.error;
 
@@ -186,7 +189,14 @@ export async function fetchAttributeTerms(
 
   const meta = new Map<
     string,
-    { image_url: string | null; gallery: string[]; description: string | null; video_url: string | null; extra_price: number; sort_order: number }
+    {
+      image_url: string | null;
+      gallery: string[];
+      description: string | null;
+      video_url: string | null;
+      extra_price: number;
+      sort_order: number;
+    }
   >();
   if (!catalog.error) {
     for (const row of catalog.data ?? []) {
@@ -215,7 +225,10 @@ export async function fetchAttributeTerms(
   }
 
   return Array.from(counts.keys())
-    .sort((a, b) => (meta.get(a)?.sort_order ?? 9999) - (meta.get(b)?.sort_order ?? 9999) || a.localeCompare(b))
+    .sort(
+      (a, b) =>
+        (meta.get(a)?.sort_order ?? 9999) - (meta.get(b)?.sort_order ?? 9999) || a.localeCompare(b),
+    )
     .map((name) => {
       const item = meta.get(name);
       return {
