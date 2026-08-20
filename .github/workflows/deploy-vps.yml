@@ -36,7 +36,12 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
           DEPLOY_TAG: ${{ github.ref_name }}
         run: |
-          ssh -p "${VPS_PORT:-22}" "$VPS_USER@$VPS_HOST" \
+          ssh -vv \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -o IdentitiesOnly=yes \
+            -i ~/.ssh/id_ed25519 \
+            -p "${VPS_PORT:-22}" "$VPS_USER@$VPS_HOST" \
             "bash -s -- '$DEPLOY_TAG'" <<'REMOTE'
           set -Eeuo pipefail
           deploy_tag="$1"
