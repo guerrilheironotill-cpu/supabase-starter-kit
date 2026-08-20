@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, ArrowUpDown, Loader2, Pencil, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Download, Loader2, Pencil, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -13,6 +13,7 @@ type Row = {
   last_name: string | null;
   email: string | null;
   phone: string | null;
+  instagram: string | null;
   cpf: string | null;
   cnpj: string | null;
   city: string | null;
@@ -44,7 +45,6 @@ export const Route = createFileRoute("/dashboard/clientes")({
 function CustomersPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("any");
   const [typeFilter, setTypeFilter] = useState("any");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
@@ -60,7 +60,7 @@ function CustomersPage() {
       const { data, error } = await supabase
         .from("customers" as never)
         .select(
-          "id,first_name,last_name,email,phone,cpf,cnpj,city,state,status,origin,customer_type,commercial_status,created_at,orders:app_orders(id,number,external_number)",
+          "id,first_name,last_name,email,phone,instagram,cpf,cnpj,city,state,status,origin,customer_type,commercial_status,created_at,orders:app_orders(id,number,external_number)",
         )
         .limit(1000);
       if (error) throw error;
@@ -72,12 +72,8 @@ function CustomersPage() {
     const q = search.toLowerCase().trim();
     const rows = data.filter((c) => {
       const text =
-        `${c.first_name ?? ""} ${c.last_name ?? ""} ${c.email ?? ""} ${c.phone ?? ""} ${c.cpf ?? c.cnpj ?? ""}`.toLowerCase();
-      return (
-        (!q || text.includes(q)) &&
-        (statusFilter === "any" || c.status === statusFilter) &&
-        (typeFilter === "any" || c.customer_type === typeFilter)
-      );
+        `${c.first_name ?? ""} ${c.last_name ?? ""} ${c.email ?? ""} ${c.phone ?? ""} ${c.instagram ?? ""} ${c.cpf ?? c.cnpj ?? ""}`.toLowerCase();
+      return (!q || text.includes(q)) && (typeFilter === "any" || c.customer_type === typeFilter);
     });
     const sign = direction === "asc" ? 1 : -1;
     return rows.sort((a, b) => {
@@ -96,7 +92,7 @@ function CustomersPage() {
         }) * sign
       );
     });
-  }, [data, direction, search, sortKey, statusFilter, typeFilter]);
+  }, [data, direction, search, sortKey, typeFilter]);
   const all = filtered.length > 0 && filtered.every((c) => selected.has(c.id));
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setDirection((v) => (v === "asc" ? "desc" : "asc"));
@@ -117,24 +113,6 @@ function CustomersPage() {
     const result = (await response.json()) as { ok?: boolean; error?: string; deleted?: number };
     if (!response.ok || !result.ok) throw new Error(result.error || `Erro HTTP ${response.status}`);
     return result;
-  }
-  async function bulkStatus(status: string) {
-    if (!selected.size) return;
-    setWorking(true);
-    try {
-      await callBulkApi("PATCH", { ids: [...selected], status });
-      toast.success(
-        `Status atualizado em ${selected.size} cliente${selected.size === 1 ? "" : "s"}.`,
-      );
-      setSelected(new Set());
-      await qc.invalidateQueries({ queryKey: ["local-customers"] });
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Não foi possível atualizar os clientes.",
-      );
-    } finally {
-      setWorking(false);
-    }
   }
   async function removeCustomers(explicitIds?: string[]) {
     const ids = explicitIds ?? [...selected];
@@ -160,6 +138,46 @@ function CustomersPage() {
       setWorking(false);
     }
   }
+  function exportCsv() {
+    const rows = selected.size
+      ? filtered.filter((customer) => selected.has(customer.id))
+      : filtered;
+    const headers = [
+      "nome",
+      "sobrenome",
+      "email",
+      "telefone",
+      "instagram",
+      "cpf",
+      "cnpj",
+      "cidade",
+      "estado",
+      "tipo",
+      "pedidos",
+    ];
+    const values = rows.map((customer) => [
+      customer.first_name,
+      customer.last_name,
+      customer.email,
+      customer.phone,
+      customer.instagram,
+      customer.cpf,
+      customer.cnpj,
+      customer.city,
+      customer.state,
+      customer.customer_type,
+      customer.orders?.length ?? 0,
+    ]);
+    const csv = [headers, ...values]
+      .map((row) => row.map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `clientes-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
   return (
     <>
       <div className="mb-6">
@@ -176,15 +194,6 @@ function CustomersPage() {
           className="min-w-[260px] flex-1 rounded-md border border-border bg-card px-3 py-2 text-sm"
         />
         <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-md border border-border bg-card px-3 py-2 text-sm"
-        >
-          <option value="any">Todos os status</option>
-          <option value="active">Ativos</option>
-          <option value="inactive">Inativos</option>
-        </select>
-        <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
           className="rounded-md border border-border bg-card px-3 py-2 text-sm"
@@ -194,24 +203,17 @@ function CustomersPage() {
           <option value="professional">Profissional</option>
           <option value="reseller">Revendedor</option>
         </select>
+        <button
+          type="button"
+          onClick={exportCsv}
+          className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm hover:bg-muted"
+        >
+          <Download className="h-4 w-4" /> Exportar CSV
+        </button>
       </div>
       {selected.size > 0 && (
         <div className="mb-3 flex gap-2 rounded-lg border border-border bg-muted/40 p-2 text-sm">
           <span>{selected.size} selecionado(s)</span>
-          <button
-            disabled={working}
-            onClick={() => void bulkStatus("active")}
-            className="rounded border px-2"
-          >
-            Ativar
-          </button>
-          <button
-            disabled={working}
-            onClick={() => void bulkStatus("inactive")}
-            className="rounded border px-2"
-          >
-            Inativar
-          </button>
           <button
             disabled={working}
             onClick={() => void removeCustomers()}

@@ -12,6 +12,7 @@ type Customer = {
   last_name: string | null;
   email: string | null;
   phone: string | null;
+  instagram: string | null;
   cpf: string | null;
   cnpj: string | null;
   address_1: string | null;
@@ -93,6 +94,7 @@ function EditCustomerPage() {
         last_name: form.last_name || null,
         email: form.email || null,
         phone: form.phone || null,
+        instagram: form.instagram?.trim().replace(/^@/, "") || null,
         cpf: form.cpf?.replace(/\D/g, "") || null,
         cnpj: form.cnpj?.replace(/\D/g, "") || null,
         address_1: form.address_1 || null,
@@ -188,6 +190,7 @@ function EditCustomerPage() {
             ["last_name", "Sobrenome"],
             ["email", "E-mail"],
             ["phone", "Telefone"],
+            ["instagram", "Instagram"],
             ["cpf", "CPF"],
             ["cnpj", "CNPJ"],
             ["address_1", "Endereço"],
@@ -205,17 +208,6 @@ function EditCustomerPage() {
             }
           />
         ))}
-        <label className="grid gap-1 text-sm">
-          Status
-          <select
-            value={form.status ?? "active"}
-            onChange={(e) => set("status", e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-2"
-          >
-            <option value="active">Ativo</option>
-            <option value="inactive">Inativo</option>
-          </select>
-        </label>
         <label className="md:col-span-2 grid gap-1 text-sm">
           Observações
           <textarea
