@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useState } from "react";
-import { LayoutDashboard, PackagePlus, Pencil } from "lucide-react";
+import { FileDown, LayoutDashboard, PackagePlus, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 type AdminEditBarProps = {
@@ -91,6 +91,15 @@ export function AdminEditBar({ label, to, search, params }: AdminEditBarProps) {
           >
             <PackagePlus className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Cadastrar produto</span>
+          </Link>
+          <Link
+            to="/catalogo-pdf"
+            target="_blank"
+            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <FileDown className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Baixar catálogo PDF</span>
+            <span className="sm:hidden">PDF</span>
           </Link>
           <Link
             to={to}
