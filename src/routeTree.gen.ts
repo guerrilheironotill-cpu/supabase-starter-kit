@@ -26,6 +26,7 @@ import { Route as FinalizarOrcamentoRouteImport } from './routes/finalizar-orcam
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CatalogoPdfRouteImport } from './routes/catalogo-pdf'
 import { Route as CatalogoRouteImport } from './routes/catalogo'
+import { Route as CaracteristicasDoConcretoRouteImport } from './routes/caracteristicas-do-concreto'
 import { Route as BuscaRouteImport } from './routes/busca'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
@@ -153,6 +154,12 @@ const CatalogoRoute = CatalogoRouteImport.update({
   path: '/catalogo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CaracteristicasDoConcretoRoute =
+  CaracteristicasDoConcretoRouteImport.update({
+    id: '/caracteristicas-do-concreto',
+    path: '/caracteristicas-do-concreto',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const BuscaRoute = BuscaRouteImport.update({
   id: '/busca',
   path: '/busca',
@@ -373,6 +380,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/busca': typeof BuscaRoute
+  '/caracteristicas-do-concreto': typeof CaracteristicasDoConcretoRoute
   '/catalogo': typeof CatalogoRoute
   '/catalogo-pdf': typeof CatalogoPdfRoute
   '/dashboard': typeof DashboardRouteWithChildren
@@ -434,6 +442,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/busca': typeof BuscaRoute
+  '/caracteristicas-do-concreto': typeof CaracteristicasDoConcretoRoute
   '/catalogo': typeof CatalogoRoute
   '/catalogo-pdf': typeof CatalogoPdfRoute
   '/finalizar-orcamento': typeof FinalizarOrcamentoRoute
@@ -494,6 +503,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/busca': typeof BuscaRoute
+  '/caracteristicas-do-concreto': typeof CaracteristicasDoConcretoRoute
   '/catalogo': typeof CatalogoRoute
   '/catalogo-pdf': typeof CatalogoPdfRoute
   '/dashboard': typeof DashboardRouteWithChildren
@@ -557,6 +567,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/busca'
+    | '/caracteristicas-do-concreto'
     | '/catalogo'
     | '/catalogo-pdf'
     | '/dashboard'
@@ -618,6 +629,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/busca'
+    | '/caracteristicas-do-concreto'
     | '/catalogo'
     | '/catalogo-pdf'
     | '/finalizar-orcamento'
@@ -677,6 +689,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/busca'
+    | '/caracteristicas-do-concreto'
     | '/catalogo'
     | '/catalogo-pdf'
     | '/dashboard'
@@ -739,6 +752,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   BuscaRoute: typeof BuscaRoute
+  CaracteristicasDoConcretoRoute: typeof CaracteristicasDoConcretoRoute
   CatalogoRoute: typeof CatalogoRoute
   CatalogoPdfRoute: typeof CatalogoPdfRoute
   DashboardRoute: typeof DashboardRouteWithChildren
@@ -891,6 +905,13 @@ declare module '@tanstack/react-router' {
       path: '/catalogo'
       fullPath: '/catalogo'
       preLoaderRoute: typeof CatalogoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/caracteristicas-do-concreto': {
+      id: '/caracteristicas-do-concreto'
+      path: '/caracteristicas-do-concreto'
+      fullPath: '/caracteristicas-do-concreto'
+      preLoaderRoute: typeof CaracteristicasDoConcretoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/busca': {
@@ -1273,6 +1294,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   BuscaRoute: BuscaRoute,
+  CaracteristicasDoConcretoRoute: CaracteristicasDoConcretoRoute,
   CatalogoRoute: CatalogoRoute,
   CatalogoPdfRoute: CatalogoPdfRoute,
   DashboardRoute: DashboardRouteWithChildren,

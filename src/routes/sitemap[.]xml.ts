@@ -3,7 +3,6 @@ import type {} from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { SITE_URL } from "@/lib/site-config";
 
-
 type Entry = { path: string; changefreq?: string; priority?: string; lastmod?: string };
 
 function isIndexableProduct(product: { slug: string; name: string; category: string }) {
@@ -21,6 +20,7 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/", changefreq: "weekly", priority: "1.0" },
           { path: "/catalogo", changefreq: "weekly", priority: "0.9" },
           { path: "/pias-e-cubas-de-concreto", changefreq: "monthly", priority: "0.8" },
+          { path: "/caracteristicas-do-concreto", changefreq: "yearly", priority: "0.7" },
           { path: "/vasos-para-empresas", changefreq: "monthly", priority: "0.8" },
           { path: "/mobiliario-urbano", changefreq: "monthly", priority: "0.8" },
           { path: "/projetos-personalizados", changefreq: "monthly", priority: "0.8" },
@@ -70,7 +70,9 @@ export const Route = createFileRoute("/sitemap.xml")({
           console.error("[sitemap] Failed to load catalog entries", error);
         }
 
-        const uniqueEntries = Array.from(new Map(entries.map((entry) => [entry.path, entry])).values());
+        const uniqueEntries = Array.from(
+          new Map(entries.map((entry) => [entry.path, entry])).values(),
+        );
         const urls = uniqueEntries
           .map((e) =>
             [

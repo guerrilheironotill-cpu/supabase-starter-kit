@@ -29,6 +29,8 @@ import {
 } from "@/components/available-finishes-section";
 import { absoluteUrl } from "@/lib/site-config";
 import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
+import { ConcreteCharacteristicsCallout } from "@/components/concrete-characteristics-callout";
+import { isConcreteProduct } from "@/lib/concrete-characteristics";
 import {
   buildProductEditorialContent,
   productEditorialText,
@@ -593,6 +595,8 @@ function ProductPage() {
 
       <AvailableFinishesSection availableNames={finishes.map((finish) => finish.name)} />
       <AvailableColorsSection availableNames={colors.map((color) => color.name)} />
+
+      {isConcreteProduct(p) && <ConcreteCharacteristicsCallout />}
 
       <section className="border-t border-primary/10 bg-background py-14 sm:py-18">
         <div className="mx-auto max-w-5xl px-4 sm:px-8">
