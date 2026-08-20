@@ -1,8 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown, FileText, Menu, Search, X } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { categorySlug, fetchProductsWithSizes } from "@/lib/products";
 import { useQuoteStore } from "@/lib/quote-store";
 import { cn } from "@/lib/utils";
 import { WhatsAppQuoteDrawer } from "./whatsapp-quote-drawer";
@@ -14,22 +12,7 @@ function useHydrated() {
 }
 
 export function SiteHeader() {
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const megaMenuCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const openProductsMenu = () => {
-    if (megaMenuCloseTimer.current) clearTimeout(megaMenuCloseTimer.current);
-    megaMenuCloseTimer.current = null;
-    setOpenMenu("products");
-  };
-
-  const scheduleProductsMenuClose = () => {
-    if (megaMenuCloseTimer.current) clearTimeout(megaMenuCloseTimer.current);
-    megaMenuCloseTimer.current = setTimeout(() => {
-      setOpenMenu(null);
-      megaMenuCloseTimer.current = null;
-    }, 550);
-  };
+  const [otherProductsOpen, setOtherProductsOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileProductsOpen, setMobileProductsOpen] = useState(true);
   const [scrolledRaw, setScrolled] = useState(false);
@@ -41,49 +24,6 @@ export function SiteHeader() {
   const [waOpen, setWaOpen] = useState(false);
   const hydrated = useHydrated();
   const count = useQuoteStore((s) => s.items.reduce((n, i) => n + i.quantity, 0));
-  const { data: menuProducts = [] } = useQuery({
-    queryKey: ["products", "header-mega-menu"],
-    queryFn: () => fetchProductsWithSizes({}),
-    staleTime: 5 * 60_000,
-  });
-  const productCategories = useMemo(() => {
-    const grouped = new Map<
-      string,
-      { name: string; slug: string; image?: string; count: number }
-    >();
-
-    for (const product of menuProducts) {
-      const categoryName = product.category?.trim();
-      if (!categoryName) continue;
-
-      const current = grouped.get(categoryName);
-      if (current) {
-        current.count += 1;
-        if (!current.image) current.image = product.images?.[0];
-      } else {
-        grouped.set(categoryName, {
-          name: categoryName,
-          slug: categorySlug(categoryName),
-          image: product.images?.[0],
-          count: 1,
-        });
-      }
-    }
-
-    const categoryOrder = ["vasos-de-concreto", "jardineiras", "mesas", "bancos"];
-
-    return Array.from(grouped.values())
-      .filter((category) => categoryOrder.includes(category.slug))
-      .sort((a, b) => categoryOrder.indexOf(a.slug) - categoryOrder.indexOf(b.slug));
-  }, [menuProducts]);
-
-  useEffect(
-    () => () => {
-      if (megaMenuCloseTimer.current) clearTimeout(megaMenuCloseTimer.current);
-    },
-    [],
-  );
-
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
@@ -146,10 +86,12 @@ export function SiteHeader() {
           </Link>
 
           <nav aria-label="Menu principal" className="hidden items-center gap-1 xl:flex">
+            <HeaderCategoryLink label="Vasos" slug="vasos-de-concreto" scrolled={scrolled} />
+            <HeaderCategoryLink label="Jardineiras" slug="jardineiras" scrolled={scrolled} />
             <div
               className="relative"
-              onMouseEnter={openProductsMenu}
-              onMouseLeave={scheduleProductsMenuClose}
+              onMouseEnter={() => setOtherProductsOpen(true)}
+              onMouseLeave={() => setOtherProductsOpen(false)}
             >
               <button
                 type="button"
@@ -158,74 +100,60 @@ export function SiteHeader() {
                   scrolled
                     ? "text-white/85 hover:text-white"
                     : "text-primary/80 hover:text-primary",
-                  openMenu === "products" && (scrolled ? "text-white" : "text-primary"),
+                  otherProductsOpen && (scrolled ? "text-white" : "text-primary"),
                 )}
-                aria-expanded={openMenu === "products"}
+                aria-expanded={otherProductsOpen}
+                onClick={() => setOtherProductsOpen((value) => !value)}
               >
                 <span className="relative">
-                  Produtos
+                  Outros produtos
                   <span
                     className={cn(
                       "pointer-events-none absolute -bottom-1 left-0 h-[2px] w-0 bg-secondary transition-all duration-300 group-hover/nav:w-full",
-                      openMenu === "products" && "w-full",
+                      otherProductsOpen && "w-full",
                     )}
                   />
                 </span>
                 <ChevronDown
                   className={cn(
                     "h-3.5 w-3.5 transition-transform duration-300",
-                    openMenu === "products" && "rotate-180",
+                    otherProductsOpen && "rotate-180",
                   )}
                 />
               </button>
 
               <div
-                aria-hidden={openMenu !== "products"}
+                aria-hidden={!otherProductsOpen}
                 className={cn(
-                  "fixed left-1/2 top-[calc(var(--admin-bar-h,0px)+86px)] z-[-1] w-[calc(100%-2rem)] max-w-7xl -translate-x-1/2 origin-top transition-transform duration-[1400ms] ease-in-out will-change-transform sm:w-[calc(100%-4rem)] lg:w-[calc(100%-100px)]",
-                  openMenu === "products"
-                    ? "pointer-events-auto translate-y-0"
-                    : "pointer-events-none -translate-y-9",
+                  "absolute left-1/2 top-full z-50 mt-1 w-60 -translate-x-1/2 pt-2 transition duration-200",
+                  otherProductsOpen
+                    ? "pointer-events-auto translate-y-0 opacity-100"
+                    : "pointer-events-none -translate-y-2 opacity-0",
                 )}
               >
-                <div
-                  className={cn(
-                    "grid grid-cols-4 gap-4 overflow-hidden rounded-3xl border border-gray-200 bg-white p-5 pt-10 text-primary shadow-[0_20px_45px_-32px_rgba(20,28,22,0.35)] transition-opacity duration-500 ease-out",
-                    openMenu === "products" ? "opacity-100 delay-100" : "opacity-0 delay-0",
-                  )}
-                >
-                  {productCategories.map((category) => (
-                    <Link
-                      key={category.slug}
-                      to="/categoria/$slug"
-                      params={{ slug: category.slug }}
-                      tabIndex={openMenu === "products" ? 0 : -1}
-                      onClick={() => setOpenMenu(null)}
-                      className="group/category block"
-                    >
-                      <div className="aspect-[4/3] overflow-hidden bg-primary/5">
-                        {category.image ? (
-                          <img
-                            src={category.image}
-                            alt=""
-                            width={640}
-                            height={480}
-                            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover/category:scale-105"
-                          />
-                        ) : (
-                          <div className="h-full w-full bg-primary/5" />
-                        )}
-                      </div>
-                      <div className="mt-3">
-                        <span className="block font-display text-lg font-semibold">
-                          {category.name}
-                        </span>
-                        <span className="mt-0.5 block text-xs text-primary/50">
-                          {category.count} {category.count === 1 ? "produto" : "produtos"}
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white p-2 text-primary shadow-xl">
+                  <DropdownCategoryLink
+                    label="Todos os outros produtos"
+                    slug="outros-produtos"
+                    onNavigate={() => setOtherProductsOpen(false)}
+                  />
+                  <DropdownCategoryLink
+                    label="Mesas"
+                    slug="mesas"
+                    onNavigate={() => setOtherProductsOpen(false)}
+                  />
+                  <DropdownCategoryLink
+                    label="Bancos"
+                    slug="bancos"
+                    onNavigate={() => setOtherProductsOpen(false)}
+                  />
+                  <Link
+                    to="/pias-e-cubas-de-concreto"
+                    onClick={() => setOtherProductsOpen(false)}
+                    className="block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-secondary/20"
+                  >
+                    Cubas e pias
+                  </Link>
                 </div>
               </div>
             </div>
@@ -238,11 +166,10 @@ export function SiteHeader() {
               )}
             >
               <span className="relative">
-                Projetos sob medida
+                Sob medida
                 <span className="pointer-events-none absolute -bottom-1 left-0 h-[2px] w-0 bg-secondary transition-all duration-300 group-hover/nav:w-full" />
               </span>
             </Link>
-
           </nav>
           <div className="flex items-center gap-3">
             {/* Quote count indicator (outside the button) */}
@@ -420,8 +347,25 @@ export function SiteHeader() {
               </form>
             </div>
 
-            <nav aria-label="Menu para dispositivos móveis" className="flex-1 overflow-y-auto px-3 py-4">
+            <nav
+              aria-label="Menu para dispositivos móveis"
+              className="flex-1 overflow-y-auto px-3 py-4"
+            >
               <ul className="space-y-1">
+                <li>
+                  <MobileCategoryLink
+                    label="Vasos"
+                    slug="vasos-de-concreto"
+                    onNavigate={() => setMobileOpen(false)}
+                  />
+                </li>
+                <li>
+                  <MobileCategoryLink
+                    label="Jardineiras"
+                    slug="jardineiras"
+                    onNavigate={() => setMobileOpen(false)}
+                  />
+                </li>
                 <li>
                   <button
                     type="button"
@@ -429,7 +373,7 @@ export function SiteHeader() {
                     className="flex w-full items-center justify-between rounded-lg px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition-colors hover:bg-secondary/20 hover:text-primary"
                     aria-expanded={mobileProductsOpen}
                   >
-                    Produtos
+                    Outros produtos
                     <ChevronDown
                       className={cn(
                         "h-4 w-4 transition-transform duration-300",
@@ -439,36 +383,36 @@ export function SiteHeader() {
                   </button>
                   {mobileProductsOpen && (
                     <ul className="mt-1 space-y-1 border-l border-border pl-3">
-                      {productCategories.map((category) => (
-                        <li key={category.slug}>
-                          <Link
-                            to="/categoria/$slug"
-                            params={{ slug: category.slug }}
-                            className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-secondary/15"
-                            onClick={() => setMobileOpen(false)}
-                          >
-                            <span className="h-12 w-16 shrink-0 overflow-hidden bg-primary/5">
-                              {category.image && (
-                                <img
-                                  src={category.image}
-                                  alt=""
-                                  width={160}
-                                  height={120}
-                                  className="h-full w-full object-cover"
-                                />
-                              )}
-                            </span>
-                            <span className="min-w-0">
-                              <span className="block font-display text-base font-semibold text-primary">
-                                {category.name}
-                              </span>
-                              <span className="block text-xs text-primary/55">
-                                {category.count} {category.count === 1 ? "produto" : "produtos"}
-                              </span>
-                            </span>
-                          </Link>
-                        </li>
-                      ))}
+                      <li>
+                        <MobileCategoryLink
+                          label="Todos os outros produtos"
+                          slug="outros-produtos"
+                          onNavigate={() => setMobileOpen(false)}
+                        />
+                      </li>
+                      <li>
+                        <MobileCategoryLink
+                          label="Mesas"
+                          slug="mesas"
+                          onNavigate={() => setMobileOpen(false)}
+                        />
+                      </li>
+                      <li>
+                        <MobileCategoryLink
+                          label="Bancos"
+                          slug="bancos"
+                          onNavigate={() => setMobileOpen(false)}
+                        />
+                      </li>
+                      <li>
+                        <Link
+                          to="/pias-e-cubas-de-concreto"
+                          className="block rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary/15 hover:text-primary"
+                          onClick={() => setMobileOpen(false)}
+                        >
+                          Cubas e pias
+                        </Link>
+                      </li>
                     </ul>
                   )}
                 </li>
@@ -478,7 +422,7 @@ export function SiteHeader() {
                     className="block rounded-lg px-3 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition-colors hover:bg-secondary/20 hover:text-primary"
                     onClick={() => setMobileOpen(false)}
                   >
-                    Projetos sob medida
+                    Sob medida
                   </Link>
                 </li>
               </ul>
@@ -515,5 +459,73 @@ export function SiteHeader() {
       </header>
       <WhatsAppQuoteDrawer open={waOpen} onClose={() => setWaOpen(false)} />
     </>
+  );
+}
+
+function HeaderCategoryLink({
+  label,
+  slug,
+  scrolled,
+}: {
+  label: string;
+  slug: string;
+  scrolled: boolean;
+}) {
+  return (
+    <Link
+      to="/categoria/$slug"
+      params={{ slug }}
+      className={cn(
+        "group/nav relative inline-flex items-center rounded-full px-3.5 py-2 text-[13px] font-semibold uppercase tracking-[0.14em] transition-all duration-300 hover:-translate-y-0.5",
+        scrolled ? "text-white/85 hover:text-white" : "text-primary/80 hover:text-primary",
+      )}
+    >
+      <span className="relative">
+        {label}
+        <span className="pointer-events-none absolute -bottom-1 left-0 h-[2px] w-0 bg-secondary transition-all duration-300 group-hover/nav:w-full" />
+      </span>
+    </Link>
+  );
+}
+
+function DropdownCategoryLink({
+  label,
+  slug,
+  onNavigate,
+}: {
+  label: string;
+  slug: string;
+  onNavigate: () => void;
+}) {
+  return (
+    <Link
+      to="/categoria/$slug"
+      params={{ slug }}
+      onClick={onNavigate}
+      className="block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-secondary/20"
+    >
+      {label}
+    </Link>
+  );
+}
+
+function MobileCategoryLink({
+  label,
+  slug,
+  onNavigate,
+}: {
+  label: string;
+  slug: string;
+  onNavigate: () => void;
+}) {
+  return (
+    <Link
+      to="/categoria/$slug"
+      params={{ slug }}
+      className="block rounded-lg px-3 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition-colors hover:bg-secondary/20 hover:text-primary"
+      onClick={onNavigate}
+    >
+      {label}
+    </Link>
   );
 }
