@@ -12,6 +12,9 @@ import {
   Copy,
   Pencil,
   ChevronDown,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardSection } from "@/components/dashboard-layout";
@@ -67,6 +70,9 @@ type OrderRow = {
   created_at: string;
   notes?: string | null;
 };
+
+type QuoteSortKey = "id" | "customer" | "origin" | "total" | "created_at" | "status";
+type SortDirection = "asc" | "desc";
 
 type QuoteMeta = {
   freight: number;
@@ -216,6 +222,8 @@ function DashboardQuotesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | QuoteStatus>("all");
   const [originFilter, setOriginFilter] = useState("all");
+  const [sortKey, setSortKey] = useState<QuoteSortKey>("created_at");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [deepLinkOpened, setDeepLinkOpened] = useState(false);
 
   const {
@@ -249,21 +257,47 @@ function DashboardQuotesPage() {
     staleTime: 30_000,
   });
 
-  const orders = useMemo(
-    () =>
-      allOrders.filter((o) => {
-        const normalized = normalizeQuoteStatus(o.status);
-        const haystack =
-          `${o.customer_name} ${o.customer_email ?? ""} ${o.customer_phone ?? ""}`.toLowerCase();
-        return (
-          normalized !== "aprovado" &&
-          (statusFilter === "all" || normalized === statusFilter) &&
-          (originFilter === "all" || o.origin === originFilter) &&
-          (!search || haystack.includes(search.toLowerCase()))
-        );
-      }),
-    [allOrders, originFilter, search, statusFilter],
-  );
+  const orders = useMemo(() => {
+    const filtered = allOrders.filter((o) => {
+      const normalized = normalizeQuoteStatus(o.status);
+      const haystack =
+        `${o.customer_name} ${o.customer_email ?? ""} ${o.customer_phone ?? ""}`.toLowerCase();
+      return (
+        normalized !== "aprovado" &&
+        (statusFilter === "all" || normalized === statusFilter) &&
+        (originFilter === "all" || o.origin === originFilter) &&
+        (!search || haystack.includes(search.toLowerCase()))
+      );
+    });
+    const direction = sortDirection === "asc" ? 1 : -1;
+    return filtered.sort((a, b) => {
+      let comparison = 0;
+      if (sortKey === "total") comparison = Number(a.total ?? 0) - Number(b.total ?? 0);
+      else if (sortKey === "created_at")
+        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      else if (sortKey === "customer")
+        comparison = a.customer_name.localeCompare(b.customer_name, "pt-BR");
+      else if (sortKey === "status")
+        comparison = normalizeQuoteStatus(a.status).localeCompare(normalizeQuoteStatus(b.status));
+      else comparison = String(a[sortKey]).localeCompare(String(b[sortKey]), "pt-BR");
+      return comparison * direction;
+    });
+  }, [allOrders, originFilter, search, sortDirection, sortKey, statusFilter]);
+
+  function toggleSort(nextKey: QuoteSortKey) {
+    if (sortKey === nextKey) {
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortKey(nextKey);
+    setSortDirection(nextKey === "created_at" ? "desc" : "asc");
+  }
+
+  function editOrder(order: OrderRow) {
+    setEditingSource(order);
+    setDuplicateSource(null);
+    setOpen(true);
+  }
 
   useEffect(() => {
     if (!orcamento || deepLinkOpened || allOrders.length === 0) return;
@@ -415,26 +449,62 @@ function DashboardQuotesPage() {
                     }
                   />
                 </th>
-                <th className="px-4 py-3">#</th>
-                <th className="px-4 py-3">Cliente</th>
-                <th className="px-4 py-3">Origem</th>
-                <th className="px-4 py-3">Total</th>
-                <th className="px-4 py-3">Data</th>
-                <th className="px-4 py-3">Status</th>
+                <SortableQuoteHeader
+                  label="#"
+                  column="id"
+                  active={sortKey}
+                  direction={sortDirection}
+                  onSort={toggleSort}
+                />
+                <SortableQuoteHeader
+                  label="Cliente"
+                  column="customer"
+                  active={sortKey}
+                  direction={sortDirection}
+                  onSort={toggleSort}
+                />
+                <SortableQuoteHeader
+                  label="Origem"
+                  column="origin"
+                  active={sortKey}
+                  direction={sortDirection}
+                  onSort={toggleSort}
+                />
+                <SortableQuoteHeader
+                  label="Total"
+                  column="total"
+                  active={sortKey}
+                  direction={sortDirection}
+                  onSort={toggleSort}
+                />
+                <SortableQuoteHeader
+                  label="Data"
+                  column="created_at"
+                  active={sortKey}
+                  direction={sortDirection}
+                  onSort={toggleSort}
+                />
+                <SortableQuoteHeader
+                  label="Status"
+                  column="status"
+                  active={sortKey}
+                  direction={sortDirection}
+                  onSort={toggleSort}
+                />
                 <th className="px-4 py-3 text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                     Carregando…
                   </td>
                 </tr>
               )}
               {!isLoading && error && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-destructive">
+                  <td colSpan={8} className="px-4 py-8 text-center text-destructive">
                     Erro ao carregar orçamentos:{" "}
                     {error instanceof Error ? error.message : String(error)}
                   </td>
@@ -442,14 +512,27 @@ function DashboardQuotesPage() {
               )}
               {!isLoading && !error && orders.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                     Nenhum orçamento ainda. Clique em "Novo orçamento" para criar.
                   </td>
                 </tr>
               )}
               {orders.map((o) => (
-                <tr key={o.id} className="border-t border-border">
-                  <td className="px-4 py-3">
+                <tr
+                  key={o.id}
+                  tabIndex={0}
+                  onClick={() => editOrder(o)}
+                  onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) return;
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      editOrder(o);
+                    }
+                  }}
+                  className="cursor-pointer border-t border-border transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                  aria-label={`Editar orçamento de ${o.customer_name}`}
+                >
+                  <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={selected.has(o.id)}
@@ -475,19 +558,21 @@ function DashboardQuotesPage() {
                   </td>
                   <td className="px-4 py-3">{currency(o.total)}</td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {new Date(o.created_at).toLocaleDateString("pt-BR")}
+                    <div>{new Date(o.created_at).toLocaleDateString("pt-BR")}</div>
+                    <div className="text-xs">
+                      {new Date(o.created_at).toLocaleTimeString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
                     <StatusSelect order={o} />
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right" onClick={(event) => event.stopPropagation()}>
                     <ShareMenu
                       order={o}
-                      onEdit={() => {
-                        setEditingSource(o);
-                        setDuplicateSource(null);
-                        setOpen(true);
-                      }}
+                      onEdit={() => editOrder(o)}
                       onDuplicate={() => {
                         setEditingSource(null);
                         setDuplicateSource(o);
@@ -502,6 +587,38 @@ function DashboardQuotesPage() {
         </div>
       </DashboardSection>
     </>
+  );
+}
+
+function SortableQuoteHeader({
+  label,
+  column,
+  active,
+  direction,
+  onSort,
+}: {
+  label: string;
+  column: QuoteSortKey;
+  active: QuoteSortKey;
+  direction: SortDirection;
+  onSort: (column: QuoteSortKey) => void;
+}) {
+  const selected = active === column;
+  const Icon = !selected ? ArrowUpDown : direction === "asc" ? ArrowUp : ArrowDown;
+  return (
+    <th
+      className="px-4 py-3"
+      aria-sort={selected ? (direction === "asc" ? "ascending" : "descending") : "none"}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className="inline-flex items-center gap-1.5 whitespace-nowrap transition-colors hover:text-foreground"
+      >
+        {label}
+        <Icon className={`h-3.5 w-3.5 ${selected ? "text-primary" : "opacity-50"}`} />
+      </button>
+    </th>
   );
 }
 
