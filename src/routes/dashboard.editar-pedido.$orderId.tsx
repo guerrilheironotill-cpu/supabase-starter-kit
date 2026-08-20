@@ -8,6 +8,7 @@ import { maskCpfCnpj } from "@/lib/masks";
 
 type Item = {
   id: string;
+  product_id: string | null;
   name: string;
   quantity: number;
   unit_price: number;
@@ -16,15 +17,22 @@ type Item = {
     size_name?: string | null;
     finish?: string | null;
     color?: string | null;
+    description?: string | null;
+    height?: number | null;
+    width?: number | null;
+    length?: number | null;
   } | null;
 };
 type QuoteMeta = {
+  quoteId: string | null;
   deadline: string;
   payment: string;
   pix: string;
   freightNote: string;
   address: string;
+  raw: Record<string, unknown>;
 };
+type StoredOrderEditorMeta = Omit<QuoteMeta, "quoteId" | "raw"> & { note: string };
 type Order = {
   id: string;
   number: number;
@@ -55,30 +63,55 @@ type Order = {
 };
 
 const emptyQuoteMeta: QuoteMeta = {
+  quoteId: null,
   deadline: "",
   payment: "",
   pix: "",
   freightNote: "",
   address: "",
+  raw: {},
 };
 
-function parseQuoteMeta(raw: string | null | undefined): QuoteMeta {
-  if (!raw) return emptyQuoteMeta;
+function parseQuoteMeta(raw: string | null | undefined, quoteId: string | null): QuoteMeta {
+  if (!raw) return { ...emptyQuoteMeta, quoteId };
   try {
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     if (parsed.__meta) {
+      return {
+        quoteId,
+        deadline: String(parsed.deadline ?? ""),
+        payment: String(parsed.payment ?? ""),
+        pix: String(parsed.pix ?? ""),
+        freightNote: String(parsed.freightNote ?? ""),
+        address: String(parsed.address ?? ""),
+        raw: parsed,
+      };
+    }
+  } catch {
+    // Pedidos antigos podem ter observações em texto simples.
+  }
+  return { ...emptyQuoteMeta, quoteId };
+}
+
+function parseStoredOrderEditorMeta(raw: string | null | undefined): StoredOrderEditorMeta {
+  const empty = { ...emptyQuoteMeta, note: "" };
+  if (!raw) return empty;
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (parsed.__order_editor_meta) {
       return {
         deadline: String(parsed.deadline ?? ""),
         payment: String(parsed.payment ?? ""),
         pix: String(parsed.pix ?? ""),
         freightNote: String(parsed.freightNote ?? ""),
         address: String(parsed.address ?? ""),
+        note: String(parsed.note ?? ""),
       };
     }
   } catch {
-    // Pedidos antigos podem ter observações em texto simples.
+    // Compatibilidade com observações antigas em texto simples.
   }
-  return emptyQuoteMeta;
+  return { ...empty, note: raw };
 }
 
 const statuses = [
@@ -127,6 +160,11 @@ function EditOrderPage() {
   const [document, setDocument] = useState("");
   const [note, setNote] = useState("");
   const [shipping, setShipping] = useState(0);
+  const [freightNote, setFreightNote] = useState("");
+  const [address, setAddress] = useState("");
+  const [deadline, setDeadline] = useState("");
+  const [payment, setPayment] = useState("");
+  const [pix, setPix] = useState("");
   const [items, setItems] = useState<Item[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -136,21 +174,54 @@ function EditOrderPage() {
       const { data, error } = await supabase
         .from("app_orders" as never)
         .select(
-          "id, number, external_number, status, currency, shipping_total, subtotal, total, customer_note, customer_id, customer_name, customer_email, customer_phone, customer_document, created_at, customer:customers(id,first_name,last_name,email,phone,cpf,cnpj), items:app_order_items(id,name,quantity,unit_price,total,meta)",
+          "id, number, external_number, status, currency, shipping_total, subtotal, total, customer_note, customer_id, customer_name, customer_email, customer_phone, customer_document, created_at, customer:customers(id,first_name,last_name,email,phone,cpf,cnpj), items:app_order_items(id,product_id,name,quantity,unit_price,total,meta)",
         )
         .eq("id", orderId)
         .single();
       if (error) throw new Error(error.message);
       const { data: linkedQuotes } = await supabase
         .from("orders" as never)
-        .select("notes")
+        .select("id, notes, items")
         .ilike("notes", `%${orderId}%`)
         .order("created_at", { ascending: false })
         .limit(1);
-      const linkedQuote = (linkedQuotes?.[0] ?? null) as { notes?: string | null } | null;
+      const linkedQuote = (linkedQuotes?.[0] ?? null) as {
+        id: string;
+        notes?: string | null;
+        items?: unknown;
+      } | null;
+      const quoteItems = Array.isArray(linkedQuote?.items)
+        ? (linkedQuote.items as Array<Record<string, unknown>>)
+        : [];
+      const appOrder = data as unknown as Omit<Order, "quoteMeta">;
+      const storedEditorMeta = parseStoredOrderEditorMeta(appOrder.customer_note);
+      const linkedQuoteMeta = parseQuoteMeta(linkedQuote?.notes, linkedQuote?.id ?? null);
+      const enrichedItems = (appOrder.items ?? []).map((item, index) => {
+        const quoteItem =
+          quoteItems.find(
+            (candidate) =>
+              item.product_id && String(candidate.product_id ?? "") === item.product_id,
+          ) ?? quoteItems[index];
+        return {
+          ...item,
+          meta: {
+            ...(item.meta ?? {}),
+            description: String(quoteItem?.description ?? item.meta?.description ?? "") || null,
+          },
+        };
+      });
       return {
-        ...(data as unknown as Omit<Order, "quoteMeta">),
-        quoteMeta: parseQuoteMeta(linkedQuote?.notes),
+        ...appOrder,
+        customer_note: storedEditorMeta.note,
+        items: enrichedItems,
+        quoteMeta: {
+          ...linkedQuoteMeta,
+          deadline: linkedQuoteMeta.deadline || storedEditorMeta.deadline,
+          payment: linkedQuoteMeta.payment || storedEditorMeta.payment,
+          pix: linkedQuoteMeta.pix || storedEditorMeta.pix,
+          freightNote: linkedQuoteMeta.freightNote || storedEditorMeta.freightNote,
+          address: linkedQuoteMeta.address || storedEditorMeta.address,
+        },
       };
     },
   });
@@ -170,6 +241,11 @@ function EditOrderPage() {
     );
     setNote(order.customer_note ?? "");
     setShipping(Number(order.shipping_total) || 0);
+    setFreightNote(order.quoteMeta.freightNote);
+    setAddress(order.quoteMeta.address);
+    setDeadline(order.quoteMeta.deadline);
+    setPayment(order.quoteMeta.payment);
+    setPix(order.quoteMeta.pix);
     setItems(order.items ?? []);
   }, [order]);
 
@@ -178,6 +254,24 @@ function EditOrderPage() {
     [items],
   );
   const total = subtotal + shipping;
+
+  function updateItem(
+    index: number,
+    patch: Partial<Item>,
+    metaPatch?: Partial<NonNullable<Item["meta"]>>,
+  ) {
+    setItems((rows) =>
+      rows.map((row, itemIndex) =>
+        itemIndex === index
+          ? {
+              ...row,
+              ...patch,
+              meta: metaPatch ? { ...(row.meta ?? {}), ...metaPatch } : row.meta,
+            }
+          : row,
+      ),
+    );
+  }
 
   async function authorizedStatus() {
     const { data } = await supabase.auth.getSession();
@@ -204,7 +298,15 @@ function EditOrderPage() {
           customer_email: email || null,
           customer_phone: phone || null,
           customer_document: document.replace(/\D/g, "") || null,
-          customer_note: note || null,
+          customer_note: JSON.stringify({
+            __order_editor_meta: 1,
+            note,
+            freightNote,
+            address,
+            deadline,
+            payment,
+            pix,
+          }),
           shipping_total: shipping,
           subtotal,
           total,
@@ -241,17 +343,75 @@ function EditOrderPage() {
         const { error: itemError } = await supabase
           .from("app_order_items" as never)
           .update({
+            name: item.name,
             quantity: Number(item.quantity),
             unit_price: Number(item.unit_price),
             total: Number(item.quantity) * Number(item.unit_price),
+            meta: {
+              ...(item.meta ?? {}),
+              size_name: item.meta?.size_name || null,
+              finish: item.meta?.finish || null,
+              color: item.meta?.color || null,
+              description: item.meta?.description || null,
+              height: Number(item.meta?.height) || null,
+              width: Number(item.meta?.width) || null,
+              length: Number(item.meta?.length) || null,
+            },
           } as never)
           .eq("id", item.id);
         if (itemError) throw itemError;
       }
+      if (order.quoteMeta.quoteId) {
+        const quoteItems = items.map((item) => ({
+          kind: item.product_id ? "catalog" : "custom",
+          product_id: item.product_id,
+          name: item.name,
+          description: item.meta?.description || null,
+          quantity: Number(item.quantity) || 1,
+          price: Number(item.unit_price) || 0,
+          size_name: item.meta?.size_name || null,
+          finish: item.meta?.finish || null,
+          color: item.meta?.color || null,
+          height: Number(item.meta?.height) || null,
+          width: Number(item.meta?.width) || null,
+          length: Number(item.meta?.length) || null,
+        }));
+        const quoteNotes = JSON.stringify({
+          ...order.quoteMeta.raw,
+          __meta: 1,
+          freight: shipping,
+          freightNote,
+          address,
+          deadline,
+          payment,
+          pix,
+          note,
+          app_order_id: orderId,
+          app_order_number: order.number,
+        });
+        const { error: quoteError } = await supabase
+          .from("orders" as never)
+          .update({
+            customer_name: name || "Cliente",
+            customer_phone: phone || null,
+            customer_email: email || null,
+            items: quoteItems,
+            total,
+            notes: quoteNotes,
+          } as never)
+          .eq("id", order.quoteMeta.quoteId);
+        if (quoteError) throw quoteError;
+      }
       await authorizedStatus();
+      await qc.invalidateQueries({ queryKey: ["app-order", orderId] });
+      await qc.invalidateQueries({ queryKey: ["orders"] });
       await qc.invalidateQueries({ queryKey: ["app-orders"] });
       await qc.invalidateQueries({ queryKey: ["local-customers"] });
-      toast.success("Pedido salvo e cadastro reconciliado.");
+      toast.success(
+        order.quoteMeta.quoteId
+          ? "Pedido e orçamento vinculados foram atualizados."
+          : "Pedido salvo e cadastro reconciliado.",
+      );
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
@@ -281,9 +441,13 @@ function EditOrderPage() {
       .map(
         (item) => `<tr>
           <td>${escapeHtml(item.name)}
+            ${item.meta?.description ? `<div class="item-meta">${escapeHtml(item.meta.description)}</div>` : ""}
             ${item.meta?.size_name ? `<div class="item-meta">Tamanho: ${escapeHtml(item.meta.size_name)}</div>` : ""}
             ${item.meta?.finish ? `<div class="item-meta">Acabamento: ${escapeHtml(item.meta.finish)}</div>` : ""}
             ${item.meta?.color ? `<div class="item-meta">Cor: ${escapeHtml(item.meta.color)}</div>` : ""}
+            ${item.meta?.height ? `<div class="item-meta">Altura: ${escapeHtml(item.meta.height)} cm</div>` : ""}
+            ${item.meta?.width ? `<div class="item-meta">Largura: ${escapeHtml(item.meta.width)} cm</div>` : ""}
+            ${item.meta?.length ? `<div class="item-meta">Comprimento: ${escapeHtml(item.meta.length)} cm</div>` : ""}
           </td>
           <td>${Number(item.quantity) || 0}</td>
           <td>${money(Number(item.unit_price) || 0)}</td>
@@ -327,19 +491,19 @@ function EditOrderPage() {
       <section><h2>Itens</h2><table><thead><tr><th>Descrição</th><th>Qtd.</th><th>Unitário</th><th>Subtotal</th></tr></thead><tbody>${rows}</tbody></table></section>
       <section><h2>Valores</h2>
         <div class="row"><span>Subtotal</span><strong>${money(subtotal)}</strong></div>
-        ${shipping ? `<div class="row"><span>Frete${order.quoteMeta.freightNote ? ` (${escapeHtml(order.quoteMeta.freightNote)})` : ""}</span><strong>${money(shipping)}</strong></div>` : ""}
+        ${shipping ? `<div class="row"><span>Frete${freightNote ? ` (${escapeHtml(freightNote)})` : ""}</span><strong>${money(shipping)}</strong></div>` : ""}
         <div class="row total"><span>Total</span><strong>${money(total)}</strong></div>
       </section>
       ${
-        order.quoteMeta.deadline || order.quoteMeta.payment || order.quoteMeta.pix
+        deadline || payment || pix
           ? `<section><h2>Condições</h2>
-            ${order.quoteMeta.deadline ? `<div class="row"><span>Prazo de produção</span><strong>${escapeHtml(order.quoteMeta.deadline)}</strong></div>` : ""}
-            ${order.quoteMeta.payment ? `<div class="row"><span>Forma de pagamento</span><strong>${escapeHtml(order.quoteMeta.payment)}</strong></div>` : ""}
-            ${order.quoteMeta.pix ? `<div class="row"><span>Link Pix</span><strong><a href="${escapeHtml(order.quoteMeta.pix)}">${escapeHtml(order.quoteMeta.pix)}</a></strong></div>` : ""}
+            ${deadline ? `<div class="row"><span>Prazo de produção</span><strong>${escapeHtml(deadline)}</strong></div>` : ""}
+            ${payment ? `<div class="row"><span>Forma de pagamento</span><strong>${escapeHtml(payment)}</strong></div>` : ""}
+            ${pix ? `<div class="row"><span>Link Pix</span><strong><a href="${escapeHtml(pix)}">${escapeHtml(pix)}</a></strong></div>` : ""}
           </section>`
           : ""
       }
-      ${order.quoteMeta.address ? `<section><h2>Entrega</h2><div class="note">${escapeHtml(order.quoteMeta.address)}</div></section>` : ""}
+      ${address ? `<section><h2>Entrega</h2><div class="note">${escapeHtml(address)}</div></section>` : ""}
       ${note ? `<section><h2>Observações</h2><div class="note">${escapeHtml(note)}</div></section>` : ""}
       <button class="print" onclick="window.print()">Salvar como PDF</button>
       <script>setTimeout(function(){ window.print(); }, 400);</script>
@@ -411,53 +575,73 @@ function EditOrderPage() {
       </section>
       <section className="rounded-2xl border border-border bg-card p-5">
         <h2 className="mb-4 text-lg font-semibold">Itens</h2>
-        <div className="space-y-2">
+        <div className="space-y-4">
           {items.map((item, index) => (
-            <div key={item.id} className="grid grid-cols-12 gap-2">
-              <div className="col-span-6 py-2 text-sm">{item.name}</div>
-              <input
-                type="number"
-                min="1"
-                value={item.quantity}
-                onChange={(e) =>
-                  setItems((rows) =>
-                    rows.map((row, i) =>
-                      i === index ? { ...row, quantity: Number(e.target.value) } : row,
-                    ),
-                  )
-                }
-                className="col-span-2 rounded-md border border-border bg-background px-2"
-              />
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={item.unit_price}
-                onChange={(e) =>
-                  setItems((rows) =>
-                    rows.map((row, i) =>
-                      i === index ? { ...row, unit_price: Number(e.target.value) } : row,
-                    ),
-                  )
-                }
-                className="col-span-2 rounded-md border border-border bg-background px-2"
-              />
-              <div className="col-span-2 py-2 text-right text-sm">
-                {money(item.quantity * item.unit_price)}
+            <div key={item.id} className="rounded-xl border border-border bg-background p-4">
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                <Field
+                  label="Produto"
+                  value={item.name}
+                  onChange={(value) => updateItem(index, { name: value })}
+                />
+                <Field
+                  label="Tamanho"
+                  value={item.meta?.size_name ?? ""}
+                  onChange={(value) => updateItem(index, {}, { size_name: value })}
+                />
+                <Field
+                  label="Acabamento"
+                  value={item.meta?.finish ?? ""}
+                  onChange={(value) => updateItem(index, {}, { finish: value })}
+                />
+                <Field
+                  label="Cor"
+                  value={item.meta?.color ?? ""}
+                  onChange={(value) => updateItem(index, {}, { color: value })}
+                />
+                <NumberField
+                  label="Altura (cm)"
+                  value={item.meta?.height}
+                  onChange={(value) => updateItem(index, {}, { height: value })}
+                />
+                <NumberField
+                  label="Largura (cm)"
+                  value={item.meta?.width}
+                  onChange={(value) => updateItem(index, {}, { width: value })}
+                />
+                <NumberField
+                  label="Comprimento (cm)"
+                  value={item.meta?.length}
+                  onChange={(value) => updateItem(index, {}, { length: value })}
+                />
+                <NumberField
+                  label="Quantidade"
+                  value={item.quantity}
+                  min={1}
+                  onChange={(value) => updateItem(index, { quantity: value || 1 })}
+                />
+                <NumberField
+                  label="Valor unitário (R$)"
+                  value={item.unit_price}
+                  onChange={(value) => updateItem(index, { unit_price: value })}
+                />
+                <label className="grid gap-1 text-sm md:col-span-2 lg:col-span-3">
+                  Descrição / detalhes
+                  <textarea
+                    rows={2}
+                    value={item.meta?.description ?? ""}
+                    onChange={(event) => updateItem(index, {}, { description: event.target.value })}
+                    className="rounded-md border border-border bg-background px-3 py-2"
+                  />
+                </label>
+              </div>
+              <div className="mt-3 text-right text-sm">
+                Subtotal: <strong>{money(item.quantity * item.unit_price)}</strong>
               </div>
             </div>
           ))}
         </div>
-        <div className="mt-4 ml-auto grid max-w-xs gap-2 text-sm">
-          <label className="flex items-center justify-between gap-3">
-            Frete{" "}
-            <input
-              type="number"
-              value={shipping}
-              onChange={(e) => setShipping(Number(e.target.value))}
-              className="w-32 rounded-md border border-border bg-background px-2 py-1 text-right"
-            />
-          </label>
+        <div className="mt-5 ml-auto grid max-w-xs gap-2 text-sm">
           <div className="flex justify-between">
             <span>Subtotal</span>
             <b>{money(subtotal)}</b>
@@ -467,6 +651,31 @@ function EditOrderPage() {
             <b>{money(total)}</b>
           </div>
         </div>
+      </section>
+      <section className="grid gap-4 rounded-2xl border border-border bg-card p-5 md:grid-cols-2">
+        <h2 className="text-lg font-semibold md:col-span-2">Entrega e condições comerciais</h2>
+        <NumberField label="Frete (R$)" value={shipping} onChange={setShipping} />
+        <Field label="Observação do frete" value={freightNote} onChange={setFreightNote} />
+        <label className="grid gap-1 text-sm md:col-span-2">
+          Endereço de entrega
+          <textarea
+            rows={3}
+            value={address}
+            onChange={(event) => setAddress(event.target.value)}
+            className="rounded-md border border-border bg-background px-3 py-2"
+          />
+        </label>
+        <Field label="Prazo de produção" value={deadline} onChange={setDeadline} />
+        <Field label="Forma de pagamento" value={payment} onChange={setPayment} />
+        <label className="grid gap-1 text-sm md:col-span-2">
+          Link ou código Pix
+          <textarea
+            rows={2}
+            value={pix}
+            onChange={(event) => setPix(event.target.value)}
+            className="rounded-md border border-border bg-background px-3 py-2"
+          />
+        </label>
       </section>
       <section className="grid gap-4 rounded-2xl border border-border bg-card p-5 md:grid-cols-2">
         <label className="grid gap-1 text-sm">
@@ -522,6 +731,32 @@ function Field({
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        className="rounded-md border border-border bg-background px-3 py-2"
+      />
+    </label>
+  );
+}
+
+function NumberField({
+  label,
+  value,
+  onChange,
+  min = 0,
+}: {
+  label: string;
+  value: number | null | undefined;
+  onChange: (value: number) => void;
+  min?: number;
+}) {
+  return (
+    <label className="grid gap-1 text-sm">
+      {label}
+      <input
+        type="number"
+        min={min}
+        step="0.01"
+        value={value ?? ""}
+        onChange={(event) => onChange(Number(event.target.value))}
         className="rounded-md border border-border bg-background px-3 py-2"
       />
     </label>
