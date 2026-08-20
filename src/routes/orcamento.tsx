@@ -219,9 +219,9 @@ function OrcamentoPage() {
   const refreshedCatalogPrices = useRef(false);
   useEffect(() => {
     if (refreshedCatalogPrices.current) return;
-    refreshedCatalogPrices.current = true;
     const catalogItems = items.filter((item) => item.slug && item.sizeId);
     if (catalogItems.length === 0) return;
+    refreshedCatalogPrices.current = true;
     let cancelled = false;
     void (async () => {
       const finishCatalog = await fetchAttributeTerms("product_finishes", "finish_catalog");
@@ -267,7 +267,7 @@ function OrcamentoPage() {
     return () => {
       cancelled = true;
     };
-  }, [items, updateConfigurationOptions]);
+  }, [items, updateConfiguration, updateConfigurationOptions]);
 
   // Florianópolis / Grande Fpolis: 88000–88169
   const cepDigits = deliveryAddress.cep.replace(/\D/g, "");
