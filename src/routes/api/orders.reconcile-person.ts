@@ -56,13 +56,16 @@ export const Route = createFileRoute("/api/orders/reconcile-person")({
             .from("customers")
             .select("id, cpf, cnpj, email, phone")
             .limit(5000);
-          let person = (rows ?? []).find((row) =>
-            Boolean(
-              (document && digits(row.cpf || row.cnpj) === document) ||
-              (email && String(row.email ?? "").toLowerCase() === email) ||
-              (phone && digits(row.phone) === phone),
-            ),
-          );
+          const candidates = rows ?? [];
+          let person = document
+            ? candidates.find((row) => digits(row.cpf || row.cnpj) === document)
+            : undefined;
+          if (!person && email) {
+            person = candidates.find((row) => String(row.email ?? "").toLowerCase() === email);
+          }
+          if (!person && phone) {
+            person = candidates.find((row) => digits(row.phone) === phone);
+          }
           if (!person) {
             const parts = name.split(/\s+/);
             const { data, error: insertError } = await admin

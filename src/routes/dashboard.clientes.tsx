@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, ArrowUpDown, Loader2, Pencil } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Loader2, Pencil, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -49,6 +49,7 @@ function CustomersPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [direction, setDirection] = useState<"asc" | "desc">("desc");
+  const [working, setWorking] = useState(false);
   const {
     data = [],
     isLoading,
@@ -104,15 +105,60 @@ function CustomersPage() {
       setDirection("asc");
     }
   };
+  async function callBulkApi(method: "PATCH" | "DELETE", body: Record<string, unknown>) {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) throw new Error("Sessão administrativa expirada.");
+    const response = await fetch("/api/admin-customers-bulk", {
+      method,
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+    const result = (await response.json()) as { ok?: boolean; error?: string; deleted?: number };
+    if (!response.ok || !result.ok) throw new Error(result.error || `Erro HTTP ${response.status}`);
+    return result;
+  }
   async function bulkStatus(status: string) {
-    const ids = [...selected];
-    const { error } = await supabase
-      .from("customers" as never)
-      .update({ status } as never)
-      .in("id", ids);
-    if (error) return toast.error(error.message);
-    setSelected(new Set());
-    await qc.invalidateQueries({ queryKey: ["local-customers"] });
+    if (!selected.size) return;
+    setWorking(true);
+    try {
+      await callBulkApi("PATCH", { ids: [...selected], status });
+      toast.success(
+        `Status atualizado em ${selected.size} cliente${selected.size === 1 ? "" : "s"}.`,
+      );
+      setSelected(new Set());
+      await qc.invalidateQueries({ queryKey: ["local-customers"] });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Não foi possível atualizar os clientes.",
+      );
+    } finally {
+      setWorking(false);
+    }
+  }
+  async function removeCustomers(explicitIds?: string[]) {
+    const ids = explicitIds ?? [...selected];
+    if (
+      !ids.length ||
+      !window.confirm(`Excluir ${ids.length} cliente${ids.length === 1 ? "" : "s"}?`)
+    )
+      return;
+    setWorking(true);
+    try {
+      const result = await callBulkApi("DELETE", { ids });
+      const deleted = Number(result.deleted) || 0;
+      if (deleted !== ids.length) {
+        throw new Error(`Foram excluídos ${deleted} de ${ids.length} clientes selecionados.`);
+      }
+      toast.success(`${deleted} cliente${deleted === 1 ? " excluído" : "s excluídos"}.`);
+      setSelected(new Set());
+      await qc.invalidateQueries({ queryKey: ["local-customers"] });
+      await qc.invalidateQueries({ queryKey: ["app-orders"] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível excluir os clientes.");
+    } finally {
+      setWorking(false);
+    }
   }
   return (
     <>
@@ -152,11 +198,26 @@ function CustomersPage() {
       {selected.size > 0 && (
         <div className="mb-3 flex gap-2 rounded-lg border border-border bg-muted/40 p-2 text-sm">
           <span>{selected.size} selecionado(s)</span>
-          <button onClick={() => bulkStatus("active")} className="rounded border px-2">
+          <button
+            disabled={working}
+            onClick={() => void bulkStatus("active")}
+            className="rounded border px-2"
+          >
             Ativar
           </button>
-          <button onClick={() => bulkStatus("inactive")} className="rounded border px-2">
+          <button
+            disabled={working}
+            onClick={() => void bulkStatus("inactive")}
+            className="rounded border px-2"
+          >
             Inativar
+          </button>
+          <button
+            disabled={working}
+            onClick={() => void removeCustomers()}
+            className="inline-flex items-center gap-1 rounded border border-destructive/40 px-2 text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Excluir
           </button>
         </div>
       )}
@@ -294,6 +355,12 @@ function CustomersPage() {
                           icon: Pencil,
                           onClick: () =>
                             window.location.assign(`/dashboard/editar-cliente/${c.id}`),
+                        },
+                        {
+                          label: "Excluir cliente",
+                          icon: Trash2,
+                          destructive: true,
+                          onClick: () => void removeCustomers([c.id]),
                         },
                       ]}
                     />

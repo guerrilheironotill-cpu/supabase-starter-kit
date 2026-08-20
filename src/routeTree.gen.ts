@@ -59,6 +59,7 @@ import { Route as ApiHealthEnvRouteImport } from './routes/api/health-env'
 import { Route as ApiAdminOrdersBulkRouteImport } from './routes/api/admin-orders-bulk'
 import { Route as ApiAdminLeadsBulkRouteImport } from './routes/api/admin-leads-bulk'
 import { Route as ApiAdminLeadsRouteImport } from './routes/api/admin-leads'
+import { Route as ApiAdminCustomersBulkRouteImport } from './routes/api/admin-customers-bulk'
 import { Route as DashboardPaginasIndexRouteImport } from './routes/dashboard.paginas.index'
 import { Route as DashboardPaginasHomeRouteImport } from './routes/dashboard.paginas.home'
 import { Route as DashboardEditarProdutoProductIdRouteImport } from './routes/dashboard.editar-produto.$productId'
@@ -318,6 +319,11 @@ const ApiAdminLeadsRoute = ApiAdminLeadsRouteImport.update({
   path: '/api/admin-leads',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminCustomersBulkRoute = ApiAdminCustomersBulkRouteImport.update({
+  id: '/api/admin-customers-bulk',
+  path: '/api/admin-customers-bulk',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardPaginasIndexRoute = DashboardPaginasIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -384,6 +390,7 @@ export interface FileRoutesByFullPath {
   '/supabase-check': typeof SupabaseCheckRoute
   '/vasos-para-empresas': typeof VasosParaEmpresasRoute
   '/api': typeof Api_rootRoute
+  '/api/admin-customers-bulk': typeof ApiAdminCustomersBulkRoute
   '/api/admin-leads': typeof ApiAdminLeadsRoute
   '/api/admin-leads-bulk': typeof ApiAdminLeadsBulkRoute
   '/api/admin-orders-bulk': typeof ApiAdminOrdersBulkRoute
@@ -443,6 +450,7 @@ export interface FileRoutesByTo {
   '/supabase-check': typeof SupabaseCheckRoute
   '/vasos-para-empresas': typeof VasosParaEmpresasRoute
   '/api': typeof Api_rootRoute
+  '/api/admin-customers-bulk': typeof ApiAdminCustomersBulkRoute
   '/api/admin-leads': typeof ApiAdminLeadsRoute
   '/api/admin-leads-bulk': typeof ApiAdminLeadsBulkRoute
   '/api/admin-orders-bulk': typeof ApiAdminOrdersBulkRoute
@@ -503,6 +511,7 @@ export interface FileRoutesById {
   '/supabase-check': typeof SupabaseCheckRoute
   '/vasos-para-empresas': typeof VasosParaEmpresasRoute
   '/api/__root': typeof Api_rootRoute
+  '/api/admin-customers-bulk': typeof ApiAdminCustomersBulkRoute
   '/api/admin-leads': typeof ApiAdminLeadsRoute
   '/api/admin-leads-bulk': typeof ApiAdminLeadsBulkRoute
   '/api/admin-orders-bulk': typeof ApiAdminOrdersBulkRoute
@@ -565,6 +574,7 @@ export interface FileRouteTypes {
     | '/supabase-check'
     | '/vasos-para-empresas'
     | '/api'
+    | '/api/admin-customers-bulk'
     | '/api/admin-leads'
     | '/api/admin-leads-bulk'
     | '/api/admin-orders-bulk'
@@ -624,6 +634,7 @@ export interface FileRouteTypes {
     | '/supabase-check'
     | '/vasos-para-empresas'
     | '/api'
+    | '/api/admin-customers-bulk'
     | '/api/admin-leads'
     | '/api/admin-leads-bulk'
     | '/api/admin-orders-bulk'
@@ -683,6 +694,7 @@ export interface FileRouteTypes {
     | '/supabase-check'
     | '/vasos-para-empresas'
     | '/api/__root'
+    | '/api/admin-customers-bulk'
     | '/api/admin-leads'
     | '/api/admin-leads-bulk'
     | '/api/admin-orders-bulk'
@@ -744,6 +756,7 @@ export interface RootRouteChildren {
   SupabaseCheckRoute: typeof SupabaseCheckRoute
   VasosParaEmpresasRoute: typeof VasosParaEmpresasRoute
   Api_rootRoute: typeof Api_rootRoute
+  ApiAdminCustomersBulkRoute: typeof ApiAdminCustomersBulkRoute
   ApiAdminLeadsRoute: typeof ApiAdminLeadsRoute
   ApiAdminLeadsBulkRoute: typeof ApiAdminLeadsBulkRoute
   ApiAdminOrdersBulkRoute: typeof ApiAdminOrdersBulkRoute
@@ -1111,6 +1124,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminLeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin-customers-bulk': {
+      id: '/api/admin-customers-bulk'
+      path: '/api/admin-customers-bulk'
+      fullPath: '/api/admin-customers-bulk'
+      preLoaderRoute: typeof ApiAdminCustomersBulkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/paginas/': {
       id: '/dashboard/paginas/'
       path: '/'
@@ -1270,6 +1290,7 @@ const rootRouteChildren: RootRouteChildren = {
   SupabaseCheckRoute: SupabaseCheckRoute,
   VasosParaEmpresasRoute: VasosParaEmpresasRoute,
   Api_rootRoute: Api_rootRoute,
+  ApiAdminCustomersBulkRoute: ApiAdminCustomersBulkRoute,
   ApiAdminLeadsRoute: ApiAdminLeadsRoute,
   ApiAdminLeadsBulkRoute: ApiAdminLeadsBulkRoute,
   ApiAdminOrdersBulkRoute: ApiAdminOrdersBulkRoute,
