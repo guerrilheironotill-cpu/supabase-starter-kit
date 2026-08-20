@@ -137,12 +137,16 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const requestUrl = new URL(request.url);
+      let maintenancePreview = false;
       if (process.env.MAINTENANCE_MODE === "true") {
         const previewRedirect = maintenancePreviewRedirect(request, requestUrl);
         if (previewRedirect) return previewRedirect;
+        maintenancePreview = hasMaintenancePreview(request);
         if (!shouldBypassMaintenance(request, requestUrl)) return maintenanceResponse();
       }
-      const redirect = canonicalHostRedirectFor(requestUrl) ?? legacyRedirectFor(requestUrl);
+      const redirect =
+        (maintenancePreview ? null : canonicalHostRedirectFor(requestUrl)) ??
+        legacyRedirectFor(requestUrl);
       if (redirect) return Response.redirect(redirect, 301);
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
