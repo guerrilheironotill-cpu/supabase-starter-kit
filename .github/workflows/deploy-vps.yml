@@ -1,0 +1,64 @@
+name: Deploy VPS
+
+on:
+  push:
+    tags:
+      - "deploy-*"
+
+concurrency:
+  group: arteno-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy atomicamente
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Configurar SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Publicar versão marcada
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          DEPLOY_TAG: ${{ github.ref_name }}
+        run: |
+          ssh -p "${VPS_PORT:-22}" "$VPS_USER@$VPS_HOST" \
+            "bash -s -- '$DEPLOY_TAG'" <<'REMOTE'
+          set -Eeuo pipefail
+          deploy_tag="$1"
+          case "$deploy_tag" in
+            deploy-*) ;;
+            *) echo "Tag de deploy inválida: $deploy_tag" >&2; exit 1 ;;
+          esac
+
+          export NVM_DIR="$HOME/.nvm"
+          # shellcheck disable=SC1091
+          . "$NVM_DIR/nvm.sh"
+
+          cd /home/deploy/apps/arteno
+          git fetch --force origin "refs/tags/$deploy_tag:refs/tags/$deploy_tag"
+          git checkout main
+          git merge --ff-only "$deploy_tag"
+          bash scripts/deploy-vps-atomic.sh /home/deploy/apps/arteno arteno-staging
+          echo "DEPLOYED_COMMIT=$(git rev-parse HEAD)"
+          REMOTE
+
+      - name: Verificar site público
+        run: |
+          curl --fail --silent --show-error \
+            --retry 6 --retry-delay 5 --retry-all-errors \
+            https://arteno.com.br/ >/dev/null
