@@ -88,6 +88,8 @@ type QuoteMeta = {
   cpf?: string | null;
   cnpj?: string | null;
   companyName?: string | null;
+  attribution?: Record<string, unknown> | null;
+  conversionChannel?: string;
 };
 
 function parseMeta(raw: string | null | undefined): QuoteMeta {
@@ -120,6 +122,9 @@ function parseMeta(raw: string | null | undefined): QuoteMeta {
         cpf: typeof p.cpf === "string" ? p.cpf : null,
         cnpj: typeof p.cnpj === "string" ? p.cnpj : null,
         companyName: typeof p.companyName === "string" ? p.companyName : null,
+        attribution: p.attribution && typeof p.attribution === "object" ? p.attribution : undefined,
+        conversionChannel:
+          typeof p.conversionChannel === "string" ? p.conversionChannel : undefined,
       };
     }
   } catch {
@@ -554,7 +559,7 @@ function DashboardQuotesPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-xs uppercase tracking-wide text-muted-foreground">
-                    <OriginBadge origin={o.origin} />
+                    <OriginBadge origin={o.origin} notes={o.notes} />
                   </td>
                   <td className="px-4 py-3">{currency(o.total)}</td>
                   <td className="px-4 py-3 text-muted-foreground">
@@ -1295,16 +1300,31 @@ function DimensionFields({
     </fieldset>
   );
 }
-function OriginBadge({ origin }: { origin: string }) {
+function OriginBadge({ origin, notes }: { origin: string; notes?: string | null }) {
   const map: Record<string, { label: string; cls: string }> = {
     manual: { label: "Dashboard", cls: "bg-primary/15 text-primary" },
     site: { label: "Site", cls: "bg-blue-500/15 text-blue-600" },
     whatsapp: { label: "WhatsApp", cls: "bg-green-500/15 text-green-600" },
+    direto: { label: "Direto", cls: "bg-slate-500/15 text-slate-500" },
+    google_ads: { label: "Google Ads", cls: "bg-amber-500/15 text-amber-600" },
+    google_organic: { label: "Google orgânico", cls: "bg-blue-500/15 text-blue-600" },
+    bing_organic: { label: "Bing orgânico", cls: "bg-cyan-500/15 text-cyan-600" },
+    instagram: { label: "Instagram", cls: "bg-pink-500/15 text-pink-600" },
+    facebook: { label: "Facebook", cls: "bg-indigo-500/15 text-indigo-600" },
+    redes_sociais: { label: "Redes sociais", cls: "bg-fuchsia-500/15 text-fuchsia-600" },
+    referencia: { label: "Referência", cls: "bg-violet-500/15 text-violet-600" },
   };
   const key = (origin ?? "").toLowerCase();
   const info = map[key] ?? { label: origin || "—", cls: "bg-muted text-muted-foreground" };
+  const attribution = parseMeta(notes).attribution;
+  const details = attribution
+    ? [attribution.source, attribution.medium, attribution.campaign].filter(Boolean).join(" / ")
+    : "";
   return (
-    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${info.cls}`}>
+    <span
+      title={details || info.label}
+      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${info.cls}`}
+    >
       {info.label}
     </span>
   );
@@ -1529,6 +1549,8 @@ function NewQuoteDialogImpl({
         cpf: personType === "fisica" ? cpf : null,
         cnpj: personType === "juridica" ? cnpj : null,
         companyName: personType === "juridica" ? companyName : null,
+        attribution: initialMeta.attribution,
+        conversionChannel: initialMeta.conversionChannel,
       });
       const basePayload: Record<string, unknown> = {
         customer_name: name,
@@ -1537,7 +1559,7 @@ function NewQuoteDialogImpl({
         total,
         notes: metaPayload,
       };
-      const attempts: Record<string, unknown>[] = [
+      const createAttempts: Record<string, unknown>[] = [
         { ...basePayload, origin: "manual", customer_email: email || null },
         { ...basePayload, customer_email: email || null },
         { ...basePayload },
@@ -1545,7 +1567,12 @@ function NewQuoteDialogImpl({
       let orderErr: { message: string } | null = null;
       let orderSaved = false;
       if (editMode && duplicateSource) {
-        for (const payload of attempts) {
+        // Origin describes acquisition and must not change when an existing quote is edited.
+        const updateAttempts: Record<string, unknown>[] = [
+          { ...basePayload, customer_email: email || null },
+          { ...basePayload },
+        ];
+        for (const payload of updateAttempts) {
           const { error } = await supabase
             .from("orders" as never)
             .update(payload as never)
@@ -1560,7 +1587,7 @@ function NewQuoteDialogImpl({
         }
       } else {
         for (const status of STATUS_WRITE_CANDIDATES.em_aberto) {
-          for (const payload of attempts) {
+          for (const payload of createAttempts) {
             const { error } = await supabase
               .from("orders" as never)
               .insert({ ...payload, status } as never);

@@ -19,6 +19,7 @@ import { maskCnpj, maskCpf, maskPhoneBR } from "@/lib/masks";
 import { absoluteUrl } from "@/lib/site-config";
 import { fetchProductBySlug } from "@/lib/products";
 import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
+import { getMarketingAttribution } from "@/lib/marketing-attribution";
 import {
   Dialog,
   DialogContent,
@@ -388,6 +389,8 @@ function OrcamentoPage() {
           ? customer.cnpj
           : null,
       companyName: customer.customerType !== "final" ? customer.companyName : null,
+      attribution: getMarketingAttribution(),
+      conversionChannel: "site_form",
     };
     const notificationPayload = {
       customer_name: customer.name,
@@ -396,6 +399,7 @@ function OrcamentoPage() {
       items: cleanItems,
       total: subtotal,
       notes: JSON.stringify(meta),
+      attribution: meta.attribution,
     };
     try {
       const response = await fetch("/api/quotes", {

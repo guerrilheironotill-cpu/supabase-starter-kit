@@ -8,7 +8,41 @@ type QuotePayload = {
   items?: unknown[];
   total?: number;
   notes?: string;
+  attribution?: Record<string, unknown> | null;
 };
+
+const ATTRIBUTION_CHANNELS = new Set([
+  "direto",
+  "google_ads",
+  "google_organic",
+  "bing_organic",
+  "instagram",
+  "facebook",
+  "redes_sociais",
+  "referencia",
+]);
+
+function cleanAttribution(value: QuotePayload["attribution"]) {
+  if (!value || typeof value !== "object") return null;
+  const text = (key: string, max = 500) =>
+    String(value[key] ?? "")
+      .trim()
+      .slice(0, max);
+  const candidate = text("channel", 50).toLowerCase();
+  const channel = ATTRIBUTION_CHANNELS.has(candidate) ? candidate : "site";
+  return {
+    channel,
+    source: text("source", 100),
+    medium: text("medium", 100),
+    campaign: text("campaign", 200),
+    term: text("term", 200),
+    content: text("content", 200),
+    landingPage: text("landingPage", 1000),
+    referrer: text("referrer", 1000),
+    clickId: text("clickId", 500),
+    capturedAt: text("capturedAt", 50),
+  };
+}
 
 type CatalogItem = {
   kind?: string;
@@ -125,17 +159,27 @@ export const Route = createFileRoute("/api/quotes")({
           (sum, item) => sum + Number(item.price) * Number(item.quantity),
           0,
         );
+        const attribution = cleanAttribution(payload.attribution);
+        let notes = String(payload.notes ?? "");
+        if (attribution) {
+          try {
+            const parsed = JSON.parse(notes);
+            notes = JSON.stringify({ ...parsed, attribution });
+          } catch {
+            // Keep legacy plain-text notes intact.
+          }
+        }
         const { error } = await admin.from("orders").insert({
           id: orderId,
           status: "orcamento",
-          origin: "site",
+          origin: attribution?.channel ?? "site",
           email_notification_token: emailNotificationToken,
           customer_name: customerName,
           customer_phone: customerPhone,
           customer_email: customerEmail,
           items: verifiedItems,
           total: Math.round(verifiedTotal * 100) / 100,
-          notes: String(payload.notes ?? ""),
+          notes,
         });
 
         if (error) {

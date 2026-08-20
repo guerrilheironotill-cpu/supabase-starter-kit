@@ -20,6 +20,7 @@ import { useApplySiteSeo } from "../lib/site-seo-store";
 import { absoluteUrl, IS_STAGING, SITE_NAME, SITE_URL } from "../lib/site-config";
 import { CookieConsentBanner } from "../components/cookie-consent-banner";
 import { AnalyticsLoader } from "../components/analytics-loader";
+import { captureMarketingAttribution } from "../lib/marketing-attribution";
 
 function NotFoundComponent() {
   return (
@@ -204,6 +205,7 @@ function RootComponent() {
   // The dashboard setting is the homepage fallback. Route-specific metadata
   // must remain authoritative on catalog, category and product pages.
   useApplySiteSeo(pathname === "/");
+  useEffect(() => captureMarketingAttribution(), []);
 
   return (
     <QueryClientProvider client={queryClient}>

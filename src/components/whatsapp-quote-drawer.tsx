@@ -9,6 +9,7 @@ import { publicSupabase } from "@/integrations/supabase/client";
 import { compactError, useFormDebugLogStore } from "@/lib/form-debug-log";
 
 import { useWhatsAppNumber } from "@/lib/site-settings";
+import { getMarketingAttribution } from "@/lib/marketing-attribution";
 
 const baseSchema = z.object({
   name: z.string().trim().min(2, "Informe seu nome").max(80, "Nome muito longo"),
@@ -233,11 +234,13 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
               ? parsed.data.cnpj
               : null,
           companyName: parsed.data.customerType !== "final" ? parsed.data.companyName : null,
+          attribution: getMarketingAttribution(),
+          conversionChannel: "whatsapp",
         };
         const total = items.reduce((s, i) => s + (i.unitPrice ?? 0) * i.quantity, 0);
         await publicSupabase.from("orders" as never).insert({
           status: "orcamento",
-          origin: "whatsapp",
+          origin: meta.attribution?.channel ?? "whatsapp",
           customer_name: parsed.data.name,
           customer_phone: parsed.data.phone,
           customer_email: null,
@@ -381,7 +384,9 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
                 {customerType !== "professional" && <span className="text-destructive">*</span>}
               </span>
               <input
-                aria-label={customerType === "final" || professionalDocument === "cpf" ? "CPF" : "CNPJ"}
+                aria-label={
+                  customerType === "final" || professionalDocument === "cpf" ? "CPF" : "CNPJ"
+                }
                 type="text"
                 value={customerType === "final" || professionalDocument === "cpf" ? cpf : cnpj}
                 onChange={(e) =>
