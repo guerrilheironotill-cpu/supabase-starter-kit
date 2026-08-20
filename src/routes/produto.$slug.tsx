@@ -29,6 +29,10 @@ import {
 } from "@/components/available-finishes-section";
 import { absoluteUrl } from "@/lib/site-config";
 import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
+import {
+  buildProductEditorialContent,
+  productEditorialText,
+} from "@/lib/product-editorial-content";
 
 export const Route = createFileRoute("/produto/$slug")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -148,7 +152,7 @@ function productStructuredData(product: ProductDetail) {
   const images = product.images
     .filter(Boolean)
     .map((image) => (image.startsWith("http") ? image : absoluteUrl(image)));
-  const description = productDescriptionToText(product.description ?? "").slice(0, 5000);
+  const description = productEditorialText(product).slice(0, 5000);
   const offers = [...(product.product_sizes ?? [])]
     .filter((size) => Number(size.base_price) > 0)
     .map((size) => {
@@ -331,6 +335,7 @@ function ProductPage() {
   );
   const images = p.images ?? [];
   const description = productDescriptionToText(p.description);
+  const editorial = buildProductEditorialContent(p);
 
   const { data: finishCatalog = [] } = useQuery({
     queryKey: ["attribute-terms", "product_finishes"],
@@ -588,6 +593,72 @@ function ProductPage() {
 
       <AvailableFinishesSection availableNames={finishes.map((finish) => finish.name)} />
       <AvailableColorsSection availableNames={colors.map((color) => color.name)} />
+
+      <section className="border-t border-primary/10 bg-background py-14 sm:py-18">
+        <div className="mx-auto max-w-5xl px-4 sm:px-8">
+          <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
+            <div>
+              <h2 className="font-display text-2xl font-semibold text-primary sm:text-3xl">
+                Como escolher {p.name}
+              </h2>
+              <div className="mt-5 space-y-4 text-base leading-relaxed text-primary/80">
+                <p>{editorial.introduction}</p>
+                <p>{editorial.selectionGuide}</p>
+                <p>{editorial.planningGuide}</p>
+                <p>{editorial.orderingGuide}</p>
+              </div>
+
+              {(editorial.dimensions.length > 0 ||
+                editorial.finishes.length > 0 ||
+                editorial.colors.length > 0) && (
+                <div className="mt-8 grid gap-5 sm:grid-cols-3">
+                  {editorial.dimensions.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-primary">Medidas cadastradas</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-primary/70">
+                        {editorial.dimensions.join("; ")}
+                      </p>
+                    </div>
+                  )}
+                  {editorial.finishes.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-primary">Acabamentos</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-primary/70">
+                        {editorial.finishes.join(", ")}
+                      </p>
+                    </div>
+                  )}
+                  {editorial.colors.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-primary">Cores</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-primary/70">
+                        {editorial.colors.join(", ")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <h2 className="font-display text-2xl font-semibold text-primary">
+                Dúvidas sobre {p.name}
+              </h2>
+              <div className="mt-5 divide-y divide-primary/10 border-y border-primary/10">
+                {editorial.faq.map((item) => (
+                  <details key={item.question} className="group py-4">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-primary">
+                      {item.question}
+                      <Plus className="h-4 w-4 shrink-0 transition-transform group-open:rotate-45" />
+                    </summary>
+                    <p className="pt-3 text-sm leading-relaxed text-primary/75">{item.answer}</p>
+                  </details>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {p.category && (
         <ProductRelatedSection currentProductId={p.id} category={p.category} limit={8} />
