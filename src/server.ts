@@ -44,10 +44,13 @@ function maintenancePreviewRedirect(request: Request, url: URL) {
   if (!token || !supplied || supplied !== token) return null;
   const cleanUrl = new URL(url);
   cleanUrl.searchParams.delete("preview");
+  const cleanLocation = `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`;
   return new Response(null, {
     status: 302,
     headers: {
-      location: cleanUrl.toString(),
+      // Keep this relative so a TLS-terminating proxy cannot turn the preview
+      // redirect into HTTP when it forwards the application request internally.
+      location: cleanLocation,
       "set-cookie": `${MAINTENANCE_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400`,
       "cache-control": HTML_NO_STORE,
     },
