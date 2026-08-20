@@ -133,11 +133,6 @@ export function SiteHeader() {
               >
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white p-2 text-primary shadow-xl">
                   <DropdownCategoryLink
-                    label="Todos os outros produtos"
-                    slug="outros-produtos"
-                    onNavigate={() => setOtherProductsOpen(false)}
-                  />
-                  <DropdownCategoryLink
                     label="Mesas"
                     slug="mesas"
                     onNavigate={() => setOtherProductsOpen(false)}
@@ -383,13 +378,6 @@ export function SiteHeader() {
                   </button>
                   {mobileProductsOpen && (
                     <ul className="mt-1 space-y-1 border-l border-border pl-3">
-                      <li>
-                        <MobileCategoryLink
-                          label="Todos os outros produtos"
-                          slug="outros-produtos"
-                          onNavigate={() => setMobileOpen(false)}
-                        />
-                      </li>
                       <li>
                         <MobileCategoryLink
                           label="Mesas"
