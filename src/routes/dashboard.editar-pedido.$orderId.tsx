@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, FileDown, Loader2, Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -55,6 +55,13 @@ const labels: Record<string, string> = {
 };
 const money = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value || 0);
+const escapeHtml = (value: unknown) =>
+  String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 
 export const Route = createFileRoute("/dashboard/editar-pedido/$orderId")({
   head: () => ({
@@ -211,6 +218,70 @@ function EditOrderPage() {
     void navigate({ to: "/dashboard/pedidos" });
   }
 
+  function generateQuotePdf() {
+    if (!order) return;
+    const reference = escapeHtml(order.external_number || order.number);
+    const rows = items
+      .map(
+        (item) => `<tr>
+          <td>${escapeHtml(item.name)}</td>
+          <td>${Number(item.quantity) || 0}</td>
+          <td>${money(Number(item.unit_price) || 0)}</td>
+          <td>${money((Number(item.quantity) || 0) * (Number(item.unit_price) || 0))}</td>
+        </tr>`,
+      )
+      .join("");
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/>
+      <title>Orçamento ${reference}</title>
+      <style>
+        * { box-sizing: border-box; }
+        body { max-width: 800px; margin: 0 auto; padding: 44px 32px; color: #171717; background: #fff; font-family: Arial, sans-serif; }
+        header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding-bottom: 22px; border-bottom: 2px solid #222; }
+        header img { width: 181px; height: auto; }
+        .document { text-align: right; color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: .14em; }
+        .document strong { display: block; margin-top: 6px; color: #171717; font-size: 18px; letter-spacing: .04em; }
+        section { margin-top: 22px; border: 1px solid #e5e5e5; border-radius: 10px; padding: 18px 20px; }
+        h2 { margin: 0 0 13px; color: #777; font-size: 11px; text-transform: uppercase; letter-spacing: .16em; }
+        .row { display: flex; justify-content: space-between; gap: 24px; padding: 5px 0; font-size: 14px; }
+        .row span { color: #666; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px 5px; border-bottom: 1px solid #eee; text-align: left; font-size: 13px; }
+        th { color: #777; font-size: 10px; text-transform: uppercase; letter-spacing: .1em; }
+        th:last-child, td:last-child { text-align: right; }
+        .total { margin-top: 8px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 18px; }
+        .note { white-space: pre-wrap; font-size: 13px; line-height: 1.55; }
+        .print { display: block; margin: 24px auto 0; border: 0; border-radius: 6px; padding: 11px 20px; background: #222; color: #fff; cursor: pointer; }
+        @media print { body { padding: 20px; } .print { display: none; } }
+      </style></head><body>
+      <header>
+        <img src="https://arteno.com.br/images/logo-header-scroll.svg" alt="Arteno"/>
+        <div class="document">Orçamento<strong>#${reference}</strong></div>
+      </header>
+      <section><h2>Cliente</h2>
+        <div class="row"><span>Nome</span><strong>${escapeHtml(name || "Cliente")}</strong></div>
+        ${phone ? `<div class="row"><span>Telefone</span><strong>${escapeHtml(phone)}</strong></div>` : ""}
+        ${email ? `<div class="row"><span>E-mail</span><strong>${escapeHtml(email)}</strong></div>` : ""}
+        <div class="row"><span>Data</span><strong>${new Date().toLocaleDateString("pt-BR")}</strong></div>
+      </section>
+      <section><h2>Itens</h2><table><thead><tr><th>Descrição</th><th>Qtd.</th><th>Unitário</th><th>Subtotal</th></tr></thead><tbody>${rows}</tbody></table></section>
+      <section><h2>Valores</h2>
+        <div class="row"><span>Subtotal</span><strong>${money(subtotal)}</strong></div>
+        ${shipping ? `<div class="row"><span>Frete</span><strong>${money(shipping)}</strong></div>` : ""}
+        <div class="row total"><span>Total</span><strong>${money(total)}</strong></div>
+      </section>
+      ${note ? `<section><h2>Observações</h2><div class="note">${escapeHtml(note)}</div></section>` : ""}
+      <button class="print" onclick="window.print()">Salvar como PDF</button>
+      <script>setTimeout(function(){ window.print(); }, 400);</script>
+      </body></html>`;
+    const pdfWindow = window.open("", "_blank");
+    if (!pdfWindow) {
+      toast.error("O navegador bloqueou a janela do PDF. Permita pop-ups e tente novamente.");
+      return;
+    }
+    pdfWindow.document.write(html);
+    pdfWindow.document.close();
+  }
+
   if (isLoading || !order)
     return (
       <div className="flex justify-center p-12">
@@ -219,19 +290,27 @@ function EditOrderPage() {
     );
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           to="/dashboard/pedidos"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" /> Voltar para pedidos
         </Link>
-        <button
-          onClick={remove}
-          className="inline-flex items-center gap-2 rounded-md border border-destructive/30 px-3 py-2 text-sm text-destructive"
-        >
-          <Trash2 className="h-4 w-4" /> Excluir pedido
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={generateQuotePdf}
+            className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
+          >
+            <FileDown className="h-4 w-4" /> Gerar PDF do orçamento
+          </button>
+          <button
+            onClick={remove}
+            className="inline-flex items-center gap-2 rounded-md border border-destructive/30 px-3 py-2 text-sm text-destructive"
+          >
+            <Trash2 className="h-4 w-4" /> Excluir pedido
+          </button>
+        </div>
       </div>
       <div>
         <h1 className="text-2xl font-semibold">Pedido #{order.external_number || order.number}</h1>
