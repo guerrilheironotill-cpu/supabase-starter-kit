@@ -56,6 +56,7 @@ import { Route as ApiServerStorageRouteImport } from './routes/api/server-storag
 import { Route as ApiQuotesRouteImport } from './routes/api/quotes'
 import { Route as ApiProductImageSourcesRouteImport } from './routes/api/product-image-sources'
 import { Route as ApiHealthEnvRouteImport } from './routes/api/health-env'
+import { Route as ApiAdminOrdersBulkRouteImport } from './routes/api/admin-orders-bulk'
 import { Route as ApiAdminLeadsBulkRouteImport } from './routes/api/admin-leads-bulk'
 import { Route as ApiAdminLeadsRouteImport } from './routes/api/admin-leads'
 import { Route as DashboardPaginasIndexRouteImport } from './routes/dashboard.paginas.index'
@@ -302,6 +303,11 @@ const ApiHealthEnvRoute = ApiHealthEnvRouteImport.update({
   path: '/api/health-env',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminOrdersBulkRoute = ApiAdminOrdersBulkRouteImport.update({
+  id: '/api/admin-orders-bulk',
+  path: '/api/admin-orders-bulk',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminLeadsBulkRoute = ApiAdminLeadsBulkRouteImport.update({
   id: '/api/admin-leads-bulk',
   path: '/api/admin-leads-bulk',
@@ -380,6 +386,7 @@ export interface FileRoutesByFullPath {
   '/api': typeof Api_rootRoute
   '/api/admin-leads': typeof ApiAdminLeadsRoute
   '/api/admin-leads-bulk': typeof ApiAdminLeadsBulkRoute
+  '/api/admin-orders-bulk': typeof ApiAdminOrdersBulkRoute
   '/api/health-env': typeof ApiHealthEnvRoute
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
   '/api/quotes': typeof ApiQuotesRoute
@@ -438,6 +445,7 @@ export interface FileRoutesByTo {
   '/api': typeof Api_rootRoute
   '/api/admin-leads': typeof ApiAdminLeadsRoute
   '/api/admin-leads-bulk': typeof ApiAdminLeadsBulkRoute
+  '/api/admin-orders-bulk': typeof ApiAdminOrdersBulkRoute
   '/api/health-env': typeof ApiHealthEnvRoute
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
   '/api/quotes': typeof ApiQuotesRoute
@@ -497,6 +505,7 @@ export interface FileRoutesById {
   '/api/__root': typeof Api_rootRoute
   '/api/admin-leads': typeof ApiAdminLeadsRoute
   '/api/admin-leads-bulk': typeof ApiAdminLeadsBulkRoute
+  '/api/admin-orders-bulk': typeof ApiAdminOrdersBulkRoute
   '/api/health-env': typeof ApiHealthEnvRoute
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
   '/api/quotes': typeof ApiQuotesRoute
@@ -558,6 +567,7 @@ export interface FileRouteTypes {
     | '/api'
     | '/api/admin-leads'
     | '/api/admin-leads-bulk'
+    | '/api/admin-orders-bulk'
     | '/api/health-env'
     | '/api/product-image-sources'
     | '/api/quotes'
@@ -616,6 +626,7 @@ export interface FileRouteTypes {
     | '/api'
     | '/api/admin-leads'
     | '/api/admin-leads-bulk'
+    | '/api/admin-orders-bulk'
     | '/api/health-env'
     | '/api/product-image-sources'
     | '/api/quotes'
@@ -674,6 +685,7 @@ export interface FileRouteTypes {
     | '/api/__root'
     | '/api/admin-leads'
     | '/api/admin-leads-bulk'
+    | '/api/admin-orders-bulk'
     | '/api/health-env'
     | '/api/product-image-sources'
     | '/api/quotes'
@@ -734,6 +746,7 @@ export interface RootRouteChildren {
   Api_rootRoute: typeof Api_rootRoute
   ApiAdminLeadsRoute: typeof ApiAdminLeadsRoute
   ApiAdminLeadsBulkRoute: typeof ApiAdminLeadsBulkRoute
+  ApiAdminOrdersBulkRoute: typeof ApiAdminOrdersBulkRoute
   ApiHealthEnvRoute: typeof ApiHealthEnvRoute
   ApiProductImageSourcesRoute: typeof ApiProductImageSourcesRoute
   ApiQuotesRoute: typeof ApiQuotesRoute
@@ -1077,6 +1090,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthEnvRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin-orders-bulk': {
+      id: '/api/admin-orders-bulk'
+      path: '/api/admin-orders-bulk'
+      fullPath: '/api/admin-orders-bulk'
+      preLoaderRoute: typeof ApiAdminOrdersBulkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin-leads-bulk': {
       id: '/api/admin-leads-bulk'
       path: '/api/admin-leads-bulk'
@@ -1252,6 +1272,7 @@ const rootRouteChildren: RootRouteChildren = {
   Api_rootRoute: Api_rootRoute,
   ApiAdminLeadsRoute: ApiAdminLeadsRoute,
   ApiAdminLeadsBulkRoute: ApiAdminLeadsBulkRoute,
+  ApiAdminOrdersBulkRoute: ApiAdminOrdersBulkRoute,
   ApiHealthEnvRoute: ApiHealthEnvRoute,
   ApiProductImageSourcesRoute: ApiProductImageSourcesRoute,
   ApiQuotesRoute: ApiQuotesRoute,

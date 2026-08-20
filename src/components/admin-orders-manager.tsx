@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { AlertTriangle, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { RowActionsMenu } from "@/components/row-actions-menu";
 import { useMemo, useState } from "react";
@@ -50,12 +51,9 @@ export function AdminOrdersManager() {
   const qc = useQueryClient();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState("any");
-  const [origin, setOrigin] = useState("any");
   const [search, setSearch] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [min, setMin] = useState("");
-  const [max, setMax] = useState("");
   const [working, setWorking] = useState(false);
 
   const { data: orders = [], isLoading } = useQuery({
@@ -84,15 +82,12 @@ export function AdminOrdersManager() {
         const date = order.created_at.slice(0, 10);
         return (
           (status === "any" || order.status === status) &&
-          (origin === "any" || order.origin === origin) &&
           (!search || haystack.includes(search.toLowerCase())) &&
           (!from || date >= from) &&
-          (!to || date <= to) &&
-          (!min || Number(order.total) >= Number(min)) &&
-          (!max || Number(order.total) <= Number(max))
+          (!to || date <= to)
         );
       }),
-    [orders, status, origin, search, from, to, min, max],
+    [orders, status, search, from, to],
   );
 
   const allSelected = filtered.length > 0 && filtered.every((o) => selected.has(o.id));
@@ -132,25 +127,27 @@ export function AdminOrdersManager() {
       !window.confirm(`Excluir ${ids.length} pedido(s)? Esta ação não pode ser desfeita.`)
     )
       return;
-    const { error: itemError } = await supabase
-      .from("app_order_items" as never)
-      .delete()
-      .in("order_id", ids);
-    if (itemError) return toast.error(itemError.message);
-    const { error } = await supabase
-      .from("app_orders" as never)
-      .delete()
-      .in("id", ids);
-    if (error) return toast.error(error.message);
-    setSelected(new Set());
-    await qc.invalidateQueries({ queryKey: ["app-orders"] });
-    toast.success("Pedidos excluídos");
+    setWorking(true);
+    try {
+      const result = await authorizedRequest("/api/admin-orders-bulk", "DELETE", { ids });
+      const deleted = Number(result.deleted) || 0;
+      if (deleted !== ids.length) {
+        throw new Error(`Foram excluídos ${deleted} de ${ids.length} pedidos selecionados.`);
+      }
+      setSelected(new Set());
+      await qc.invalidateQueries({ queryKey: ["app-orders"] });
+      toast.success(`${deleted} pedido${deleted === 1 ? " excluído" : "s excluídos"}.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível excluir os pedidos.");
+    } finally {
+      setWorking(false);
+    }
   }
 
-  async function authorizedPost(path: string, body?: unknown) {
+  async function authorizedRequest(path: string, method: "POST" | "DELETE", body?: unknown) {
     const { data } = await supabase.auth.getSession();
     const response = await fetch(path, {
-      method: "POST",
+      method,
       headers: {
         Authorization: `Bearer ${data.session?.access_token ?? ""}`,
         "Content-Type": "application/json",
@@ -161,6 +158,8 @@ export function AdminOrdersManager() {
     if (!response.ok || !json.ok) throw new Error(json.error || "Operação não concluída.");
     return json;
   }
+
+  const authorizedPost = (path: string, body?: unknown) => authorizedRequest(path, "POST", body);
 
   async function reconcile(orderId: string) {
     setWorking(true);
@@ -188,7 +187,7 @@ export function AdminOrdersManager() {
           </p>
         </div>
       </div>
-      <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -207,15 +206,6 @@ export function AdminOrdersManager() {
             </option>
           ))}
         </select>
-        <select
-          value={origin}
-          onChange={(e) => setOrigin(e.target.value)}
-          className="rounded-md border border-border bg-card px-3 py-2 text-sm"
-        >
-          <option value="any">Todas as origens</option>
-          <option value="site">Site</option>
-          <option value="woocommerce_import">Pedidos históricos</option>
-        </select>
         <div className="flex gap-2">
           <input
             type="date"
@@ -230,20 +220,6 @@ export function AdminOrdersManager() {
             className="min-w-0 flex-1 rounded-md border border-border bg-card px-2 py-2 text-xs"
           />
         </div>
-        <input
-          type="number"
-          value={min}
-          onChange={(e) => setMin(e.target.value)}
-          placeholder="Preço mínimo"
-          className="rounded-md border border-border bg-card px-3 py-2 text-sm"
-        />
-        <input
-          type="number"
-          value={max}
-          onChange={(e) => setMax(e.target.value)}
-          placeholder="Preço máximo"
-          className="rounded-md border border-border bg-card px-3 py-2 text-sm"
-        />
       </div>
       {selected.size > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 p-2 text-sm">
@@ -266,7 +242,8 @@ export function AdminOrdersManager() {
             ))}
           </select>
           <button
-            onClick={removeSelected}
+            onClick={() => void removeSelected()}
+            disabled={working}
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-destructive hover:bg-destructive/10"
           >
             <Trash2 className="h-4 w-4" /> Excluir
@@ -312,7 +289,13 @@ export function AdminOrdersManager() {
                       />
                     </td>
                     <td className="px-3 py-3 font-medium">
-                      #{order.external_number || order.number}
+                      <Link
+                        to="/dashboard/editar-pedido/$orderId"
+                        params={{ orderId: order.id }}
+                        className="underline-offset-4 hover:text-primary hover:underline"
+                      >
+                        #{order.external_number || order.number}
+                      </Link>
                     </td>
                     <td className="px-3 py-3">
                       <div>{name}</div>
