@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link } from "@tanstack/react-router";
-import { Download, Instagram } from "lucide-react";
-import { CatalogDownloadDialog, OPEN_CATALOG_EVENT } from "./catalog-download-dialog";
+import { Instagram } from "lucide-react";
 import { OPEN_COOKIE_PREFERENCES_EVENT } from "@/lib/cookie-consent";
 import { useWhatsAppNumber, whatsappLinkFrom } from "@/lib/site-settings";
 
@@ -11,9 +10,7 @@ const LINKS: {
   label: string;
   to: string;
   params?: { slug: string };
-  downloadIcon?: boolean;
 }[] = [
-  { label: "Catálogo (PDF)", to: "/catalogo", downloadIcon: true },
   { label: "Vasos", to: "/categoria/$slug", params: { slug: "vasos-de-concreto" } },
   { label: "Jardineiras", to: "/categoria/$slug", params: { slug: "jardineiras" } },
   { label: "Mesas", to: "/categoria/$slug", params: { slug: "mesas" } },
@@ -23,7 +20,6 @@ const LINKS: {
 ];
 
 export function SiteFooter() {
-  const [catalogOpen, setCatalogOpen] = useState(false);
   const adminWhatsAppUrl = whatsappLinkFrom(
     useWhatsAppNumber(),
     "Olá! Gostaria de falar com a equipe da Arteno.",
@@ -31,12 +27,9 @@ export function SiteFooter() {
 
   useEffect(() => {
     const openWhatsApp = () => window.open(adminWhatsAppUrl, "_blank", "noopener,noreferrer");
-    const openCatalog = () => setCatalogOpen(true);
     window.addEventListener(OPEN_WHATSAPP_EVENT, openWhatsApp);
-    window.addEventListener(OPEN_CATALOG_EVENT, openCatalog);
     return () => {
       window.removeEventListener(OPEN_WHATSAPP_EVENT, openWhatsApp);
-      window.removeEventListener(OPEN_CATALOG_EVENT, openCatalog);
     };
   }, [adminWhatsAppUrl]);
   return (
@@ -54,28 +47,16 @@ export function SiteFooter() {
               />
             </Link>
             <nav aria-label="Navegação do rodapé" className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-              {LINKS.map((l) =>
-                l.downloadIcon ? (
-                  <button
-                    key={l.label}
-                    type="button"
-                    onClick={() => setCatalogOpen(true)}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-white/85 transition-colors hover:text-secondary"
-                  >
-                    {l.label}
-                    <Download className="h-3.5 w-3.5" />
-                  </button>
-                ) : (
-                  <Link
-                    key={l.label}
-                    to={l.to as never}
-                    params={l.params as never}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-white/85 transition-colors hover:text-secondary"
-                  >
-                    {l.label}
-                  </Link>
-                ),
-              )}
+              {LINKS.map((l) => (
+                <Link
+                  key={l.label}
+                  to={l.to as never}
+                  params={l.params as never}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-white/85 transition-colors hover:text-secondary"
+                >
+                  {l.label}
+                </Link>
+              ))}
             </nav>
             <a
               href="https://www.instagram.com/artenovasodecor"
@@ -143,7 +124,6 @@ export function SiteFooter() {
         Orçamento personalizado
       </a>
 
-      <CatalogDownloadDialog open={catalogOpen} onOpenChange={setCatalogOpen} />
     </>
   );
 }

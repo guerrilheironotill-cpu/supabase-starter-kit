@@ -7,6 +7,19 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
+  vite: {
+    server: {
+      // Production serves persistent media through Nginx. During local
+      // development, proxy those relative URLs to the live media origin.
+      proxy: {
+        "/uploads": {
+          target: "https://arteno.com.br",
+          changeOrigin: true,
+          secure: true,
+        },
+      },
+    },
+  },
   // Lovable forces its own Cloudflare target inside Lovable builds. Self-hosted
   // builds target a regular Node server that can be supervised by PM2.
   nitro: {

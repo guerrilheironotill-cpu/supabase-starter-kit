@@ -1,12 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Download, FileText, Menu, Search, X } from "lucide-react";
+import { ChevronDown, FileText, Menu, Search, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { categorySlug, fetchProductsWithSizes } from "@/lib/products";
 import { useQuoteStore } from "@/lib/quote-store";
 import { cn } from "@/lib/utils";
 import { WhatsAppQuoteDrawer } from "./whatsapp-quote-drawer";
-import { openCatalogDownload } from "./catalog-download-dialog";
 
 function useHydrated() {
   const [hydrated, setHydrated] = useState(false);
@@ -244,20 +243,6 @@ export function SiteHeader() {
               </span>
             </Link>
 
-            <button
-              type="button"
-              onClick={openCatalogDownload}
-              className={cn(
-                "group/nav relative inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-semibold uppercase tracking-[0.14em] transition-all duration-300 hover:-translate-y-0.5",
-                scrolled ? "text-white/85 hover:text-white" : "text-primary/80 hover:text-primary",
-              )}
-            >
-              <span className="relative">
-                Catálogo (PDF)
-                <span className="pointer-events-none absolute -bottom-1 left-0 h-[2px] w-0 bg-secondary transition-all duration-300 group-hover/nav:w-full" />
-              </span>
-              <Download className="h-3.5 w-3.5" />
-            </button>
           </nav>
           <div className="flex items-center gap-3">
             {/* Quote count indicator (outside the button) */}
@@ -495,19 +480,6 @@ export function SiteHeader() {
                   >
                     Projetos sob medida
                   </Link>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileOpen(false);
-                      openCatalogDownload();
-                    }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition-colors hover:bg-secondary/20 hover:text-primary"
-                  >
-                    Catálogo (PDF)
-                    <Download className="h-3.5 w-3.5" />
-                  </button>
                 </li>
               </ul>
             </nav>

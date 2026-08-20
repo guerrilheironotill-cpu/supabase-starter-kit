@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { CircleHelp, Download } from "lucide-react";
+import { CircleHelp } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/accordion";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { WhatsAppQuoteDrawer } from "@/components/whatsapp-quote-drawer";
-import { openCatalogDownload } from "@/components/catalog-download-dialog";
 
 const FAQS: { question: string; answer: ReactNode }[] = [
   {
@@ -38,13 +37,6 @@ const FAQS: { question: string; answer: ReactNode }[] = [
           As medidas, o preço normal e o preço promocional ficam visíveis na página de cada produto.
           O valor final é atualizado conforme o tamanho e o acabamento escolhidos.
         </p>
-        <button
-          type="button"
-          onClick={openCatalogDownload}
-          className="mt-4 inline-flex items-center gap-2 rounded-full border border-primary/20 px-4 py-2 text-xs font-semibold text-primary transition hover:border-primary hover:bg-primary hover:text-white"
-        >
-          <Download className="h-3.5 w-3.5" /> Abrir catálogo em PDF
-        </button>
       </>
     ),
   },

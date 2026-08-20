@@ -11,7 +11,7 @@ import {
   validSalePrice,
   formatBRL,
 } from "@/lib/products";
-import { ChevronLeft, ChevronRight, Download, MessageCircle, Minus, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, MessageCircle, Minus, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useQuoteStore } from "@/lib/quote-store";
 import { AdminEditBar } from "@/components/admin-edit-bar";
@@ -27,7 +27,6 @@ import {
   AvailableColorsSection,
   AvailableFinishesSection,
 } from "@/components/available-finishes-section";
-import { openCatalogDownload } from "@/components/catalog-download-dialog";
 import { absoluteUrl } from "@/lib/site-config";
 import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
 
@@ -391,7 +390,7 @@ function ProductPage() {
     const s = sizes[idx];
     if (!s) return;
     if (!selectedFinish || !selectedColor) return;
-    const basePrice = s.sale_price ?? s.base_price;
+    const basePrice = currentPrice(s);
     addItem({
       id: `${p.id}:${s.id}:${selectedFinish}:${selectedColor}`,
       productId: p.id,
@@ -576,24 +575,12 @@ function ProductPage() {
             <div className="mt-6 flex gap-3">
               <button
                 type="button"
-                onClick={openCatalogDownload}
-                className="inline-flex flex-1 items-center justify-center gap-2 bg-secondary px-5 py-3 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/90 cursor-pointer"
-              >
-                <Download className="h-4 w-4" />
-                Baixar Catálogo
-              </button>
-              <button
-                type="button"
                 onClick={() => window.dispatchEvent(new CustomEvent("arteno:open-whatsapp"))}
                 className="inline-flex flex-1 items-center justify-center gap-2 border border-[#2a2f2c] bg-white px-5 py-3 text-sm font-medium text-[#2a2f2c] transition-colors hover:bg-[#2a2f2c] hover:text-white cursor-pointer"
               >
                 <MessageCircle className="h-4 w-4" />
                 Suporte WhatsApp
               </button>
-            </div>
-            <div className="mt-4 border border-primary/15 bg-primary/5 px-4 py-3 text-sm leading-relaxed text-primary/80">
-              Selecione tamanho, acabamento e cor para calcular o valor final da peça. Frete e prazo
-              de produção são confirmados na finalização.
             </div>
           </div>
         </div>

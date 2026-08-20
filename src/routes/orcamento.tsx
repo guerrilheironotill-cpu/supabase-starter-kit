@@ -1,12 +1,32 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Minus, Plus, Trash2, Check, ArrowLeft, ArrowRight } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+  Minus,
+  Plus,
+  Trash2,
+  Check,
+  ArrowLeft,
+  ArrowRight,
+  UserRound,
+  BriefcaseBusiness,
+  Store,
+  BookOpen,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuoteStore, type QuoteItem } from "@/lib/quote-store";
 import { useWhatsAppNumber } from "@/lib/site-settings";
 import { maskCnpj, maskCpf, maskPhoneBR } from "@/lib/masks";
 import { absoluteUrl } from "@/lib/site-config";
 import { fetchProductBySlug } from "@/lib/products";
 import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/orcamento")({
   head: () => ({
@@ -46,6 +66,7 @@ type Customer = {
   cpf: string;
   cnpj: string;
   companyName: string;
+  resellerRulesAccepted: boolean;
 };
 
 const EMPTY_ADDRESS: Address = {
@@ -60,6 +81,7 @@ const EMPTY_ADDRESS: Address = {
 
 const QUOTE_DRAFT_KEY = "arteno:quote-form-draft";
 const QUOTE_DRAFT_TTL = 24 * 60 * 60 * 1000;
+const RESELLER_RULES_VERSION = "2026-08-20";
 
 type QuoteFormDraft = {
   expiresAt: number;
@@ -137,6 +159,7 @@ function OrcamentoPage() {
     cpf: "",
     cnpj: "",
     companyName: "",
+    resellerRulesAccepted: false,
   });
   const [customerAddress, setCustomerAddress] = useState<Address>(EMPTY_ADDRESS);
   const [sameAsDelivery, setSameAsDelivery] = useState(true);
@@ -193,11 +216,12 @@ function OrcamentoPage() {
     setCustomerAddress((a) => ({ ...a, ...patch })),
   );
 
+  const refreshedCatalogPrices = useRef(false);
   useEffect(() => {
-    const legacyItems = items.filter(
-      (item) => item.slug && (!item.availableFinishes?.length || !item.availableColors?.length),
-    );
-    if (legacyItems.length === 0) return;
+    if (refreshedCatalogPrices.current) return;
+    refreshedCatalogPrices.current = true;
+    const catalogItems = items.filter((item) => item.slug && item.sizeId);
+    if (catalogItems.length === 0) return;
     let cancelled = false;
     void (async () => {
       const finishCatalog = await fetchAttributeTerms("product_finishes", "finish_catalog");
@@ -205,11 +229,21 @@ function OrcamentoPage() {
       const finishOrder = new Map(finishCatalog.map((entry, index) => [entry.name, index]));
       const colorOrder = new Map(colorCatalog.map((entry, index) => [entry.name, index]));
       await Promise.all(
-        legacyItems.map(async (item) => {
+        catalogItems.map(async (item) => {
           const product = await fetchProductBySlug(item.slug!);
           if (!product || cancelled) return;
+          const size = product.product_sizes.find((entry) => entry.id === item.sizeId);
+          if (!size) return;
+          const regularPrice = Number(size.base_price) || 0;
+          const candidateSale = size.sale_price == null ? null : Number(size.sale_price);
+          const basePrice =
+            candidateSale && candidateSale > 0 && candidateSale < regularPrice
+              ? candidateSale
+              : regularPrice;
+          const selectedFinishExtra =
+            finishCatalog.find((entry) => entry.name === item.finish)?.extra_price ?? 0;
           updateConfigurationOptions(item.id, {
-            basePrice: item.basePrice ?? item.unitPrice ?? 0,
+            basePrice,
             availableFinishes: [...product.product_finishes]
               .sort((a, b) => (finishOrder.get(a.name) ?? 9999) - (finishOrder.get(b.name) ?? 9999))
               .map((finish) => ({
@@ -221,6 +255,11 @@ function OrcamentoPage() {
             availableColors: [...product.product_colors]
               .sort((a, b) => (colorOrder.get(a.name) ?? 9999) - (colorOrder.get(b.name) ?? 9999))
               .map((color) => color.name),
+          });
+          updateConfiguration(item.id, {
+            finish: item.finish,
+            color: item.color,
+            unitPrice: basePrice + selectedFinishExtra,
           });
         }),
       );
@@ -325,8 +364,19 @@ function OrcamentoPage() {
         effectiveDelivery === "shipping"
           ? `${a.street}, ${a.number}${a.complement ? ` (${a.complement})` : ""} — ${a.neighborhood}, ${a.city}/${a.state} — CEP ${a.cep}`
           : "Retirar na fábrica",
-      personType: customer.customerType === "final" ? "fisica" : "juridica",
+      personType:
+        customer.customerType === "final" ||
+        (customer.customerType === "professional" && customer.professionalDocument === "cpf")
+          ? "fisica"
+          : "juridica",
       customerType: customer.customerType,
+      ...(customer.customerType === "reseller" && customer.resellerRulesAccepted
+        ? {
+            resellerRulesAccepted: true,
+            resellerRulesVersion: RESELLER_RULES_VERSION,
+            resellerRulesAcceptedAt: new Date().toISOString(),
+          }
+        : {}),
       cpf:
         customer.customerType === "final" ||
         (customer.customerType === "professional" && customer.professionalDocument === "cpf")
@@ -424,6 +474,7 @@ function OrcamentoPage() {
     customer.email.trim() !== "" &&
     customer.phone.trim() !== "" &&
     docOk &&
+    (customer.customerType !== "reseller" || customer.resellerRulesAccepted) &&
     customerAddress.cep.replace(/\D/g, "").length === 8 &&
     customerAddress.street.trim() !== "" &&
     customerAddress.number.trim() !== "";
@@ -441,6 +492,9 @@ function OrcamentoPage() {
                 ? "Informe um CPF válido com 11 dígitos."
                 : "Informe um CNPJ válido com 14 dígitos.",
         ]
+      : []),
+    ...(customer.customerType === "reseller" && !customer.resellerRulesAccepted
+      ? ["Confirme que você leu e está ciente das regras para revendedores."]
       : []),
     ...(customerAddress.cep.replace(/\D/g, "").length !== 8
       ? ["Informe o CEP de cadastro com 8 dígitos."]
@@ -869,6 +923,113 @@ function StepProducts({
   );
 }
 
+function CustomerProfileCard({
+  title,
+  lines,
+  icon: Icon,
+  selected,
+  onSelect,
+  rules,
+}: {
+  title: string;
+  lines: string[];
+  icon: LucideIcon;
+  selected: boolean;
+  onSelect: () => void;
+  rules?: "professional" | "reseller";
+}) {
+  return (
+    <div
+      className={`flex min-h-52 flex-col border p-4 transition-colors ${
+        selected
+          ? "border-primary bg-primary/5 ring-1 ring-primary"
+          : "border-border bg-background hover:border-primary/50"
+      }`}
+    >
+      <button
+        type="button"
+        role="radio"
+        aria-checked={selected}
+        onClick={onSelect}
+        className="flex flex-1 flex-col text-left"
+      >
+        <span className="flex items-start justify-between gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Icon className="h-4 w-4" />
+          </span>
+          <span
+            className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+              selected ? "border-primary bg-primary text-primary-foreground" : "border-border"
+            }`}
+          >
+            {selected && <Check className="h-3 w-3" />}
+          </span>
+        </span>
+        <strong className="mt-4 text-sm text-foreground">{title}</strong>
+        <ul className="mt-3 space-y-1.5 text-xs leading-relaxed text-muted-foreground">
+          {lines.map((line) => (
+            <li key={line} className="flex gap-2">
+              <Check className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+      </button>
+      {rules && <CustomerRulesDialog variant={rules} />}
+    </div>
+  );
+}
+
+function CustomerRulesDialog({ variant }: { variant: "professional" | "reseller" }) {
+  const professional = variant === "professional";
+  const rules = professional
+    ? [
+        "Destinado a arquitetos, paisagistas, designers, jardineiros e especificadores.",
+        "15% de desconto após análise e aprovação comercial, sem compra mínima.",
+        "O benefício é destinado à especificação e não caracteriza revenda.",
+        "O desconto parte do preço regular e não é acumulado com promoções.",
+      ]
+    : [
+        "25% de desconto entre R$ 3.000 e R$ 4.999,99 em produtos.",
+        "30% entre R$ 5.000 e R$ 9.999,99 e 35% a partir de R$ 10.000.",
+        "O primeiro pedido mínimo é de R$ 3.000; o frete não entra nesse cálculo.",
+        "A manutenção do perfil exige R$ 6.000 em compras a cada seis meses.",
+        "A aprovação e a manutenção do cadastro estão sujeitas à análise comercial.",
+      ];
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          className="mt-4 inline-flex items-center gap-1.5 self-start text-xs font-semibold text-primary underline-offset-4 hover:underline"
+        >
+          <BookOpen className="h-3.5 w-3.5" />
+          Ver regras
+        </button>
+      </DialogTrigger>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>
+            Regras para{" "}
+            {professional ? "Profissionais / Especificadores" : "Revendedores / Lojistas"}
+          </DialogTitle>
+          <DialogDescription>
+            Confira as condições comerciais aplicáveis a este perfil.
+          </DialogDescription>
+        </DialogHeader>
+        <ul className="space-y-3 text-sm leading-relaxed text-foreground">
+          {rules.map((rule) => (
+            <li key={rule} className="flex gap-3">
+              <Check className="mt-1 h-4 w-4 shrink-0 text-primary" />
+              <span>{rule}</span>
+            </li>
+          ))}
+        </ul>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function StepCustomer({
   customer,
   setCustomer,
@@ -891,34 +1052,46 @@ function StepCustomer({
             <span className="block text-xs font-medium uppercase tracking-widest text-muted-foreground">
               Perfil do cliente
             </span>
-            <div className="mt-2 flex gap-4 text-sm">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="customerType"
-                  checked={customer.customerType === "final"}
-                  onChange={() => setCustomer((c) => ({ ...c, customerType: "final" }))}
-                />
-                Cliente final
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="customerType"
-                  checked={customer.customerType === "professional"}
-                  onChange={() => setCustomer((c) => ({ ...c, customerType: "professional" }))}
-                />
-                Profissional / Especificador
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="customerType"
-                  checked={customer.customerType === "reseller"}
-                  onChange={() => setCustomer((c) => ({ ...c, customerType: "reseller" }))}
-                />
-                Revendedor / Lojista
-              </label>
+            <div
+              className="mt-3 grid gap-3 md:grid-cols-3"
+              role="radiogroup"
+              aria-label="Perfil do cliente"
+            >
+              <CustomerProfileCard
+                title="Cliente final"
+                lines={["Cadastro via CPF", "Sem compra mínima", "Preços e promoções do site"]}
+                icon={UserRound}
+                selected={customer.customerType === "final"}
+                onSelect={() =>
+                  setCustomer((c) => ({
+                    ...c,
+                    customerType: "final",
+                    resellerRulesAccepted: false,
+                  }))
+                }
+              />
+              <CustomerProfileCard
+                title="Profissional / Especificador"
+                lines={["Cadastro via CPF ou CNPJ", "15% após aprovação", "Sem compra mínima"]}
+                icon={BriefcaseBusiness}
+                selected={customer.customerType === "professional"}
+                onSelect={() =>
+                  setCustomer((c) => ({
+                    ...c,
+                    customerType: "professional",
+                    resellerRulesAccepted: false,
+                  }))
+                }
+                rules="professional"
+              />
+              <CustomerProfileCard
+                title="Revendedor / Lojista"
+                lines={["Cadastro via CNPJ", "Descontos de até 35%", "Compra mínima e recorrência"]}
+                icon={Store}
+                selected={customer.customerType === "reseller"}
+                onSelect={() => setCustomer((c) => ({ ...c, customerType: "reseller" }))}
+                rules="reseller"
+              />
             </div>
           </div>
           <Field
@@ -960,6 +1133,24 @@ function StepCustomer({
                 </label>
               </div>
             </div>
+          )}
+          {customer.customerType === "reseller" && (
+            <label className="sm:col-span-2 flex cursor-pointer items-start gap-3 border border-primary/20 bg-primary/5 p-4 text-sm leading-relaxed">
+              <input
+                type="checkbox"
+                checked={customer.resellerRulesAccepted}
+                onChange={(event) =>
+                  setCustomer((c) => ({ ...c, resellerRulesAccepted: event.target.checked }))
+                }
+                className="mt-1 h-4 w-4 accent-primary"
+              />
+              <span>
+                Li e estou ciente das regras para cadastro como Revendedor / Lojista.
+                <span className="ml-1 text-destructive" aria-hidden="true">
+                  *
+                </span>
+              </span>
+            </label>
           )}
           {customer.customerType === "final" ||
           (customer.customerType === "professional" && customer.professionalDocument === "cpf") ? (
