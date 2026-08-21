@@ -29,7 +29,10 @@ export const Route = createFileRoute("/mobiliario-urbano")({
         content:
           "Soluções resistentes e personalizadas para áreas coletivas, empreendimentos e espaços públicos.",
       },
-      { property: "og:image", content: absoluteUrl("/images/mobiliario-urbano/hero-praca-v1.png") },
+      {
+        property: "og:image",
+        content: absoluteUrl("/images/mobiliario-urbano/hero-praca-v1.webp"),
+      },
       { property: "og:url", content: absoluteUrl("/mobiliario-urbano") },
     ],
     links: [{ rel: "canonical", href: absoluteUrl("/mobiliario-urbano") }],
@@ -82,7 +85,11 @@ function UrbanFurniturePage() {
       <section className="px-4 sm:px-8 lg:px-[50px]">
         <div className="relative min-h-[76vh] overflow-hidden rounded-3xl bg-[#202722]">
           <img
-            src="/images/mobiliario-urbano/hero-praca-v1.png"
+            src="/images/mobiliario-urbano/hero-praca-v1.webp"
+            srcSet="/images/mobiliario-urbano/hero-praca-v1-860.webp 860w, /images/mobiliario-urbano/hero-praca-v1.webp 1716w"
+            sizes="100vw"
+            width={1716}
+            height={917}
             alt="Praça contemporânea com bancos, mesas, jardineiras e lixeiras em concreto"
             fetchPriority="high"
             className="absolute inset-0 h-full w-full object-cover"
@@ -168,7 +175,11 @@ function UrbanFurniturePage() {
       <section className="mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-8 sm:py-28 lg:grid-cols-2 lg:items-center">
         <ScrollReveal className="overflow-hidden rounded-3xl">
           <img
-            src="/images/mobiliario-urbano/detalhe-concreto-madeira-v1.png"
+            src="/images/mobiliario-urbano/detalhe-concreto-madeira-v1.webp"
+            srcSet="/images/mobiliario-urbano/detalhe-concreto-madeira-v1-768.webp 768w, /images/mobiliario-urbano/detalhe-concreto-madeira-v1.webp 1536w"
+            sizes="(max-width: 1023px) 100vw, 50vw"
+            width={1536}
+            height={1024}
             alt="Detalhe de banco e jardineira modular em concreto e madeira"
             loading="lazy"
             className="aspect-[4/3] h-full w-full object-cover transition-transform duration-[1600ms] hover:scale-[1.02]"

@@ -446,7 +446,7 @@ function ProductPage() {
               <li>
                 <Link
                   to="/categoria/$slug"
-                  params={{ slug: slugify(p.category) }}
+                  params={{ slug: categorySlug(p.category) }}
                   className="hover:text-primary"
                 >
                   {p.category}
@@ -945,6 +945,8 @@ function MobileGallery({
             <img
               src={src}
               alt={`${name} — imagem ${i + 1}`}
+              width={1200}
+              height={1200}
               loading={i === 0 ? "eager" : "lazy"}
               className="h-full w-full object-cover"
             />

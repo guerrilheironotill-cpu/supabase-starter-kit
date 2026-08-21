@@ -3,7 +3,26 @@ import type {} from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { SITE_URL } from "@/lib/site-config";
 
-type Entry = { path: string; changefreq?: string; priority?: string; lastmod?: string };
+type Entry = {
+  path: string;
+  changefreq?: string;
+  priority?: string;
+  lastmod?: string;
+  images?: string[];
+};
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function absoluteImageUrl(src: string) {
+  return /^https?:\/\//i.test(src) ? src : `${SITE_URL}${src.startsWith("/") ? src : `/${src}`}`;
+}
 
 function isIndexableProduct(product: { slug: string; name: string; category: string }) {
   return (
@@ -19,10 +38,25 @@ export const Route = createFileRoute("/sitemap.xml")({
         const entries: Entry[] = [
           { path: "/", changefreq: "weekly", priority: "1.0" },
           { path: "/catalogo", changefreq: "weekly", priority: "0.9" },
-          { path: "/pias-e-cubas-de-concreto", changefreq: "monthly", priority: "0.8" },
+          {
+            path: "/pias-e-cubas-de-concreto",
+            changefreq: "monthly",
+            priority: "0.8",
+            images: ["/images/pias-e-cubas/hero.webp"],
+          },
           { path: "/caracteristicas-do-concreto", changefreq: "yearly", priority: "0.7" },
-          { path: "/vasos-para-empresas", changefreq: "monthly", priority: "0.8" },
-          { path: "/mobiliario-urbano", changefreq: "monthly", priority: "0.8" },
+          {
+            path: "/vasos-para-empresas",
+            changefreq: "monthly",
+            priority: "0.8",
+            images: ["/images/vasos-para-empresas/hero.webp"],
+          },
+          {
+            path: "/mobiliario-urbano",
+            changefreq: "monthly",
+            priority: "0.8",
+            images: ["/images/mobiliario-urbano/hero-praca-v1.webp"],
+          },
           { path: "/projetos-personalizados", changefreq: "monthly", priority: "0.8" },
           { path: "/politica-de-cookies", changefreq: "yearly", priority: "0.2" },
         ];
@@ -36,7 +70,7 @@ export const Route = createFileRoute("/sitemap.xml")({
             });
             const { data: products, error: productsError } = await supabase
               .from("products")
-              .select("slug, name, category, created_at")
+              .select("slug, name, category, created_at, images")
               .eq("active", true);
             if (productsError) throw productsError;
             const cats = new Set<string>();
@@ -46,6 +80,7 @@ export const Route = createFileRoute("/sitemap.xml")({
                 name: string;
                 category: string;
                 created_at: string | null;
+                images: string[] | null;
               };
               if (!isIndexableProduct(row)) continue;
               entries.push({
@@ -53,6 +88,7 @@ export const Route = createFileRoute("/sitemap.xml")({
                 changefreq: "monthly",
                 priority: "0.7",
                 lastmod: row.created_at?.slice(0, 10),
+                images: (row.images ?? []).filter(Boolean).slice(0, 5),
               });
               if (row.category.trim().toLowerCase() !== "sem categoria") {
                 cats.add(row.category);
@@ -77,10 +113,14 @@ export const Route = createFileRoute("/sitemap.xml")({
           .map((e) =>
             [
               `  <url>`,
-              `    <loc>${SITE_URL}${e.path}</loc>`,
+              `    <loc>${escapeXml(`${SITE_URL}${e.path}`)}</loc>`,
               e.lastmod ? `    <lastmod>${e.lastmod}</lastmod>` : null,
               e.changefreq ? `    <changefreq>${e.changefreq}</changefreq>` : null,
               e.priority ? `    <priority>${e.priority}</priority>` : null,
+              ...(e.images ?? []).map(
+                (image) =>
+                  `    <image:image><image:loc>${escapeXml(absoluteImageUrl(image))}</image:loc></image:image>`,
+              ),
               `  </url>`,
             ]
               .filter(Boolean)
@@ -88,7 +128,7 @@ export const Route = createFileRoute("/sitemap.xml")({
           )
           .join("\n");
 
-        const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`;
+        const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${urls}\n</urlset>`;
 
         return new Response(xml, {
           headers: {
