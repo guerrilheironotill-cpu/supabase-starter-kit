@@ -49,6 +49,30 @@ type SupabaseLikeError = {
   details?: string | null;
 };
 
+const NEW_PRODUCT_DRAFT_KEY = "arteno:new-product-draft:v1";
+
+type NewProductDraft = {
+  version: 1;
+  updatedAt: string;
+  product: ProductData;
+  sizes: SizeRow[];
+  finishes: AttrRow[];
+  colors: AttrRow[];
+};
+
+function readNewProductDraft(): NewProductDraft | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const draft = JSON.parse(
+      window.localStorage.getItem(NEW_PRODUCT_DRAFT_KEY) ?? "null",
+    ) as NewProductDraft | null;
+    if (!draft || draft.version !== 1 || !draft.product) return null;
+    return draft;
+  } catch {
+    return null;
+  }
+}
+
 function explainSaveError(error: unknown, context: string): string {
   const dbError = error && typeof error === "object" ? (error as SupabaseLikeError) : null;
   const code = dbError?.code ?? "";
@@ -237,7 +261,9 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
   const initialSizes = useRef("");
   const initialFinishes = useRef("");
   const initialColors = useRef("");
+  const draftReady = useRef(false);
   const [savedSignature, setSavedSignature] = useState<string | null>(null);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
 
   const editorSignature = JSON.stringify({ product, sizes, finishes, colors });
 
@@ -251,10 +277,20 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
           const cats = await fetchProductCategoryOptions();
           if (cancel) return;
           setCategories(cats as Category[]);
-          setProduct(normalizeProduct({ category: cats[0]?.name ?? "", active: true }));
+          const draft = readNewProductDraft();
+          if (draft) {
+            setProduct(normalizeProduct({ ...draft.product, id: "" }));
+            setSizes(draft.sizes ?? []);
+            setFinishes(draft.finishes ?? []);
+            setColors(draft.colors ?? []);
+            setDraftSavedAt(draft.updatedAt);
+          } else {
+            setProduct(normalizeProduct({ category: cats[0]?.name ?? "", active: true }));
+          }
           initialSizes.current = sizesSignature([]);
           initialFinishes.current = attributesSignature([]);
           initialColors.current = attributesSignature([]);
+          draftReady.current = true;
           return;
         }
         const [p, s, f, c, cats] = await Promise.all([
@@ -326,6 +362,33 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
       cancel = true;
     };
   }, [productId]);
+
+  useEffect(() => {
+    if (productId || !product || !draftReady.current) return;
+    const updatedAt = new Date().toISOString();
+    const draft: NewProductDraft = {
+      version: 1,
+      updatedAt,
+      product: { ...product, id: "" },
+      sizes,
+      finishes,
+      colors,
+    };
+    window.localStorage.setItem(NEW_PRODUCT_DRAFT_KEY, JSON.stringify(draft));
+    setDraftSavedAt(updatedAt);
+  }, [productId, editorSignature, product, sizes, finishes, colors]);
+
+  function discardDraft() {
+    if (!window.confirm("Descartar todo o rascunho deste produto?")) return;
+    window.localStorage.removeItem(NEW_PRODUCT_DRAFT_KEY);
+    const category = categories[0]?.name ?? "";
+    setProduct(normalizeProduct({ category, active: true }));
+    setSizes([]);
+    setFinishes([]);
+    setColors([]);
+    setDraftSavedAt(null);
+    setTab("basic");
+  }
 
   async function uploadImage(file: File): Promise<string> {
     return uploadOptimizedImage(file, "products");
@@ -490,6 +553,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
           ? `Produto "${name}" salvo com sucesso!`
           : `Produto "${name}" cadastrado com sucesso!`,
       );
+      if (!product.id) window.localStorage.removeItem(NEW_PRODUCT_DRAFT_KEY);
       onSaved(savedProductId, slug);
       if (mode === "dialog") onClose();
     } catch (e) {
@@ -609,9 +673,27 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
           </div>
 
           <div className="flex items-center justify-between gap-3 border-t border-border px-6 py-3">
-            <span className={cn("text-xs", error ? "text-destructive" : "text-emerald-600")}>
-              {error || (savedSignature === editorSignature ? "Salvo" : "")}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className={cn("text-xs", error ? "text-destructive" : "text-emerald-600")}>
+                {error ||
+                  (productId
+                    ? savedSignature === editorSignature
+                      ? "Salvo"
+                      : ""
+                    : draftSavedAt
+                      ? `Rascunho salvo às ${new Date(draftSavedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+                      : "")}
+              </span>
+              {!productId && draftSavedAt && (
+                <button
+                  type="button"
+                  onClick={discardDraft}
+                  className="text-xs text-muted-foreground underline underline-offset-2 hover:text-destructive"
+                >
+                  Descartar rascunho
+                </button>
+              )}
+            </div>
             <div className="flex gap-2">
               <button
                 type="button"
