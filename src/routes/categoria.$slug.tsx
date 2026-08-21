@@ -23,8 +23,11 @@ export const Route = createFileRoute("/categoria/$slug")({
     const categories = await fetchCategories();
     const category = categories.find((c) => categorySlug(c) === params.slug);
     if (!category) throw notFound();
-    const coverImage = await fetchCategoryCover(category);
-    return { category, coverImage };
+    const [coverImage, products] = await Promise.all([
+      fetchCategoryCover(category),
+      fetchProductsWithSizes({ category }),
+    ]);
+    return { category, coverImage, products };
   },
   head: ({ loaderData }) => ({
     meta: [
@@ -41,10 +44,17 @@ export const Route = createFileRoute("/categoria/$slug")({
       },
       {
         property: "og:title",
-        content: loaderData ? `${loaderData.category} artesanais para projetos | Arteno` : "Categoria — Arteno",
+        content: loaderData
+          ? `${loaderData.category} artesanais para projetos | Arteno`
+          : "Categoria — Arteno",
       },
       ...(loaderData
-        ? [{ property: "og:url", content: absoluteUrl(`/categoria/${categorySlug(loaderData.category)}`) }]
+        ? [
+            {
+              property: "og:url",
+              content: absoluteUrl(`/categoria/${categorySlug(loaderData.category)}`),
+            },
+          ]
         : []),
     ],
     links: loaderData
@@ -53,16 +63,12 @@ export const Route = createFileRoute("/categoria/$slug")({
   }),
   notFoundComponent: () => (
     <div className="mx-auto max-w-4xl px-4 py-20 text-center">
-      <h1 className="font-display text-3xl text-primary">
-        Categoria não encontrada
-      </h1>
+      <h1 className="font-display text-3xl text-primary">Categoria não encontrada</h1>
     </div>
   ),
   errorComponent: ({ reset }) => (
     <div className="mx-auto max-w-4xl px-4 py-20 text-center">
-      <h1 className="font-display text-3xl text-primary">
-        Erro ao carregar produtos
-      </h1>
+      <h1 className="font-display text-3xl text-primary">Erro ao carregar produtos</h1>
       <button
         onClick={reset}
         className="mt-4 rounded-full bg-primary px-5 py-2 text-sm text-primary-foreground"
@@ -75,7 +81,7 @@ export const Route = createFileRoute("/categoria/$slug")({
 });
 
 function CategoryPage() {
-  const { category, coverImage } = Route.useLoaderData();
+  const { category, coverImage, products: initialProducts } = Route.useLoaderData();
   const categoryPath = categorySlug(category);
   const showFilters = categoryPath !== "mesas" && categoryPath !== "bancos";
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
@@ -83,6 +89,7 @@ function CategoryPage() {
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products", "by-category-full", category],
     queryFn: () => fetchProductsWithSizes({ category }),
+    initialData: initialProducts,
     staleTime: 60_000,
   });
 
@@ -100,28 +107,18 @@ function CategoryPage() {
         title={category}
         eyebrow="Categoria"
         count={filtered.length}
-        crumbs={[
-          { label: "Home", to: "/" },
-          { label: category },
-        ]}
+        crumbs={[{ label: "Home", to: "/" }, { label: category }]}
         image={heroImage}
       />
       <section className="bg-white py-12 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-8">
           {showFilters && (
-            <ProductFilters
-              products={products}
-              value={filters}
-              onChange={setFilters}
-            />
+            <ProductFilters products={products} value={filters} onChange={setFilters} />
           )}
           {isLoading ? (
             <div className="mt-10 grid grid-cols-2 gap-5 sm:gap-6 lg:grid-cols-3">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="aspect-square animate-pulse rounded-2xl bg-white/60"
-                />
+                <div key={i} className="aspect-square animate-pulse rounded-2xl bg-white/60" />
               ))}
             </div>
           ) : filtered.length === 0 ? (
@@ -131,10 +128,7 @@ function CategoryPage() {
           ) : (
             <div className="mt-10 grid grid-cols-2 gap-5 sm:gap-6 lg:grid-cols-3">
               {filtered.map((p, i) => (
-                <ProductCard index={i}
-                  key={p.id}
-                  product={p}
-                />
+                <ProductCard index={i} key={p.id} product={p} />
               ))}
             </div>
           )}

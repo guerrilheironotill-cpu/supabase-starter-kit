@@ -4,11 +4,7 @@ import { useMemo, useState } from "react";
 import { Flower2, Sprout, Armchair, Palette } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
 import { ProductCard } from "@/components/product-card";
-import {
-  fetchCategories,
-  fetchProductsWithSizes,
-  slugify,
-} from "@/lib/products";
+import { fetchCategories, fetchProductsWithSizes, slugify } from "@/lib/products";
 import { cn } from "@/lib/utils";
 import { absoluteUrl } from "@/lib/site-config";
 
@@ -23,19 +19,22 @@ const CATEGORY_ICONS: Record<string, typeof Flower2> = {
   acabamentos: Palette,
 };
 
-const HIDDEN_CATALOG_FILTERS = new Set([
-  "outros-produtos",
-  "produtos-em-destaque",
-]);
+const HIDDEN_CATALOG_FILTERS = new Set(["outros-produtos", "produtos-em-destaque"]);
 
 export const Route = createFileRoute("/catalogo")({
+  loader: async () => {
+    const [products, categories] = await Promise.all([
+      fetchProductsWithSizes({}),
+      fetchCategories(),
+    ]);
+    return { products, categories };
+  },
   head: () => ({
     meta: [
       { title: "Catálogo de vasos e peças de concreto — Arteno" },
       {
         name: "description",
-        content:
-          "Explore o catálogo completo de vasos e peças de concreto autoral.",
+        content: "Explore o catálogo completo de vasos e peças de concreto autoral.",
       },
       { property: "og:title", content: "Catálogo de vasos e peças de concreto — Arteno" },
       {
@@ -49,9 +48,7 @@ export const Route = createFileRoute("/catalogo")({
   component: CatalogoPage,
   errorComponent: ({ reset }) => (
     <div className="mx-auto max-w-4xl px-4 py-20 text-center">
-      <h1 className="font-display text-3xl text-primary">
-        Erro ao carregar catálogo
-      </h1>
+      <h1 className="font-display text-3xl text-primary">Erro ao carregar catálogo</h1>
       <button
         onClick={reset}
         className="mt-4 rounded-full bg-primary px-5 py-2 text-sm text-primary-foreground"
@@ -64,17 +61,20 @@ export const Route = createFileRoute("/catalogo")({
 });
 
 function CatalogoPage() {
+  const { products: initialProducts, categories: initialCategories } = Route.useLoaderData();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products", "catalogo"],
     queryFn: () => fetchProductsWithSizes({}),
+    initialData: initialProducts,
     staleTime: 60_000,
   });
 
   const { data: siteCategories = [] } = useQuery({
     queryKey: ["categories", "catalogo"],
     queryFn: fetchCategories,
+    initialData: initialCategories,
     staleTime: 60_000,
   });
 
@@ -90,9 +90,7 @@ function CatalogoPage() {
     () =>
       selectedCategories.length === 0
         ? products
-        : products.filter((product) =>
-            selectedCategories.includes(product.category),
-          ),
+        : products.filter((product) => selectedCategories.includes(product.category)),
     [products, selectedCategories],
   );
 
@@ -112,10 +110,7 @@ function CatalogoPage() {
         title="Catálogo"
         eyebrow="Todos os modelos"
         count={filtered.length}
-        crumbs={[
-          { label: "Home", to: "/" },
-          { label: "Catálogo" },
-        ]}
+        crumbs={[{ label: "Home", to: "/" }, { label: "Catálogo" }]}
         image={heroImage}
       />
 
@@ -150,10 +145,7 @@ function CatalogoPage() {
           {isLoading ? (
             <div className="mt-10 grid grid-cols-2 gap-5 sm:gap-6 lg:grid-cols-3">
               {Array.from({ length: 8 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="aspect-square animate-pulse bg-primary/5"
-                />
+                <div key={index} className="aspect-square animate-pulse bg-primary/5" />
               ))}
             </div>
           ) : filtered.length === 0 ? (
@@ -163,11 +155,7 @@ function CatalogoPage() {
           ) : (
             <div className="mt-10 grid grid-cols-2 gap-5 sm:gap-6 lg:grid-cols-3">
               {filtered.map((product, index) => (
-                <ProductCard
-                  index={index}
-                  key={product.id}
-                  product={product}
-                />
+                <ProductCard index={index} key={product.id} product={product} />
               ))}
             </div>
           )}

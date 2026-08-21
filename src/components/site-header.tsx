@@ -124,6 +124,7 @@ export function SiteHeader() {
 
               <div
                 aria-hidden={!otherProductsOpen}
+                inert={!otherProductsOpen ? true : undefined}
                 className={cn(
                   "absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-1 transition duration-200",
                   otherProductsOpen
@@ -157,7 +158,7 @@ export function SiteHeader() {
             {/* Quote count indicator (outside the button) */}
             <Link
               to="/orcamento"
-              aria-label="Ver orçamento"
+              aria-label={`Ver orçamento, ${hydrated ? count : 0} itens`}
               className="group relative inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 hover:-translate-y-0.5"
             >
               <FileText
@@ -179,7 +180,7 @@ export function SiteHeader() {
               type="button"
               onClick={() => setWaOpen(true)}
               className="group relative hidden h-10 items-center gap-2 rounded-full bg-secondary px-4 text-sm font-medium text-primary transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary hover:text-secondary xl:inline-flex"
-              aria-label="Solicitar orçamento pelo WhatsApp"
+              aria-label="Orçamento personalizado pelo WhatsApp"
             >
               <svg
                 viewBox="0 0 24 24"

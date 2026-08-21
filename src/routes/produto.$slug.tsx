@@ -435,10 +435,10 @@ function ProductPage() {
       />
       <section className="bg-background py-8 sm:py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-8">
-          <nav aria-label="Breadcrumb" className="text-xs text-primary/60">
+          <nav aria-label="Breadcrumb" className="text-xs text-primary/75">
             <ol className="flex flex-wrap items-center gap-1">
               <li>
-                <Link to="/" className="hover:text-primary">
+                <Link to="/" className="inline-flex min-h-11 items-center px-1 hover:text-primary">
                   Home
                 </Link>
               </li>
@@ -447,7 +447,7 @@ function ProductPage() {
                 <Link
                   to="/categoria/$slug"
                   params={{ slug: categorySlug(p.category) }}
-                  className="hover:text-primary"
+                  className="inline-flex min-h-11 items-center px-1 hover:text-primary"
                 >
                   {p.category}
                 </Link>

@@ -115,7 +115,7 @@ export function SiteFooter() {
         href={adminWhatsAppUrl}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label="Solicitar orçamento personalizado"
+        aria-label="Orçamento personalizado (abre em nova aba)"
         className="fixed inset-x-0 bottom-0 z-40 inline-flex h-14 items-center justify-center gap-2 bg-secondary text-sm font-semibold text-primary shadow-[0_-6px_20px_-8px_rgba(0,0,0,0.25)] transition-colors hover:bg-primary hover:text-secondary lg:hidden"
       >
         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
