@@ -14,7 +14,9 @@ export type CookieConsent = {
 export function readCookieConsent(): CookieConsent | null {
   if (typeof window === "undefined") return null;
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(COOKIE_CONSENT_KEY) ?? "null") as CookieConsent | null;
+    const parsed = JSON.parse(
+      window.localStorage.getItem(COOKIE_CONSENT_KEY) ?? "null",
+    ) as CookieConsent | null;
     if (!parsed || parsed.version !== COOKIE_CONSENT_VERSION) return null;
     return {
       version: COOKIE_CONSENT_VERSION,
@@ -43,8 +45,8 @@ export function saveCookieConsent(
     updatedAt: new Date().toISOString(),
   };
   window.localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(consent));
-  window.dispatchEvent(new CustomEvent(COOKIE_CONSENT_CHANGE_EVENT, { detail: consent }));
   applyConsentToLoadedTrackers(consent);
+  window.dispatchEvent(new CustomEvent(COOKIE_CONSENT_CHANGE_EVENT, { detail: consent }));
   return consent;
 }
 

@@ -73,13 +73,26 @@ function applyTrackers(consent: CookieConsent | null) {
   if (consent?.marketing) loadMetaPixel();
 }
 
+function trackCurrentPage(pathname: string) {
+  const trackerWindow = window as TrackerWindow;
+  loadAnalytics();
+  trackerWindow.gtag?.("event", "page_view", {
+    page_location: window.location.href,
+    page_path: pathname,
+    page_title: document.title,
+  });
+}
+
 export function AnalyticsLoader() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   useEffect(() => {
     applyTrackers(readCookieConsent());
     const onChange = (event: Event) => {
-      applyTrackers((event as CustomEvent<CookieConsent>).detail);
+      const consent = (event as CustomEvent<CookieConsent>).detail;
+      applyTrackers(consent);
+      if (consent.analytics) trackCurrentPage(window.location.pathname);
+      if (consent.marketing) (window as TrackerWindow).fbq?.("track", "PageView");
     };
     window.addEventListener(COOKIE_CONSENT_CHANGE_EVENT, onChange);
     return () => window.removeEventListener(COOKIE_CONSENT_CHANGE_EVENT, onChange);
@@ -89,12 +102,7 @@ export function AnalyticsLoader() {
     const consent = readCookieConsent();
     const trackerWindow = window as TrackerWindow;
     if (consent?.analytics) {
-      loadAnalytics();
-      trackerWindow.gtag?.("event", "page_view", {
-        page_location: window.location.href,
-        page_path: pathname,
-        page_title: document.title,
-      });
+      trackCurrentPage(pathname);
     }
     if (consent?.marketing) {
       loadMetaPixel();
