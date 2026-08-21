@@ -57,7 +57,6 @@ export const Route = createFileRoute("/sitemap.xml")({
             priority: "0.8",
             images: ["/images/mobiliario-urbano/hero-praca-v1.webp"],
           },
-          { path: "/projetos-personalizados", changefreq: "monthly", priority: "0.8" },
           { path: "/politica-de-cookies", changefreq: "yearly", priority: "0.2" },
         ];
 

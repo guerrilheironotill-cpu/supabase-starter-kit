@@ -1,4 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useWhatsAppNumber, whatsappLinkFrom } from "@/lib/site-settings";
 import { absoluteUrl } from "@/lib/site-config";
 import {
@@ -15,6 +17,7 @@ export const Route = createFileRoute("/projetos-personalizados")({
   head: () => ({
     meta: [
       { title: "Projetos sob medida em concreto, madeira e metal — Arteno" },
+      { name: "robots", content: "noindex, nofollow" },
       {
         name: "description",
         content:
@@ -64,11 +67,39 @@ const DIFFERENTIALS = [
 ];
 
 function CustomProjectsPage() {
+  const navigate = useNavigate();
+  const [access, setAccess] = useState<"checking" | "allowed" | "denied">("checking");
   const whatsappNumber = useWhatsAppNumber();
   const projectWhatsAppUrl = whatsappLinkFrom(
     whatsappNumber,
     "Olá! Gostaria de conversar sobre um projeto sob medida.",
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        if (!cancelled) setAccess("denied");
+        return;
+      }
+      const { data, error } = await supabase.rpc("has_role", {
+        _user_id: userData.user.id,
+        _role: "admin",
+      });
+      if (!cancelled) setAccess(!error && !!data ? "allowed" : "denied");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (access === "denied") void navigate({ to: "/", replace: true });
+  }, [access, navigate]);
+
+  if (access !== "allowed") return null;
+
   return (
     <main className="overflow-hidden bg-white text-[#2a2f2c]">
       <section className="px-4 sm:px-8 lg:px-[50px]">

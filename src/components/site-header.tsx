@@ -152,19 +152,6 @@ export function SiteHeader() {
                 </div>
               </div>
             </div>
-
-            <Link
-              to="/projetos-personalizados"
-              className={cn(
-                "group/nav relative inline-flex items-center rounded-full px-3.5 py-2 text-[13px] font-semibold uppercase tracking-[0.14em] transition-all duration-300 hover:-translate-y-0.5",
-                scrolled ? "text-white/85 hover:text-white" : "text-primary/80 hover:text-primary",
-              )}
-            >
-              <span className="relative">
-                Sob medida
-                <span className="pointer-events-none absolute -bottom-1 left-0 h-[2px] w-0 bg-secondary transition-all duration-300 group-hover/nav:w-full" />
-              </span>
-            </Link>
           </nav>
           <div className="flex items-center gap-3">
             {/* Quote count indicator (outside the button) */}
@@ -403,15 +390,6 @@ export function SiteHeader() {
                       </li>
                     </ul>
                   )}
-                </li>
-                <li>
-                  <Link
-                    to="/projetos-personalizados"
-                    className="block rounded-lg px-3 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition-colors hover:bg-secondary/20 hover:text-primary"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    Sob medida
-                  </Link>
                 </li>
               </ul>
             </nav>

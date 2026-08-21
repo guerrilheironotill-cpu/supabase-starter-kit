@@ -16,7 +16,6 @@ const LINKS: {
   { label: "Mesas", to: "/categoria/$slug", params: { slug: "mesas" } },
   { label: "Cubas e Pias", to: "/pias-e-cubas-de-concreto" },
   { label: "Mobiliário Urbano", to: "/mobiliario-urbano" },
-  { label: "Projetos sob medida", to: "/projetos-personalizados" },
 ];
 
 export function SiteFooter() {
@@ -46,7 +45,10 @@ export function SiteFooter() {
                 className="h-11 w-[181px] object-contain"
               />
             </Link>
-            <nav aria-label="Navegação do rodapé" className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+            <nav
+              aria-label="Navegação do rodapé"
+              className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3"
+            >
               {LINKS.map((l) => (
                 <Link
                   key={l.label}
@@ -91,9 +93,7 @@ export function SiteFooter() {
             </div>
             <p className="inline-flex items-center gap-1.5">
               <span>Desenvolvido por:</span>
-              <span className="font-semibold text-secondary">
-                StudioVogel
-              </span>
+              <span className="font-semibold text-secondary">StudioVogel</span>
             </p>
           </div>
         </div>
@@ -123,7 +123,6 @@ export function SiteFooter() {
         </svg>
         Orçamento personalizado
       </a>
-
     </>
   );
 }
