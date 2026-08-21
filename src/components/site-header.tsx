@@ -125,7 +125,7 @@ export function SiteHeader() {
               <div
                 aria-hidden={!otherProductsOpen}
                 className={cn(
-                  "absolute left-1/2 top-full z-50 mt-1 w-60 -translate-x-1/2 pt-2 transition duration-200",
+                  "absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-1 transition duration-200",
                   otherProductsOpen
                     ? "pointer-events-auto translate-y-0 opacity-100"
                     : "pointer-events-none -translate-y-2 opacity-0",
