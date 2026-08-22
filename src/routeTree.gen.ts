@@ -68,6 +68,7 @@ import { Route as DashboardEditarPedidoOrderIdRouteImport } from './routes/dashb
 import { Route as DashboardEditarClienteCustomerIdRouteImport } from './routes/dashboard.editar-cliente.$customerId'
 import { Route as DashboardCrmLeadsRouteImport } from './routes/dashboard.crm.leads'
 import { Route as ApiOrdersReconcilePersonRouteImport } from './routes/api/orders.reconcile-person'
+import { Route as ApiNotaasConnectionRouteImport } from './routes/api/notaas.connection'
 import { Route as ApiGscOverviewRouteImport } from './routes/api/gsc.overview'
 
 const Api_rootRoute = Api_rootRouteImport.update({
@@ -370,6 +371,11 @@ const ApiOrdersReconcilePersonRoute =
     path: '/api/orders/reconcile-person',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiNotaasConnectionRoute = ApiNotaasConnectionRouteImport.update({
+  id: '/api/notaas/connection',
+  path: '/api/notaas/connection',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGscOverviewRoute = ApiGscOverviewRouteImport.update({
   id: '/api/gsc/overview',
   path: '/api/gsc/overview',
@@ -430,6 +436,7 @@ export interface FileRoutesByFullPath {
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
+  '/api/notaas/connection': typeof ApiNotaasConnectionRoute
   '/api/orders/reconcile-person': typeof ApiOrdersReconcilePersonRoute
   '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
   '/dashboard/editar-cliente/$customerId': typeof DashboardEditarClienteCustomerIdRoute
@@ -490,6 +497,7 @@ export interface FileRoutesByTo {
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
+  '/api/notaas/connection': typeof ApiNotaasConnectionRoute
   '/api/orders/reconcile-person': typeof ApiOrdersReconcilePersonRoute
   '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
   '/dashboard/editar-cliente/$customerId': typeof DashboardEditarClienteCustomerIdRoute
@@ -553,6 +561,7 @@ export interface FileRoutesById {
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
+  '/api/notaas/connection': typeof ApiNotaasConnectionRoute
   '/api/orders/reconcile-person': typeof ApiOrdersReconcilePersonRoute
   '/dashboard/crm/leads': typeof DashboardCrmLeadsRoute
   '/dashboard/editar-cliente/$customerId': typeof DashboardEditarClienteCustomerIdRoute
@@ -617,6 +626,7 @@ export interface FileRouteTypes {
     | '/produto/$slug'
     | '/dashboard/'
     | '/api/gsc/overview'
+    | '/api/notaas/connection'
     | '/api/orders/reconcile-person'
     | '/dashboard/crm/leads'
     | '/dashboard/editar-cliente/$customerId'
@@ -677,6 +687,7 @@ export interface FileRouteTypes {
     | '/produto/$slug'
     | '/dashboard'
     | '/api/gsc/overview'
+    | '/api/notaas/connection'
     | '/api/orders/reconcile-person'
     | '/dashboard/crm/leads'
     | '/dashboard/editar-cliente/$customerId'
@@ -739,6 +750,7 @@ export interface FileRouteTypes {
     | '/produto/$slug'
     | '/dashboard/'
     | '/api/gsc/overview'
+    | '/api/notaas/connection'
     | '/api/orders/reconcile-person'
     | '/dashboard/crm/leads'
     | '/dashboard/editar-cliente/$customerId'
@@ -783,6 +795,7 @@ export interface RootRouteChildren {
   CategoriaSlugRoute: typeof CategoriaSlugRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
   ApiGscOverviewRoute: typeof ApiGscOverviewRoute
+  ApiNotaasConnectionRoute: typeof ApiNotaasConnectionRoute
   ApiOrdersReconcilePersonRoute: typeof ApiOrdersReconcilePersonRoute
 }
 
@@ -1201,6 +1214,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrdersReconcilePersonRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/notaas/connection': {
+      id: '/api/notaas/connection'
+      path: '/api/notaas/connection'
+      fullPath: '/api/notaas/connection'
+      preLoaderRoute: typeof ApiNotaasConnectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/gsc/overview': {
       id: '/api/gsc/overview'
       path: '/api/gsc/overview'
@@ -1325,6 +1345,7 @@ const rootRouteChildren: RootRouteChildren = {
   CategoriaSlugRoute: CategoriaSlugRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
   ApiGscOverviewRoute: ApiGscOverviewRoute,
+  ApiNotaasConnectionRoute: ApiNotaasConnectionRoute,
   ApiOrdersReconcilePersonRoute: ApiOrdersReconcilePersonRoute,
 }
 export const routeTree = rootRouteImport

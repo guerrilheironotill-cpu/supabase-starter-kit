@@ -9,14 +9,12 @@ import {
   Facebook,
   ShoppingBag,
   Search,
+  ReceiptText,
 } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard/integracoes")({
   head: () => ({
-    meta: [
-      { title: "Integrações — Dashboard" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Integrações — Dashboard" }, { name: "robots", content: "noindex" }],
   }),
   component: DashboardIntegrationsPage,
 });
@@ -30,6 +28,28 @@ function DashboardIntegrationsPage() {
   const [metaPixel, setMetaPixel] = useState("");
   const [fbCatalogId, setFbCatalogId] = useState("");
   const [integSaved, setIntegSaved] = useState(false);
+  const [notaasStatus, setNotaasStatus] = useState<"idle" | "checking" | "connected" | "error">(
+    "idle",
+  );
+
+  async function checkNotaas() {
+    setNotaasStatus("checking");
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      setNotaasStatus("error");
+      return;
+    }
+    try {
+      const response = await fetch("/api/notaas/connection", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = (await response.json()) as { ok?: boolean };
+      setNotaasStatus(response.ok && result.ok ? "connected" : "error");
+    } catch {
+      setNotaasStatus("error");
+    }
+  }
 
   useEffect(() => {
     try {
@@ -63,10 +83,7 @@ function DashboardIntegrationsPage() {
 
   function saveIntegrations(e: React.FormEvent) {
     e.preventDefault();
-    localStorage.setItem(
-      "integrations",
-      JSON.stringify({ ga4, metaPixel, fbCatalogId }),
-    );
+    localStorage.setItem("integrations", JSON.stringify({ ga4, metaPixel, fbCatalogId }));
     setIntegSaved(true);
     setTimeout(() => setIntegSaved(false), 2500);
   }
@@ -103,34 +120,65 @@ function DashboardIntegrationsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight text-primary">
-        Integrações
-      </h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-primary">Integrações</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Cole aqui os IDs quando estiverem prontos. Cada bloco tem o passo a passo
-        para obter o valor.
+        Cole aqui os IDs quando estiverem prontos. Cada bloco tem o passo a passo para obter o
+        valor.
       </p>
 
-      <form
-        onSubmit={saveIntegrations}
-        className="mt-6 space-y-6 border border-border bg-card p-6"
-      >
+      <form onSubmit={saveIntegrations} className="mt-6 space-y-6 border border-border bg-card p-6">
         <div className="flex items-start gap-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-4">
           <Search className="mt-0.5 h-4 w-4 text-emerald-600" />
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-foreground">
-                Google Search Console
-              </span>
+              <span className="text-sm font-medium text-foreground">Google Search Console</span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
                 Conectado
               </span>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Conta autorizada via OAuth. Cliques, impressões e top páginas já
-              aparecem na Visão geral.
+              Conta autorizada via OAuth. Cliques, impressões e top páginas já aparecem na Visão
+              geral.
             </p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 rounded-lg border border-border bg-background/40 p-4">
+          <ReceiptText className="mt-0.5 h-4 w-4 text-primary" />
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-foreground">Notaas — NF-e</span>
+              <span
+                className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                  notaasStatus === "connected"
+                    ? "bg-emerald-500/10 text-emerald-600"
+                    : notaasStatus === "error"
+                      ? "bg-red-500/10 text-red-600"
+                      : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {notaasStatus === "connected"
+                  ? "Conectado em homologação"
+                  : notaasStatus === "checking"
+                    ? "Verificando…"
+                    : notaasStatus === "error"
+                      ? "Falha na conexão"
+                      : "Aguardando teste"}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              A chave permanece protegida no servidor e nunca é enviada ao navegador.
+            </p>
+            <button
+              type="button"
+              onClick={() => void checkNotaas()}
+              disabled={notaasStatus === "checking"}
+              className="mt-3 inline-flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
+            >
+              {notaasStatus === "checking" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Testar conexão
+            </button>
           </div>
         </div>
 
@@ -185,9 +233,7 @@ function DashboardIntegrationsPage() {
           ]}
         />
 
-        {integSaved && (
-          <p className="text-xs text-primary">Integrações salvas localmente.</p>
-        )}
+        {integSaved && <p className="text-xs text-primary">Integrações salvas localmente.</p>}
 
         <button
           type="submit"
@@ -232,9 +278,7 @@ function IntegrationField({
             {label}
             <span
               className={`ml-auto inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal ${
-                connected
-                  ? "bg-emerald-500/10 text-emerald-600"
-                  : "bg-red-500/10 text-red-600"
+                connected ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600"
               }`}
             >
               <span
@@ -253,14 +297,10 @@ function IntegrationField({
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
             className={`mt-2 block w-full max-w-md border bg-transparent px-3 py-2 text-sm outline-none ${
-              invalid
-                ? "border-red-500 focus:border-red-500"
-                : "border-border focus:border-primary"
+              invalid ? "border-red-500 focus:border-red-500" : "border-border focus:border-primary"
             }`}
           />
-          {invalid && hint && (
-            <span className="mt-1 block text-[11px] text-red-600">{hint}</span>
-          )}
+          {invalid && hint && <span className="mt-1 block text-[11px] text-red-600">{hint}</span>}
         </label>
       </div>
       <details className="mt-3 group">

@@ -36,16 +36,20 @@ jobs:
           VPS_PORT: ${{ secrets.VPS_PORT }}
           VPS_USER: ${{ secrets.VPS_USER }}
           DEPLOY_TAG: ${{ github.ref_name }}
+          NOTAAS_API_KEY: ${{ secrets.NOTAAS_API_KEY }}
         run: |
+          test -n "$NOTAAS_API_KEY"
+          NOTAAS_API_KEY_B64="$(printf '%s' "$NOTAAS_API_KEY" | base64 -w 0)"
           ssh \
             -o BatchMode=yes \
             -o ConnectTimeout=15 \
             -o IdentitiesOnly=yes \
             -i ~/.ssh/id_ed25519 \
             -p "${VPS_PORT:-22}" "$VPS_USER@$VPS_HOST" \
-            "bash -s -- '$DEPLOY_TAG'" <<'REMOTE'
+            "bash -s -- '$DEPLOY_TAG' '$NOTAAS_API_KEY_B64'" <<'REMOTE'
           set -Eeuo pipefail
           deploy_tag="$1"
+          notaas_api_key_b64="$2"
           case "$deploy_tag" in
             deploy-*) ;;
             *) echo "Tag de deploy inválida: $deploy_tag" >&2; exit 1 ;;
@@ -56,6 +60,15 @@ jobs:
           . "$NVM_DIR/nvm.sh"
 
           cd /home/deploy/apps/arteno
+          notaas_api_key="$(printf '%s' "$notaas_api_key_b64" | base64 --decode)"
+          env_tmp="$(mktemp /home/deploy/apps/arteno/.env.notaas.XXXXXX)"
+          if [[ -f .env ]]; then
+            awk '!/^NOTAAS_API_KEY=/' .env > "$env_tmp"
+          fi
+          printf 'NOTAAS_API_KEY=%s\n' "$notaas_api_key" >> "$env_tmp"
+          chmod 600 "$env_tmp"
+          mv "$env_tmp" .env
+          unset notaas_api_key notaas_api_key_b64
           git fetch --force origin "refs/tags/$deploy_tag:refs/tags/$deploy_tag"
           git checkout main
           git merge --ff-only "$deploy_tag"
