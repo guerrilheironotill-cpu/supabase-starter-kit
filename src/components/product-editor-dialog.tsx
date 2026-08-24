@@ -27,6 +27,7 @@ type ProductData = {
   id: string;
   slug: string;
   name: string;
+  created_at: string;
   description: string | null;
   category: string;
   images: string[];
@@ -140,6 +141,7 @@ function normalizeProduct(row: Partial<ProductData> & { images?: string[] | null
     id: row.id ?? "",
     slug: row.slug ?? "",
     name: row.name ?? "",
+    created_at: row.created_at ?? new Date().toISOString(),
     description: row.description ?? null,
     category: row.category ?? "",
     images: row.images ?? [],
@@ -222,7 +224,7 @@ async function fetchEditableProduct(productId: string): Promise<ProductData> {
   const withSeo = await supabase
     .from("products")
     .select(
-      "id, slug, name, description, category, images, active, meta_title, meta_description, seo_keywords",
+      "id, slug, name, created_at, description, category, images, active, meta_title, meta_description, seo_keywords",
     )
     .eq("id", productId)
     .maybeSingle();
@@ -236,7 +238,7 @@ async function fetchEditableProduct(productId: string): Promise<ProductData> {
 
   const fallback = await supabase
     .from("products")
-    .select("id, slug, name, description, category, images, active")
+    .select("id, slug, name, created_at, description, category, images, active")
     .eq("id", productId)
     .maybeSingle();
 
@@ -445,6 +447,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
       const productPayload = {
         name,
         slug,
+        created_at: product.created_at,
         description: product.description,
         category: product.category,
         images: product.images,
@@ -472,6 +475,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
         const fallbackPayload = {
           name: productPayload.name,
           slug: productPayload.slug,
+          created_at: productPayload.created_at,
           description: productPayload.description,
           category: productPayload.category,
           images: productPayload.images,
@@ -759,6 +763,13 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 const inputCls =
   "w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40";
 
+function localDateTimeValue(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
 function BasicTab({
   product,
   setProduct,
@@ -806,6 +817,19 @@ function BasicTab({
             </option>
           ))}
         </select>
+      </Field>
+      <Field label="Data de publicação *">
+        <input
+          type="datetime-local"
+          className={inputCls}
+          value={localDateTimeValue(product.created_at)}
+          onChange={(e) => {
+            const date = new Date(e.target.value);
+            if (!Number.isNaN(date.getTime())) {
+              setProduct({ ...product, created_at: date.toISOString() });
+            }
+          }}
+        />
       </Field>
       <Field label="Descrição">
         <textarea

@@ -189,7 +189,10 @@ export async function fetchProductsWithSizes(params: {
 
   if (params.search) q = q.ilike("name", `%${params.search}%`);
 
-  const { data, error } = await q.order("name");
+  const orderedQuery = params.category
+    ? q.order("created_at", { ascending: false }).order("name")
+    : q.order("name");
+  const { data, error } = await orderedQuery;
   if (error) throw error;
   return (data ?? []) as ProductWithSizes[];
 }
