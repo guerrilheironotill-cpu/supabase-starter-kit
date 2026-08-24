@@ -34,7 +34,8 @@ export const DEFAULT_FILTERS: FilterState = {
  * field when `name` is empty, ensuring dimensions are extracted even if the
  * import populated only the `size` column.
  */
-function parseSize(name: string): { altura: number; largura: number } | null {
+function parseSize(name: unknown): { altura: number; largura: number } | null {
+  if (typeof name !== "string" || !name.trim()) return null;
   const m = name.match(/(\d+)\s*cm\s*[×x]\s*(\d+)\s*cm\s*[×x]\s*(\d+)\s*cm/i);
   if (!m) return null;
   const a = Number(m[1]);
@@ -45,7 +46,7 @@ function parseSize(name: string): { altura: number; largura: number } | null {
 
 function sizeValue(size: ProductSize, axis: DimensionAxis): number | null {
   // Prefer the canonical `name`; fall back to the raw `size` column if needed.
-  const parsed = parseSize(size.name ?? (size as any).size ?? "");
+  const parsed = parseSize(size.name ?? size.size);
   if (!parsed) return null;
   return axis === "altura" ? parsed.altura : parsed.largura;
 }
@@ -67,7 +68,7 @@ export function ProductFilters({ products, value, onChange }: Props) {
     let hasDim = false;
     for (const p of products) {
       for (const s of p.product_sizes ?? []) {
-        const parsed = parseSize(s.name);
+        const parsed = parseSize(s.name ?? s.size);
         if (!parsed) continue;
         hasDim = true;
         for (const r of RANGES) {
