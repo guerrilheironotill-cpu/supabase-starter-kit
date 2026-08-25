@@ -92,6 +92,20 @@ type QuoteMeta = {
   conversionChannel?: string;
 };
 
+type CustomerSuggestion = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone: string | null;
+  cpf: string | null;
+  cnpj: string | null;
+  address_1: string | null;
+  city: string | null;
+  state: string | null;
+  postcode: string | null;
+};
+
 function parseMeta(raw: string | null | undefined): QuoteMeta {
   const empty: QuoteMeta = {
     freight: 0,
@@ -1358,6 +1372,8 @@ function NewQuoteDialogImpl({
       }))
     : [];
   const [name, setName] = useState(duplicateSource?.customer_name ?? "");
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
   const [phone, setPhone] = useState(duplicateSource?.customer_phone ?? "");
   const [email, setEmail] = useState(duplicateSource?.customer_email ?? "");
   const [personType, setPersonType] = useState<"fisica" | "juridica">(
@@ -1384,6 +1400,55 @@ function NewQuoteDialogImpl({
   );
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setCustomerSearch(name.trim()), 200);
+    return () => window.clearTimeout(timer);
+  }, [name]);
+
+  const { data: customerSuggestions = [], isFetching: searchingCustomers } = useQuery({
+    queryKey: ["quote-customer-suggestions", customerSearch.toLocaleLowerCase("pt-BR")],
+    enabled: step === 2 && customerSearch.length > 0,
+    queryFn: async () => {
+      const firstTerm = customerSearch.split(/\s+/)[0].replace(/[%_,()]/g, "");
+      if (!firstTerm) return [] as CustomerSuggestion[];
+      const { data, error } = await supabase
+        .from("customers" as never)
+        .select("id,first_name,last_name,email,phone,cpf,cnpj,address_1,city,state,postcode")
+        .ilike("first_name", `${firstTerm}%`)
+        .order("first_name")
+        .order("last_name")
+        .limit(20);
+      if (error) throw error;
+      const normalizedSearch = customerSearch.toLocaleLowerCase("pt-BR");
+      return ((data ?? []) as unknown as CustomerSuggestion[]).filter((customer) =>
+        `${customer.first_name ?? ""} ${customer.last_name ?? ""}`
+          .trim()
+          .toLocaleLowerCase("pt-BR")
+          .startsWith(normalizedSearch),
+      );
+    },
+    staleTime: 30000,
+  });
+
+  const selectCustomer = (customer: CustomerSuggestion) => {
+    setName(`${customer.first_name ?? ""} ${customer.last_name ?? ""}`.trim());
+    setPhone(maskPhoneBR(customer.phone ?? ""));
+    setEmail(customer.email ?? "");
+    if (customer.cnpj) {
+      setPersonType("juridica");
+      setCnpj(maskCnpj(customer.cnpj));
+    } else {
+      setPersonType("fisica");
+      setCpf(maskCpf(customer.cpf ?? ""));
+    }
+    setAddress(
+      [customer.address_1, customer.city, customer.state, customer.postcode]
+        .filter(Boolean)
+        .join(", "),
+    );
+    setShowCustomerSuggestions(false);
+  };
 
   type ProductFull = {
     id: string;
@@ -1717,7 +1782,60 @@ function NewQuoteDialogImpl({
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label>Nome do cliente *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} />
+              <div className="relative">
+                <Input
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setShowCustomerSuggestions(true);
+                  }}
+                  onFocus={() => setShowCustomerSuggestions(true)}
+                  onBlur={() => window.setTimeout(() => setShowCustomerSuggestions(false), 150)}
+                  placeholder="Digite para buscar um cliente cadastrado"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-expanded={showCustomerSuggestions && name.trim().length > 0}
+                  aria-controls="quote-customer-suggestions"
+                  autoComplete="off"
+                />
+                {showCustomerSuggestions && name.trim().length > 0 && (
+                  <div
+                    id="quote-customer-suggestions"
+                    role="listbox"
+                    className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+                  >
+                    {searchingCustomers && (
+                      <p className="px-3 py-2 text-sm text-muted-foreground">Buscando clientes...</p>
+                    )}
+                    {!searchingCustomers && customerSuggestions.length === 0 && (
+                      <p className="px-3 py-2 text-sm text-muted-foreground">
+                        Nenhum cliente cadastrado encontrado.
+                      </p>
+                    )}
+                    {customerSuggestions.map((customer) => {
+                      const fullName = `${customer.first_name ?? ""} ${customer.last_name ?? ""}`.trim();
+                      return (
+                        <button
+                          key={customer.id}
+                          type="button"
+                          role="option"
+                          aria-selected={false}
+                          className="w-full rounded-sm px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => selectCustomer(customer)}
+                        >
+                          <span className="block text-sm font-medium">{fullName}</span>
+                          {(customer.phone || customer.email) && (
+                            <span className="block truncate text-xs text-muted-foreground">
+                              {[customer.phone, customer.email].filter(Boolean).join(" • ")}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
             <div>
               <Label>Telefone</Label>
