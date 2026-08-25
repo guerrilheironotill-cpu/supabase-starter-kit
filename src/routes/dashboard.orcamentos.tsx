@@ -1183,11 +1183,8 @@ function ShareMenu({
   </div>
 </div>
 ${module("Itens", `<table><thead><tr><th>Descrição</th><th>Qtd</th><th>Unit.</th><th>Subtotal</th></tr></thead><tbody>${rows}</tbody></table>`)}
-${
-  condBody
-    ? `<div style="display:flex;gap:16px;align-items:stretch;"><div style="flex:1 1 50%;min-width:0;display:flex;"><section class="mod" style="flex:1;margin-bottom:0;"><h2>Condições</h2><div>${condBody}</div></section></div><div style="flex:1 1 50%;min-width:0;display:flex;"><section class="mod" style="flex:1;margin-bottom:0;"><h2>Valores</h2><div>${totalsBody}</div></section></div></div>`
-    : module("Valores", totalsBody)
-}
+${module("Valores", totalsBody)}
+${condBody ? module("Condições", condBody) : ""}
 ${meta.note ? module("Observações", `<div style="font-size:13px;line-height:1.5;white-space:pre-wrap;">${meta.note.replace(/</g, "&lt;")}</div>`) : ""}
 <div class="noprint" style="margin-top:24px;text-align:center;"><button onclick="window.print()" style="padding:10px 20px;font-size:14px;cursor:pointer;border:1px solid #111;background:#111;color:#fff;border-radius:6px;">Salvar como PDF</button></div>
 <script>setTimeout(function(){window.print();},400);</script>
