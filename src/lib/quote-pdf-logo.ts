@@ -1,4 +1,4 @@
-const QUOTE_LOGO_PATH = "/images/logo-header-scroll.svg";
+const QUOTE_LOGO_PATH = "/images/logo-arteno-header-site.svg";
 
 let cachedLogoDataUrl: string | null = null;
 

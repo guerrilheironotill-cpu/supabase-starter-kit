@@ -445,7 +445,7 @@ function EditOrderPage() {
     pdfWindow.document.write("<!doctype html><html><body style='font-family:sans-serif;padding:24px'>Preparando PDF...</body></html>");
     pdfWindow.document.close();
 
-    let logoSrc = `${window.location.origin}/images/logo-header-scroll.svg`;
+    let logoSrc = `${window.location.origin}/images/logo-arteno-header-site.svg`;
     try {
       const { getQuoteLogoDataUrl } = await import("@/lib/quote-pdf-logo");
       logoSrc = await getQuoteLogoDataUrl();
