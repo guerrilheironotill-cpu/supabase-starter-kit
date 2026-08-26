@@ -434,8 +434,24 @@ function EditOrderPage() {
     void navigate({ to: "/dashboard/pedidos" });
   }
 
-  function generateQuotePdf() {
+  async function generateQuotePdf() {
     if (!order) return;
+    const pdfWindow = window.open("", "_blank");
+    if (!pdfWindow) {
+      toast.error("O navegador bloqueou a janela do PDF. Permita pop-ups e tente novamente.");
+      return;
+    }
+
+    pdfWindow.document.write("<!doctype html><html><body style='font-family:sans-serif;padding:24px'>Preparando PDF...</body></html>");
+    pdfWindow.document.close();
+
+    let logoSrc = `${window.location.origin}/images/logo-header-scroll.svg`;
+    try {
+      const { getQuoteLogoDataUrl } = await import("@/lib/quote-pdf-logo");
+      logoSrc = await getQuoteLogoDataUrl();
+    } catch (error) {
+      console.warn("Não foi possível embutir o logo no PDF:", error);
+    }
     const reference = escapeHtml(order.external_number || order.number);
     const rows = items
       .map(
@@ -479,7 +495,7 @@ function EditOrderPage() {
         @media print { body { padding: 20px; } .print { display: none; } }
       </style></head><body>
       <header>
-        <img src="https://arteno.com.br/images/logo-arteno-header-site.svg" alt="Arteno"/>
+        <img src="${logoSrc}" alt="Arteno"/>
         <div class="document">Orçamento<strong>#${reference}</strong></div>
       </header>
       <section><h2>Cliente</h2>
@@ -506,13 +522,24 @@ function EditOrderPage() {
       ${address ? `<section><h2>Entrega</h2><div class="note">${escapeHtml(address)}</div></section>` : ""}
       ${note ? `<section><h2>Observações</h2><div class="note">${escapeHtml(note)}</div></section>` : ""}
       <button class="print" onclick="window.print()">Salvar como PDF</button>
-      <script>setTimeout(function(){ window.print(); }, 400);</script>
+      <script>
+        (function () {
+          var logo = document.querySelector('header img');
+          var logoReady = logo && logo.complete && logo.naturalWidth > 0
+            ? Promise.resolve()
+            : new Promise(function (resolve) {
+                if (!logo) return resolve();
+                logo.addEventListener('load', resolve, { once: true });
+                logo.addEventListener('error', resolve, { once: true });
+              });
+          Promise.race([
+            logoReady,
+            new Promise(function (resolve) { setTimeout(resolve, 3000); })
+          ]).then(function () { setTimeout(function () { window.print(); }, 100); });
+        })();
+      </script>
       </body></html>`;
-    const pdfWindow = window.open("", "_blank");
-    if (!pdfWindow) {
-      toast.error("O navegador bloqueou a janela do PDF. Permita pop-ups e tente novamente.");
-      return;
-    }
+    pdfWindow.document.open();
     pdfWindow.document.write(html);
     pdfWindow.document.close();
   }

@@ -1098,7 +1098,23 @@ function ShareMenu({
     }
   };
 
-  const generatePdf = () => {
+  const generatePdf = async () => {
+    const w = window.open("", "_blank");
+    if (!w) {
+      toast.error("Bloqueado pelo navegador");
+      return;
+    }
+
+    w.document.write("<!doctype html><html><body style='font-family:sans-serif;padding:24px'>Preparando PDF...</body></html>");
+    w.document.close();
+
+    let logoSrc = `${window.location.origin}/images/logo-header-scroll.svg`;
+    try {
+      const { getQuoteLogoDataUrl } = await import("@/lib/quote-pdf-logo");
+      logoSrc = await getQuoteLogoDataUrl();
+    } catch (error) {
+      console.warn("Não foi possível embutir o logo no PDF:", error);
+    }
     const attrLine = (i: {
       size_name?: string | null;
       finish?: string | null;
@@ -1163,6 +1179,7 @@ function ShareMenu({
   .row b { color:#111; font-weight:500; }
   .row.total { border-top:1px solid #eee; margin-top:8px; padding-top:12px; font-size:18px; }
   .row.total b { font-weight:700; }
+  .item-totals { width: min(100%, 340px); margin: 16px 0 0 auto; padding-top: 8px; }
   em { font-style: normal; color:#999; font-size:12px; }
   table { width: 100%; border-collapse: collapse; }
   th, td { text-align: left; padding: 10px 4px; border-bottom: 1px solid #f0f0f0; font-size: 13px; vertical-align: top; }
@@ -1177,23 +1194,34 @@ function ShareMenu({
   <div style="flex:1 1 50%;min-width:0;">${module("Cliente", clientBody)}</div>
   <div style="flex:1 1 50%;min-width:0;">
     <section style="height:100%;padding:18px 20px;border-radius:10px;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;text-align:right;">
-      <img src="https://arteno.com.br/wp-content/uploads/2025/03/Ativo-8-e1782929111841.png" alt="" style="height:52px;width:auto;object-fit:contain;"/>
+      <img src="${logoSrc}" alt="Arteno Vaso &amp; Decor" style="height:52px;width:214px;object-fit:contain;object-position:right center;"/>
       <div style="font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.15em;margin-top:16px;">Orçamento<b style="display:block;font-size:18px;color:#111;letter-spacing:.05em;margin-top:4px;">#${order.id.slice(0, 6).toUpperCase()}</b></div>
     </section>
   </div>
 </div>
-${module("Itens", `<table><thead><tr><th>Descrição</th><th>Qtd</th><th>Unit.</th><th>Subtotal</th></tr></thead><tbody>${rows}</tbody></table>`)}
-${module("Valores", totalsBody)}
+${module("Itens", `<table><thead><tr><th>Descrição</th><th>Qtd</th><th>Unit.</th><th>Subtotal</th></tr></thead><tbody>${rows}</tbody></table><div class="item-totals">${totalsBody}</div>`)}
 ${condBody ? module("Condições", condBody) : ""}
 ${meta.note ? module("Observações", `<div style="font-size:13px;line-height:1.5;white-space:pre-wrap;">${meta.note.replace(/</g, "&lt;")}</div>`) : ""}
 <div class="noprint" style="margin-top:24px;text-align:center;"><button onclick="window.print()" style="padding:10px 20px;font-size:14px;cursor:pointer;border:1px solid #111;background:#111;color:#fff;border-radius:6px;">Salvar como PDF</button></div>
-<script>setTimeout(function(){window.print();},400);</script>
+<script>
+  (function () {
+    var images = Array.from(document.images);
+    var imagesReady = Promise.all(images.map(function (image) {
+      if (image.complete && image.naturalWidth > 0) return Promise.resolve();
+      return new Promise(function (resolve) {
+        image.addEventListener('load', resolve, { once: true });
+        image.addEventListener('error', resolve, { once: true });
+      });
+    }));
+    var fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+    Promise.race([
+      Promise.all([imagesReady, fontsReady]),
+      new Promise(function (resolve) { setTimeout(resolve, 3000); })
+    ]).then(function () { setTimeout(function () { window.print(); }, 100); });
+  })();
+</script>
 </body></html>`;
-    const w = window.open("", "_blank");
-    if (!w) {
-      toast.error("Bloqueado pelo navegador");
-      return;
-    }
+    w.document.open();
     w.document.write(html);
     w.document.close();
   };
