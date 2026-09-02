@@ -14,6 +14,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuoteStore, type QuoteItem } from "@/lib/quote-store";
+import { trackMetaEvent } from "@/lib/meta-events";
 import { useWhatsAppNumber } from "@/lib/site-settings";
 import { maskCnpj, maskCpf, maskPhoneBR } from "@/lib/masks";
 import { absoluteUrl } from "@/lib/site-config";
@@ -418,6 +419,12 @@ function OrcamentoPage() {
       }
       const { orderId, emailNotificationToken } = result;
       setSavedOrderId(orderId);
+      trackMetaEvent("Lead", {
+        content_ids: cleanItems.map((item) => item.sizeId).filter(Boolean),
+        content_type: "product",
+        value: subtotal,
+        currency: "BRL",
+      });
       const dashboardUrl = absoluteUrl(`/dashboard/orcamentos?orcamento=${orderId}`);
       sessionStorage.setItem(
         "arteno:quote-finalization",

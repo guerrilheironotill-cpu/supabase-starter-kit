@@ -228,8 +228,8 @@ function DashboardIntegrationsPage() {
             "Acesse business.facebook.com → Gerenciador de Comércio (Commerce Manager).",
             "Selecione o catálogo existente do site atual (ou crie um novo do tipo E-commerce).",
             "Em Configurações do catálogo, copie o ID do catálogo (número longo).",
-            "Depois de colar aqui, avise para eu ativar o feed em /feeds/facebook-catalog.xml.",
-            "No Commerce Manager, vá em Fontes de dados → Adicionar itens → Feed de dados → Feed programado e cole a URL do feed.",
+            "O ID salvo aqui serve como referência administrativa; o Pixel ativo é definido no ambiente do servidor.",
+            "Em Fontes de dados → Feed de dados → Feed programado, use https://arteno.com.br/facebook-catalog.xml e programe a atualização diária.",
           ]}
         />
 

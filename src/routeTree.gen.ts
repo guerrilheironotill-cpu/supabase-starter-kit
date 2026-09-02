@@ -23,6 +23,7 @@ import { Route as HealthCacheRouteImport } from './routes/health-cache'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as GoogleShoppingDotxmlRouteImport } from './routes/google-shopping[.]xml'
 import { Route as FinalizarOrcamentoRouteImport } from './routes/finalizar-orcamento'
+import { Route as FacebookCatalogDotxmlRouteImport } from './routes/facebook-catalog[.]xml'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CatalogoPdfRouteImport } from './routes/catalogo-pdf'
 import { Route as CatalogoRouteImport } from './routes/catalogo'
@@ -138,6 +139,11 @@ const GoogleShoppingDotxmlRoute = GoogleShoppingDotxmlRouteImport.update({
 const FinalizarOrcamentoRoute = FinalizarOrcamentoRouteImport.update({
   id: '/finalizar-orcamento',
   path: '/finalizar-orcamento',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FacebookCatalogDotxmlRoute = FacebookCatalogDotxmlRouteImport.update({
+  id: '/facebook-catalog.xml',
+  path: '/facebook-catalog.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -390,6 +396,7 @@ export interface FileRoutesByFullPath {
   '/catalogo': typeof CatalogoRoute
   '/catalogo-pdf': typeof CatalogoPdfRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/facebook-catalog.xml': typeof FacebookCatalogDotxmlRoute
   '/finalizar-orcamento': typeof FinalizarOrcamentoRoute
   '/google-shopping.xml': typeof GoogleShoppingDotxmlRoute
   '/health': typeof HealthRoute
@@ -452,6 +459,7 @@ export interface FileRoutesByTo {
   '/caracteristicas-do-concreto': typeof CaracteristicasDoConcretoRoute
   '/catalogo': typeof CatalogoRoute
   '/catalogo-pdf': typeof CatalogoPdfRoute
+  '/facebook-catalog.xml': typeof FacebookCatalogDotxmlRoute
   '/finalizar-orcamento': typeof FinalizarOrcamentoRoute
   '/google-shopping.xml': typeof GoogleShoppingDotxmlRoute
   '/health': typeof HealthRoute
@@ -515,6 +523,7 @@ export interface FileRoutesById {
   '/catalogo': typeof CatalogoRoute
   '/catalogo-pdf': typeof CatalogoPdfRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/facebook-catalog.xml': typeof FacebookCatalogDotxmlRoute
   '/finalizar-orcamento': typeof FinalizarOrcamentoRoute
   '/google-shopping.xml': typeof GoogleShoppingDotxmlRoute
   '/health': typeof HealthRoute
@@ -580,6 +589,7 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/catalogo-pdf'
     | '/dashboard'
+    | '/facebook-catalog.xml'
     | '/finalizar-orcamento'
     | '/google-shopping.xml'
     | '/health'
@@ -642,6 +652,7 @@ export interface FileRouteTypes {
     | '/caracteristicas-do-concreto'
     | '/catalogo'
     | '/catalogo-pdf'
+    | '/facebook-catalog.xml'
     | '/finalizar-orcamento'
     | '/google-shopping.xml'
     | '/health'
@@ -704,6 +715,7 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/catalogo-pdf'
     | '/dashboard'
+    | '/facebook-catalog.xml'
     | '/finalizar-orcamento'
     | '/google-shopping.xml'
     | '/health'
@@ -768,6 +780,7 @@ export interface RootRouteChildren {
   CatalogoRoute: typeof CatalogoRoute
   CatalogoPdfRoute: typeof CatalogoPdfRoute
   DashboardRoute: typeof DashboardRouteWithChildren
+  FacebookCatalogDotxmlRoute: typeof FacebookCatalogDotxmlRoute
   FinalizarOrcamentoRoute: typeof FinalizarOrcamentoRoute
   GoogleShoppingDotxmlRoute: typeof GoogleShoppingDotxmlRoute
   HealthRoute: typeof HealthRoute
@@ -897,6 +910,13 @@ declare module '@tanstack/react-router' {
       path: '/finalizar-orcamento'
       fullPath: '/finalizar-orcamento'
       preLoaderRoute: typeof FinalizarOrcamentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/facebook-catalog.xml': {
+      id: '/facebook-catalog.xml'
+      path: '/facebook-catalog.xml'
+      fullPath: '/facebook-catalog.xml'
+      preLoaderRoute: typeof FacebookCatalogDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -1318,6 +1338,7 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogoRoute: CatalogoRoute,
   CatalogoPdfRoute: CatalogoPdfRoute,
   DashboardRoute: DashboardRouteWithChildren,
+  FacebookCatalogDotxmlRoute: FacebookCatalogDotxmlRoute,
   FinalizarOrcamentoRoute: FinalizarOrcamentoRoute,
   GoogleShoppingDotxmlRoute: GoogleShoppingDotxmlRoute,
   HealthRoute: HealthRoute,

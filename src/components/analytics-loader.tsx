@@ -6,6 +6,7 @@ import {
   readCookieConsent,
   type CookieConsent,
 } from "@/lib/cookie-consent";
+import { flushPendingMetaEvents } from "@/lib/meta-events";
 
 const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || "G-9M7JBYESBP";
 const META_PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID || "1095272798860693";
@@ -66,6 +67,7 @@ function loadMetaPixel() {
   }
   trackerWindow.fbq?.("init", META_PIXEL_ID);
   loadScript("arteno-meta-pixel", "https://connect.facebook.net/pt_BR/fbevents.js");
+  flushPendingMetaEvents();
 }
 
 function applyTrackers(consent: CookieConsent | null) {

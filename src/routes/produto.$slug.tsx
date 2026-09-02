@@ -35,6 +35,7 @@ import {
   buildProductEditorialContent,
   productEditorialText,
 } from "@/lib/product-editorial-content";
+import { trackMetaEvent } from "@/lib/meta-events";
 
 export const Route = createFileRoute("/produto/$slug")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -385,6 +386,18 @@ function ProductPage() {
   const selectedSale = selectedSize ? validSalePrice(selectedSize) : null;
   const selectedUnitPrice = (selectedSize ? currentPrice(selectedSize) : 0) + selectedFinishExtra;
 
+  useEffect(() => {
+    if (!selectedSize || selectedUnitPrice <= 0) return;
+    trackMetaEvent("ViewContent", {
+      content_ids: [selectedSize.id],
+      content_type: "product",
+      content_name: p.name,
+      content_category: p.category,
+      value: selectedUnitPrice,
+      currency: "BRL",
+    });
+  }, [p.category, p.name, selectedSize, selectedUnitPrice]);
+
   function openProductConfiguration(sizeId: string) {
     setSelectedSizeId(sizeId);
     setSelectedFinish("");
@@ -418,6 +431,14 @@ function ProductPage() {
         extraPrice: finish.extra_price,
       })),
       availableColors: colors.map((color) => color.name),
+    });
+    trackMetaEvent("AddToCart", {
+      content_ids: [s.id],
+      content_type: "product",
+      content_name: p.name,
+      value: (basePrice + selectedFinishExtra) * qty,
+      currency: "BRL",
+      num_items: qty,
     });
     setAddedDescription(
       `${p.name}, tamanho ${storedSizeCode(s, idx, sizes.length)}${selectedFinish ? `, acabamento ${selectedFinish}` : ""}`,
