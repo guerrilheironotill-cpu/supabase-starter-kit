@@ -44,6 +44,7 @@ export const Route = createFileRoute("/facebook-catalog.xml")({
           `      <g:price>${regular.toFixed(2)} BRL</g:price>`,
           sale ? `      <g:sale_price>${sale.toFixed(2)} BRL</g:sale_price>` : null,
           `      <g:size>${xml(label)}</g:size>`, `      <g:product_type>${xml(product.category)}</g:product_type>`,
+          "      <g:quantity_to_sell_on_facebook>1</g:quantity_to_sell_on_facebook>",
           "      <g:identifier_exists>no</g:identifier_exists>", "    </item>",
         ].filter(Boolean).join("\n"));
       }
