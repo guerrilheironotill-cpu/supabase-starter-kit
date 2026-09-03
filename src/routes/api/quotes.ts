@@ -44,6 +44,12 @@ function cleanAttribution(value: QuotePayload["attribution"]) {
   };
 }
 
+function orderOrigin(channel: string | undefined) {
+  // `orders.origin` is a legacy enum in production. Detailed attribution remains
+  // available in `notes.attribution`; only supported enum values belong here.
+  return channel === "instagram" ? "instagram" : "site";
+}
+
 type CatalogItem = {
   kind?: string;
   product_id?: string | null;
@@ -172,7 +178,7 @@ export const Route = createFileRoute("/api/quotes")({
         const { error } = await admin.from("orders").insert({
           id: orderId,
           status: "orcamento",
-          origin: attribution?.channel ?? "site",
+          origin: orderOrigin(attribution?.channel),
           email_notification_token: emailNotificationToken,
           customer_name: customerName,
           customer_phone: customerPhone,
