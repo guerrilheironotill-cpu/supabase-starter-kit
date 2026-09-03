@@ -420,7 +420,7 @@ function OrcamentoPage() {
       const { orderId, emailNotificationToken } = result;
       setSavedOrderId(orderId);
       trackMetaEvent("Lead", {
-        content_ids: cleanItems.map((item) => item.sizeId).filter(Boolean),
+        content_ids: cleanItems.map((item) => item.size_id).filter(Boolean),
         content_type: "product",
         value: subtotal,
         currency: "BRL",
