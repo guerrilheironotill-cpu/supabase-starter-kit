@@ -30,6 +30,9 @@ type QuoteMeta = {
   pix: string;
   freightNote: string;
   address: string;
+  discountType: "percentage" | "fixed";
+  discountValue: number;
+  discountReason: string;
   raw: Record<string, unknown>;
 };
 type StoredOrderEditorMeta = Omit<QuoteMeta, "quoteId" | "raw"> & { note: string };
@@ -69,6 +72,9 @@ const emptyQuoteMeta: QuoteMeta = {
   pix: "",
   freightNote: "",
   address: "",
+  discountType: "percentage",
+  discountValue: 0,
+  discountReason: "",
   raw: {},
 };
 
@@ -84,6 +90,9 @@ function parseQuoteMeta(raw: string | null | undefined, quoteId: string | null):
         pix: String(parsed.pix ?? ""),
         freightNote: String(parsed.freightNote ?? ""),
         address: String(parsed.address ?? ""),
+        discountType: parsed.discountType === "fixed" ? "fixed" : "percentage",
+        discountValue: Math.max(0, Number(parsed.discountValue) || 0),
+        discountReason: String(parsed.discountReason ?? ""),
         raw: parsed,
       };
     }
@@ -106,6 +115,9 @@ function parseStoredOrderEditorMeta(raw: string | null | undefined): StoredOrder
         freightNote: String(parsed.freightNote ?? ""),
         address: String(parsed.address ?? ""),
         note: String(parsed.note ?? ""),
+        discountType: parsed.discountType === "fixed" ? "fixed" : "percentage",
+        discountValue: Math.max(0, Number(parsed.discountValue) || 0),
+        discountReason: String(parsed.discountReason ?? ""),
       };
     }
   } catch {
@@ -165,6 +177,9 @@ function EditOrderPage() {
   const [deadline, setDeadline] = useState("");
   const [payment, setPayment] = useState("");
   const [pix, setPix] = useState("");
+  const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
+  const [discountValue, setDiscountValue] = useState(0);
+  const [discountReason, setDiscountReason] = useState("");
   const [items, setItems] = useState<Item[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -221,6 +236,12 @@ function EditOrderPage() {
           pix: linkedQuoteMeta.pix || storedEditorMeta.pix,
           freightNote: linkedQuoteMeta.freightNote || storedEditorMeta.freightNote,
           address: linkedQuoteMeta.address || storedEditorMeta.address,
+          discountType:
+            linkedQuoteMeta.discountValue > 0
+              ? linkedQuoteMeta.discountType
+              : storedEditorMeta.discountType,
+          discountValue: linkedQuoteMeta.discountValue || storedEditorMeta.discountValue,
+          discountReason: linkedQuoteMeta.discountReason || storedEditorMeta.discountReason,
         },
       };
     },
@@ -246,6 +267,9 @@ function EditOrderPage() {
     setDeadline(order.quoteMeta.deadline);
     setPayment(order.quoteMeta.payment);
     setPix(order.quoteMeta.pix);
+    setDiscountType(order.quoteMeta.discountType);
+    setDiscountValue(order.quoteMeta.discountValue);
+    setDiscountReason(order.quoteMeta.discountReason);
     setItems(order.items ?? []);
   }, [order]);
 
@@ -253,7 +277,15 @@ function EditOrderPage() {
     () => items.reduce((sum, item) => sum + Number(item.quantity) * Number(item.unit_price), 0),
     [items],
   );
-  const total = subtotal + shipping;
+  const discount = Math.round(
+    Math.min(
+      subtotal,
+      discountType === "percentage"
+        ? subtotal * (Math.min(Math.max(discountValue, 0), 100) / 100)
+        : Math.max(discountValue, 0),
+    ) * 100,
+  ) / 100;
+  const total = subtotal - discount + shipping;
 
   function updateItem(
     index: number,
@@ -306,6 +338,9 @@ function EditOrderPage() {
             deadline,
             payment,
             pix,
+            discountType,
+            discountValue,
+            discountReason,
           }),
           shipping_total: shipping,
           subtotal,
@@ -385,6 +420,9 @@ function EditOrderPage() {
           deadline,
           payment,
           pix,
+          discountType,
+          discountValue,
+          discountReason,
           note,
           app_order_id: orderId,
           app_order_number: order.number,
@@ -673,6 +711,12 @@ function EditOrderPage() {
             <span>Subtotal</span>
             <b>{money(subtotal)}</b>
           </div>
+          {discount > 0 && (
+            <div className="flex justify-between text-emerald-600">
+              <span>Desconto{discountType === "percentage" ? ` (${discountValue}%)` : ""}</span>
+              <b>-{money(discount)}</b>
+            </div>
+          )}
           <div className="flex justify-between text-lg">
             <span>Total</span>
             <b>{money(total)}</b>
@@ -694,6 +738,31 @@ function EditOrderPage() {
         </label>
         <Field label="Prazo de produção" value={deadline} onChange={setDeadline} />
         <Field label="Forma de pagamento" value={payment} onChange={setPayment} />
+        <label className="grid gap-1 text-sm">
+          Tipo de desconto
+          <select
+            value={discountType}
+            onChange={(event) => setDiscountType(event.target.value as "percentage" | "fixed")}
+            className="rounded-md border border-border bg-background px-3 py-2"
+          >
+            <option value="percentage">Percentual (%)</option>
+            <option value="fixed">Valor fixo (R$)</option>
+          </select>
+        </label>
+        <NumberField
+          label={discountType === "percentage" ? "Desconto (%)" : "Desconto (R$)"}
+          value={discountValue}
+          onChange={setDiscountValue}
+        />
+        <label className="grid gap-1 text-sm md:col-span-2">
+          Motivo do desconto
+          <input
+            value={discountReason}
+            onChange={(event) => setDiscountReason(event.target.value)}
+            placeholder="Ex: pagamento à vista no boleto"
+            className="rounded-md border border-border bg-background px-3 py-2"
+          />
+        </label>
         <label className="grid gap-1 text-sm md:col-span-2">
           Link ou código Pix
           <textarea

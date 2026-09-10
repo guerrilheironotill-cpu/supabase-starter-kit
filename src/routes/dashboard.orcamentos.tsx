@@ -82,6 +82,9 @@ type QuoteMeta = {
   pix: string;
   note: string;
   address: string;
+  discountType: "percentage" | "fixed";
+  discountValue: number;
+  discountReason: string;
   app_order_id?: string;
   app_order_number?: number;
   personType?: "fisica" | "juridica";
@@ -115,6 +118,9 @@ function parseMeta(raw: string | null | undefined): QuoteMeta {
     pix: "",
     note: "",
     address: "",
+    discountType: "percentage",
+    discountValue: 0,
+    discountReason: "",
   };
   if (!raw) return empty;
   try {
@@ -128,6 +134,9 @@ function parseMeta(raw: string | null | undefined): QuoteMeta {
         pix: String(p.pix ?? ""),
         note: String(p.note ?? ""),
         address: String(p.address ?? ""),
+        discountType: p.discountType === "fixed" ? "fixed" : "percentage",
+        discountValue: Math.max(0, Number(p.discountValue) || 0),
+        discountReason: String(p.discountReason ?? ""),
         app_order_id: typeof p.app_order_id === "string" ? p.app_order_id : undefined,
         app_order_number: Number.isFinite(Number(p.app_order_number))
           ? Number(p.app_order_number)
@@ -145,6 +154,20 @@ function parseMeta(raw: string | null | undefined): QuoteMeta {
     /* legacy plain-text notes */
   }
   return { ...empty, note: raw };
+}
+
+function calculateDiscount(
+  subtotal: number,
+  type: "percentage" | "fixed",
+  value: number,
+) {
+  const safeSubtotal = Math.max(0, Number(subtotal) || 0);
+  const safeValue = Math.max(0, Number(value) || 0);
+  const amount =
+    type === "percentage"
+      ? safeSubtotal * (Math.min(safeValue, 100) / 100)
+      : Math.min(safeValue, safeSubtotal);
+  return Math.round(amount * 100) / 100;
 }
 
 type ItemDraft = {
@@ -822,7 +845,20 @@ function StatusSelect({ order }: { order: OrderRow }) {
         0,
       );
       const shipping = Number(meta.freight) || 0;
-      const totalVal = subtotal + shipping;
+      const discount = calculateDiscount(subtotal, meta.discountType, meta.discountValue);
+      const totalVal = subtotal - discount + shipping;
+      const orderEditorNote = JSON.stringify({
+        __order_editor_meta: 1,
+        note: meta.note,
+        freightNote: meta.freightNote,
+        address: meta.address,
+        deadline: meta.deadline,
+        payment: meta.payment,
+        pix: meta.pix,
+        discountType: meta.discountType,
+        discountValue: meta.discountValue,
+        discountReason: meta.discountReason,
+      });
 
       let existing: { id: string; number: number } | null = null;
       if (meta.app_order_id) {
@@ -850,7 +886,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
             subtotal,
             shipping_total: shipping,
             total: totalVal,
-            customer_note: meta.note || null,
+            customer_note: orderEditorNote,
           } as never)
           .eq("id", prev.id);
         if (uErr) fail("atualizar pedido", uErr);
@@ -874,7 +910,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
             subtotal,
             shipping_total: shipping,
             total: totalVal,
-            customer_note: meta.note || null,
+            customer_note: orderEditorNote,
           } as never)
           .select("id, number")
           .single();
@@ -1062,6 +1098,11 @@ function ShareMenu({
     (s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 0),
     0,
   );
+  const discount = calculateDiscount(itemsSubtotal, meta.discountType, meta.discountValue);
+  const discountLabel =
+    meta.discountType === "percentage"
+      ? `Desconto (${meta.discountValue}%)`
+      : "Desconto";
 
   const summary = () => {
     const lines = [
@@ -1076,6 +1117,11 @@ function ShareMenu({
       ...(meta.freight
         ? [
             `Frete: ${currency(meta.freight)}${meta.freightNote ? " (" + meta.freightNote + ")" : ""}`,
+          ]
+        : []),
+      ...(discount > 0
+        ? [
+            `${discountLabel}: -${currency(discount)}${meta.discountReason ? " (" + meta.discountReason + ")" : ""}`,
           ]
         : []),
       ...(meta.deadline ? [`Prazo de produção: ${meta.deadline}`] : []),
@@ -1150,6 +1196,7 @@ function ShareMenu({
     `;
     const totalsBody = `
       <div class="row"><span>Subtotal</span><b>${currency(itemsSubtotal)}</b></div>
+      ${discount > 0 ? `<div class="row"><span>${discountLabel}${meta.discountReason ? ` <em>(${meta.discountReason.replace(/</g, "&lt;")})</em>` : ""}</span><b>-${currency(discount)}</b></div>` : ""}
       ${meta.freight ? `<div class="row"><span>Frete${meta.freightNote ? ` <em>(${meta.freightNote})</em>` : ""}</span><b>${currency(meta.freight)}</b></div>` : ""}
       <div class="row total"><span>Total</span><b>${currency(order.total)}</b></div>
     `;
@@ -1417,6 +1464,11 @@ function NewQuoteDialogImpl({
   const [deadline, setDeadline] = useState(initialMeta.deadline);
   const [payment, setPayment] = useState(initialMeta.payment);
   const [pix, setPix] = useState(initialMeta.pix);
+  const [discountType, setDiscountType] = useState<"percentage" | "fixed">(
+    initialMeta.discountType,
+  );
+  const [discountValue, setDiscountValue] = useState(initialMeta.discountValue);
+  const [discountReason, setDiscountReason] = useState(initialMeta.discountReason);
   const [items, setItems] = useState<ItemDraft[]>(
     initialItems.length ? initialItems : [{ kind: "custom", name: "", quantity: 1, price: 0 }],
   );
@@ -1509,7 +1561,8 @@ function NewQuoteDialogImpl({
     () => items.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 0), 0),
     [items],
   );
-  const total = itemsSubtotal + (Number(freight) || 0);
+  const discount = calculateDiscount(itemsSubtotal, discountType, discountValue);
+  const total = itemsSubtotal - discount + (Number(freight) || 0);
 
   const updateItem = (idx: number, patch: Partial<ItemDraft>) => {
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
@@ -1563,6 +1616,19 @@ function NewQuoteDialogImpl({
     }
     if (items.length === 0 || items.every((i) => !i.name.trim())) {
       toast.error("Adicione ao menos um item");
+      return;
+    }
+    if (discountType === "percentage" && discountValue > 100) {
+      toast.error("O desconto percentual não pode ser maior que 100%");
+      return;
+    }
+    if (discountType === "fixed" && discountValue > itemsSubtotal) {
+      toast.error("O desconto fixo não pode ser maior que o subtotal dos itens");
+      return;
+    }
+    if (discountValue > 0 && !discountReason.trim()) {
+      setStep(3);
+      toast.error("Informe o motivo do desconto");
       return;
     }
     for (const [index, item] of items.entries()) {
@@ -1651,6 +1717,9 @@ function NewQuoteDialogImpl({
         pix,
         note: notes,
         address,
+        discountType,
+        discountValue: Number(discountValue) || 0,
+        discountReason: discountReason.trim(),
         personType,
         cpf: personType === "fisica" ? cpf : null,
         cnpj: personType === "juridica" ? cnpj : null,
@@ -1778,26 +1847,28 @@ function NewQuoteDialogImpl({
 
       <div className="grid gap-4 py-2">
         {step === 2 && (
-          <div>
-            <Label>Tipo de pessoa *</Label>
-            <div className="mt-2 flex gap-4 text-sm">
-              <label className="flex items-center gap-2">
+          <div className="rounded-lg border border-border p-3">
+            <Label className="text-xs uppercase tracking-widest text-muted-foreground">
+              Documento do cliente *
+            </Label>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <label className={`flex cursor-pointer items-center gap-2 rounded-md border p-3 ${personType === "fisica" ? "border-primary bg-primary/5" : "border-border"}`}>
                 <input
                   type="radio"
                   name="np-personType"
                   checked={personType === "fisica"}
                   onChange={() => setPersonType("fisica")}
                 />
-                Pessoa física
+                <span><b className="block">Pessoa física</b><span className="text-xs text-muted-foreground">Usar CPF</span></span>
               </label>
-              <label className="flex items-center gap-2">
+              <label className={`flex cursor-pointer items-center gap-2 rounded-md border p-3 ${personType === "juridica" ? "border-primary bg-primary/5" : "border-border"}`}>
                 <input
                   type="radio"
                   name="np-personType"
                   checked={personType === "juridica"}
                   onChange={() => setPersonType("juridica")}
                 />
-                Pessoa jurídica
+                <span><b className="block">Pessoa jurídica</b><span className="text-xs text-muted-foreground">Usar CNPJ</span></span>
               </label>
             </div>
           </div>
@@ -2319,6 +2390,47 @@ function NewQuoteDialogImpl({
                 onChange={(e) => setPayment(e.target.value)}
               />
             </div>
+            <div className="sm:col-span-2 rounded-lg border border-border p-3">
+              <Label className="mb-2 block text-xs uppercase tracking-widest text-muted-foreground">
+                Desconto
+              </Label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>Tipo de desconto</Label>
+                  <Select
+                    value={discountType}
+                    onValueChange={(value) =>
+                      setDiscountType(value as "percentage" | "fixed")
+                    }
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percentage">Percentual (%)</SelectItem>
+                      <SelectItem value="fixed">Valor fixo (R$)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>{discountType === "percentage" ? "Percentual (%)" : "Valor (R$)"}</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={discountType === "percentage" ? 100 : undefined}
+                    step="0.01"
+                    value={discountValue}
+                    onChange={(e) => setDiscountValue(Number(e.target.value))}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Motivo do desconto{discountValue > 0 ? " *" : ""}</Label>
+                  <Input
+                    placeholder="Ex: pagamento à vista no boleto"
+                    value={discountReason}
+                    onChange={(e) => setDiscountReason(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
             <div className="sm:col-span-2">
               <Label>Link Pix (entrada)</Label>
               <Input
@@ -2339,6 +2451,14 @@ function NewQuoteDialogImpl({
             <div className="flex items-center justify-between text-muted-foreground">
               <span>Frete</span>
               <span>{currency(freight)}</span>
+            </div>
+          )}
+          {discount > 0 && (
+            <div className="flex items-center justify-between text-emerald-600">
+              <span>
+                Desconto{discountType === "percentage" ? ` (${discountValue}%)` : ""}
+              </span>
+              <span>-{currency(discount)}</span>
             </div>
           )}
           <div className="flex items-center justify-between pt-1">
