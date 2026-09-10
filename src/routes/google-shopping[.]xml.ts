@@ -39,6 +39,21 @@ const absolute = (path: string) =>
     ? path
     : `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 
+const productDescription = (product: ProductRow, sizeLabel: string) => {
+  const original = text(product.description);
+  const normalized = original.toLocaleLowerCase("pt-BR");
+  const looksLikeSizeCode = original.length < 20 ||
+    normalized === text(product.name).toLocaleLowerCase("pt-BR") ||
+    normalized === sizeLabel.toLocaleLowerCase("pt-BR");
+  const base = looksLikeSizeCode
+    ? `${product.name}, tamanho ${sizeLabel}, produzido artesanalmente em concreto pela Arteno.`
+    : original;
+  const material = normalized.includes("concreto") || looksLikeSizeCode
+    ? ""
+    : " Produzido artesanalmente em concreto pela Arteno.";
+  return `${base}${material} Consulte as opções de cores e acabamentos para ambientes internos e externos.`;
+};
+
 export const Route = createFileRoute("/google-shopping.xml")({
   server: {
     handlers: {
@@ -85,10 +100,11 @@ export const Route = createFileRoute("/google-shopping.xml")({
                 `      <g:id>${xml(size.id)}</g:id>`,
                 `      <g:item_group_id>${xml(product.id)}</g:item_group_id>`,
                 `      <title>${xml(`${product.name} - ${label}`)}</title>`,
-                `      <description>${xml(text(product.description) || `${product.name} artesanal Arteno.`)}</description>`,
+                `      <description>${xml(productDescription(product, label))}</description>`,
                 `      <link>${xml(link)}</link>`,
                 `      <g:image_link>${xml(absolute(image))}</g:image_link>`,
                 `      <g:brand>Arteno</g:brand>`,
+                `      <g:material>Concreto</g:material>`,
                 `      <g:condition>new</g:condition>`,
                 `      <g:availability>preorder</g:availability>`,
                 `      <g:price>${regular.toFixed(2)} BRL</g:price>`,

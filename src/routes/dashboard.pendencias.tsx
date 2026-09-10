@@ -21,6 +21,13 @@ type Item = {
 
 const INITIAL: Item[] = [
   {
+    id: "reforco-tela-vasos-site",
+    title: "Mostrar a tela de reforço utilizada nos vasos",
+    description:
+      "Criar futuramente uma seção 'Como produzimos' ou 'Reforço estrutural' na página inicial, nas categorias Vasos/Jardineiras e, se adequado, nos detalhes dos produtos. Usar a foto técnica ao lado de uma peça finalizada, com indicação visual da tela. Texto sugerido: 'Nossos vasos recebem uma tela de reforço incorporada durante a fabricação. Ela trabalha em conjunto com o concreto para proporcionar maior resistência e estabilidade à peça, preservando o acabamento artesanal.' Evitar alegações absolutas como 'não trinca' ou 'indestrutível'.",
+    priority: "media",
+  },
+  {
     id: "central-duvidas-cotacoes-frete",
     title: "Implementação futura — Central de dúvidas das cotações de frete",
     description:
