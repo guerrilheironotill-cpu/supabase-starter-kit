@@ -361,10 +361,12 @@ function DashboardProductsPage() {
 
       const suffix = Date.now().toString(36);
       const source = productResult.data;
+      const firstSizePrice = Number(sizesResult.data?.[0]?.base_price);
       const { data: created, error: createError } = await supabase
         .from("products")
         .insert({
           ...source,
+          price: Number.isFinite(firstSizePrice) ? firstSizePrice : 0,
           name: `${source.name} — Cópia`,
           slug: `${row.slug}-copia-${suffix}`,
           active: false,
