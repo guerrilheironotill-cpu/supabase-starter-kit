@@ -180,7 +180,11 @@ type ItemDraft = {
   size_id?: string;
   size_name?: string;
   finish?: string;
+  custom_finish?: string;
+  custom_finish_extra?: number;
   color?: string;
+  custom_color?: string;
+  custom_color_extra?: number;
   product_search?: string;
   height?: string;
   width?: string;
@@ -814,7 +818,9 @@ function StatusSelect({ order }: { order: OrderRow }) {
             price: number;
             size_name?: string | null;
             finish?: string | null;
+            custom_finish?: string | null;
             color?: string | null;
+            custom_color?: string | null;
             height?: number | null;
             width?: number | null;
             length?: number | null;
@@ -930,7 +936,9 @@ function StatusSelect({ order }: { order: OrderRow }) {
           meta: {
             size_name: i.size_name ?? null,
             finish: i.finish ?? null,
+            custom_finish: i.custom_finish ?? null,
             color: i.color ?? null,
+            custom_color: i.custom_color ?? null,
             height: i.height ?? null,
             width: i.width ?? null,
             length: i.length ?? null,
@@ -1164,15 +1172,21 @@ function ShareMenu({
     const attrLine = (i: {
       size_name?: string | null;
       finish?: string | null;
+      custom_finish?: string | null;
       color?: string | null;
+      custom_color?: string | null;
       height?: number | null;
       width?: number | null;
       length?: number | null;
     }) => {
       const parts = [
         i.size_name ? `Tamanho: ${i.size_name}` : "",
-        i.finish ? `Acabamento: ${i.finish}` : "",
-        i.color ? `Cor: ${i.color}` : "",
+        i.finish
+          ? `Acabamento: ${i.finish === "Personalizado" ? i.custom_finish || i.finish : i.finish}`
+          : "",
+        i.color
+          ? `Cor: ${i.color === "Personalizado" ? i.custom_color || i.color : i.color}`
+          : "",
         i.height ? `Altura: ${i.height} cm` : "",
         i.width ? `Largura: ${i.width} cm` : "",
         i.length ? `Comprimento: ${i.length} cm` : "",
@@ -1437,7 +1451,11 @@ function NewQuoteDialogImpl({
         size_id: typeof item.size_id === "string" ? item.size_id : undefined,
         size_name: typeof item.size_name === "string" ? item.size_name : undefined,
         finish: typeof item.finish === "string" ? item.finish : undefined,
+        custom_finish: typeof item.custom_finish === "string" ? item.custom_finish : undefined,
+        custom_finish_extra: Number(item.custom_finish_extra) || 0,
         color: typeof item.color === "string" ? item.color : undefined,
+        custom_color: typeof item.custom_color === "string" ? item.custom_color : undefined,
+        custom_color_extra: Number(item.custom_color_extra) || 0,
         height: item.height == null ? "" : String(item.height),
         width: item.width == null ? "" : String(item.width),
         length: item.length == null ? "" : String(item.length),
@@ -1568,6 +1586,28 @@ function NewQuoteDialogImpl({
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   };
 
+  const updateCustomAttribute = (
+    idx: number,
+    attribute: "finish" | "color",
+    patch: { name?: string; extra?: number },
+  ) => {
+    setItems((prev) =>
+      prev.map((item, itemIndex) => {
+        if (itemIndex !== idx) return item;
+        const extraKey = attribute === "finish" ? "custom_finish_extra" : "custom_color_extra";
+        const nameKey = attribute === "finish" ? "custom_finish" : "custom_color";
+        const previousExtra = Number(item[extraKey]) || 0;
+        const nextExtra = patch.extra ?? previousExtra;
+        return {
+          ...item,
+          [nameKey]: patch.name ?? item[nameKey],
+          [extraKey]: nextExtra,
+          price: Math.max(0, (Number(item.price) || 0) - previousExtra + nextExtra),
+        };
+      }),
+    );
+  };
+
   const addItem = (kind: "catalog" | "custom") => {
     setItems((prev) => [{ kind, name: "", quantity: 1, price: 0 }, ...prev]);
     setExpandedItems((current) => new Set([0, ...Array.from(current, (index) => index + 1)]));
@@ -1640,10 +1680,22 @@ function NewQuoteDialogImpl({
         toast.error(`Selecione o acabamento de ${item.name}`);
         return;
       }
+      if (item.finish === "Personalizado" && !item.custom_finish?.trim()) {
+        setStep(1);
+        setExpandedItems((current) => new Set(current).add(index));
+        toast.error(`Informe o nome do acabamento personalizado de ${item.name}`);
+        return;
+      }
       if ((product?.product_colors?.length ?? 0) > 0 && !item.color) {
         setStep(1);
         setExpandedItems((current) => new Set(current).add(index));
         toast.error(`Selecione a cor de ${item.name}`);
+        return;
+      }
+      if (item.color === "Personalizado" && !item.custom_color?.trim()) {
+        setStep(1);
+        setExpandedItems((current) => new Set(current).add(index));
+        toast.error(`Informe o nome da cor personalizada de ${item.name}`);
         return;
       }
     }
@@ -1661,7 +1713,11 @@ function NewQuoteDialogImpl({
           size_id: i.size_id ?? null,
           size_name: i.size_name ?? null,
           finish: i.finish ?? null,
+          custom_finish: i.custom_finish?.trim() || null,
+          custom_finish_extra: Number(i.custom_finish_extra) || 0,
           color: i.color ?? null,
+          custom_color: i.custom_color?.trim() || null,
+          custom_color_extra: Number(i.custom_color_extra) || 0,
           height: i.height?.trim() ? Number(i.height) : null,
           width: i.width?.trim() ? Number(i.width) : null,
           length: i.length?.trim() ? Number(i.length) : null,
@@ -2144,7 +2200,11 @@ function NewQuoteDialogImpl({
                                       size_id: undefined,
                                       size_name: undefined,
                                       finish: undefined,
+                                      custom_finish: undefined,
+                                      custom_finish_extra: 0,
                                       color: undefined,
+                                      custom_color: undefined,
+                                      custom_color_extra: 0,
                                       height: undefined,
                                       width: undefined,
                                       length: undefined,
@@ -2168,7 +2228,11 @@ function NewQuoteDialogImpl({
                                               size_id: undefined,
                                               size_name: undefined,
                                               finish: undefined,
+                                              custom_finish: undefined,
+                                              custom_finish_extra: 0,
                                               color: undefined,
+                                              custom_color: undefined,
+                                              custom_color_extra: 0,
                                               height: undefined,
                                               width: undefined,
                                               length: undefined,
@@ -2204,7 +2268,11 @@ function NewQuoteDialogImpl({
                                         size_id: undefined,
                                         size_name: undefined,
                                         finish: undefined,
+                                        custom_finish: undefined,
+                                        custom_finish_extra: 0,
                                         color: undefined,
+                                        custom_color: undefined,
+                                        custom_color_extra: 0,
                                         height: undefined,
                                         width: undefined,
                                         length: undefined,
@@ -2255,7 +2323,17 @@ function NewQuoteDialogImpl({
                                       <Label className="text-xs">Acabamento *</Label>
                                       <Select
                                         value={it.finish ?? ""}
-                                        onValueChange={(v) => updateItem(idx, { finish: v })}
+                                        onValueChange={(v) =>
+                                          updateItem(idx, {
+                                            finish: v === "__custom__" ? "Personalizado" : v,
+                                            custom_finish: v === "__custom__" ? it.custom_finish : undefined,
+                                            custom_finish_extra: v === "__custom__" ? it.custom_finish_extra : 0,
+                                            price:
+                                              (Number(it.price) || 0) -
+                                              (Number(it.custom_finish_extra) || 0) +
+                                              (v === "__custom__" ? Number(it.custom_finish_extra) || 0 : 0),
+                                          })
+                                        }
                                       >
                                         <SelectTrigger>
                                           <SelectValue placeholder="Selecione" />
@@ -2266,8 +2344,34 @@ function NewQuoteDialogImpl({
                                               {f.name}
                                             </SelectItem>
                                           ))}
+                                          <SelectItem value="__custom__">Personalizado</SelectItem>
                                         </SelectContent>
                                       </Select>
+                                      {it.finish === "Personalizado" && (
+                                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                                          <Input
+                                            placeholder="Nome do acabamento"
+                                            value={it.custom_finish ?? ""}
+                                            onChange={(event) =>
+                                              updateCustomAttribute(idx, "finish", {
+                                                name: event.target.value,
+                                              })
+                                            }
+                                          />
+                                          <Input
+                                            type="number"
+                                            min={0}
+                                            step="0.01"
+                                            placeholder="Adicional (R$)"
+                                            value={it.custom_finish_extra ?? 0}
+                                            onChange={(event) =>
+                                              updateCustomAttribute(idx, "finish", {
+                                                extra: Number(event.target.value) || 0,
+                                              })
+                                            }
+                                          />
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                   {colors.length > 0 && (
@@ -2275,7 +2379,17 @@ function NewQuoteDialogImpl({
                                       <Label className="text-xs">Cor *</Label>
                                       <Select
                                         value={it.color ?? ""}
-                                        onValueChange={(v) => updateItem(idx, { color: v })}
+                                        onValueChange={(v) =>
+                                          updateItem(idx, {
+                                            color: v === "__custom__" ? "Personalizado" : v,
+                                            custom_color: v === "__custom__" ? it.custom_color : undefined,
+                                            custom_color_extra: v === "__custom__" ? it.custom_color_extra : 0,
+                                            price:
+                                              (Number(it.price) || 0) -
+                                              (Number(it.custom_color_extra) || 0) +
+                                              (v === "__custom__" ? Number(it.custom_color_extra) || 0 : 0),
+                                          })
+                                        }
                                       >
                                         <SelectTrigger>
                                           <SelectValue placeholder="Selecione" />
@@ -2286,8 +2400,34 @@ function NewQuoteDialogImpl({
                                               {c.name}
                                             </SelectItem>
                                           ))}
+                                          <SelectItem value="__custom__">Personalizado</SelectItem>
                                         </SelectContent>
                                       </Select>
+                                      {it.color === "Personalizado" && (
+                                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                                          <Input
+                                            placeholder="Nome da cor"
+                                            value={it.custom_color ?? ""}
+                                            onChange={(event) =>
+                                              updateCustomAttribute(idx, "color", {
+                                                name: event.target.value,
+                                              })
+                                            }
+                                          />
+                                          <Input
+                                            type="number"
+                                            min={0}
+                                            step="0.01"
+                                            placeholder="Adicional (R$)"
+                                            value={it.custom_color_extra ?? 0}
+                                            onChange={(event) =>
+                                              updateCustomAttribute(idx, "color", {
+                                                extra: Number(event.target.value) || 0,
+                                              })
+                                            }
+                                          />
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </div>
