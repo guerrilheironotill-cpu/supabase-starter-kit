@@ -1674,7 +1674,7 @@ function NewQuoteDialogImpl({
     for (const [index, item] of items.entries()) {
       if (item.kind !== "catalog" || !item.product_id || !item.name.trim()) continue;
       const product = products.find((candidate) => candidate.id === item.product_id);
-      if ((product?.product_finishes?.length ?? 0) > 0 && !item.finish) {
+      if (product && !item.finish) {
         setStep(1);
         setExpandedItems((current) => new Set(current).add(index));
         toast.error(`Selecione o acabamento de ${item.name}`);
@@ -1686,7 +1686,7 @@ function NewQuoteDialogImpl({
         toast.error(`Informe o nome do acabamento personalizado de ${item.name}`);
         return;
       }
-      if ((product?.product_colors?.length ?? 0) > 0 && !item.color) {
+      if (product && !item.color) {
         setStep(1);
         setExpandedItems((current) => new Set(current).add(index));
         toast.error(`Selecione a cor de ${item.name}`);
@@ -2318,11 +2318,11 @@ function NewQuoteDialogImpl({
                                       </Select>
                                     </div>
                                   )}
-                                  {finishes.length > 0 && (
+                                  {p && (
                                     <div>
                                       <Label className="text-xs">Acabamento *</Label>
                                       <Select
-                                        value={it.finish ?? ""}
+                                        value={it.finish === "Personalizado" ? "__custom__" : it.finish ?? ""}
                                         onValueChange={(v) =>
                                           updateItem(idx, {
                                             finish: v === "__custom__" ? "Personalizado" : v,
@@ -2374,11 +2374,11 @@ function NewQuoteDialogImpl({
                                       )}
                                     </div>
                                   )}
-                                  {colors.length > 0 && (
+                                  {p && (
                                     <div>
                                       <Label className="text-xs">Cor *</Label>
                                       <Select
-                                        value={it.color ?? ""}
+                                        value={it.color === "Personalizado" ? "__custom__" : it.color ?? ""}
                                         onValueChange={(v) =>
                                           updateItem(idx, {
                                             color: v === "__custom__" ? "Personalizado" : v,
