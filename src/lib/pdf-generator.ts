@@ -36,9 +36,16 @@ export async function fetchCatalogSnapshot(): Promise<CatalogSnapshot> {
     fetchAttributeTerms("product_finishes", "finish_catalog"),
     fetchHeroSlides(),
   ]);
-  const categories = Array.from(
-    new Set(products.map((product) => product.category).filter(Boolean)),
-  ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  // Categories with the most products come first; ties fall back to alphabetical order.
+  const categoryCounts = new Map<string, number>();
+  for (const product of products) {
+    if (!product.category) continue;
+    categoryCounts.set(product.category, (categoryCounts.get(product.category) ?? 0) + 1);
+  }
+  const categories = Array.from(categoryCounts.keys()).sort(
+    (a, b) =>
+      (categoryCounts.get(b) ?? 0) - (categoryCounts.get(a) ?? 0) || a.localeCompare(b, "pt-BR"),
+  );
   return {
     products,
     categories,
@@ -87,11 +94,32 @@ async function addImageContained(
   width: number,
   height: number,
   cache: ImageCache,
+  options: { fit?: "contain" | "cover"; align?: "center" | "top" } = {},
 ) {
   const dataUrl = await loadImageAsDataUrl(url, cache);
   if (!dataUrl) return false;
   try {
-    pdf.addImage(dataUrl, imageFormat(dataUrl), x, y, width, height, undefined, "FAST");
+    const format = imageFormat(dataUrl);
+    const { width: naturalWidth, height: naturalHeight } = pdf.getImageProperties(dataUrl);
+    const scale =
+      options.fit === "cover"
+        ? Math.max(width / naturalWidth, height / naturalHeight)
+        : Math.min(width / naturalWidth, height / naturalHeight);
+    const drawWidth = naturalWidth * scale;
+    const drawHeight = naturalHeight * scale;
+    const drawX = x + (width - drawWidth) / 2;
+    const drawY = options.align === "top" ? y : y + (height - drawHeight) / 2;
+    if (options.fit === "cover") {
+      // Clip to the target box so the cropped overflow is not drawn.
+      pdf.saveGraphicsState();
+      pdf.rect(x, y, width, height, null);
+      pdf.clip();
+      pdf.discardPath();
+      pdf.addImage(dataUrl, format, drawX, drawY, drawWidth, drawHeight, undefined, "FAST");
+      pdf.restoreGraphicsState();
+    } else {
+      pdf.addImage(dataUrl, format, drawX, drawY, drawWidth, drawHeight, undefined, "FAST");
+    }
     return true;
   } catch {
     return false;
@@ -138,7 +166,9 @@ async function addCategoryCover(
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   if (imageUrl) {
-    const added = await addImageContained(pdf, imageUrl, 0, 0, pageWidth, pageHeight, cache);
+    const added = await addImageContained(pdf, imageUrl, 0, 0, pageWidth, pageHeight, cache, {
+      fit: "cover",
+    });
     if (!added) addImagePlaceholder(pdf, 0, 0, pageWidth, pageHeight);
   } else {
     pdf.setFillColor(236, 239, 234);
@@ -282,6 +312,7 @@ export async function buildCatalogPDF(
           imageWidth,
           rowHeight,
           sharedImageCache,
+          { align: "top" },
         );
         if (!added) addImagePlaceholder(pdf, imageX, currentY, imageWidth, rowHeight);
       } else {
@@ -533,7 +564,9 @@ export async function buildCatalogPDF(
   pdf.setFillColor(250, 250, 247);
   pdf.rect(0, 0, pageWidth, pageHeight, "F");
   if (snapshot.coverImage) {
-    await addImageContained(pdf, snapshot.coverImage, 0, 0, pageWidth, 105, sharedImageCache);
+    await addImageContained(pdf, snapshot.coverImage, 0, 0, pageWidth, 105, sharedImageCache, {
+      fit: "cover",
+    });
   }
   pdf.setFillColor(42, 47, 44);
   pdf.rect(0, 70, pageWidth, 35, "F");

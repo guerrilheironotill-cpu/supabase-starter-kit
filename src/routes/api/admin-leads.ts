@@ -59,8 +59,8 @@ export const Route = createFileRoute("/api/admin-leads")({
         if (!name || !Array.isArray(payload.items)) {
           return Response.json({ ok: false, error: "Nome e itens do lead são obrigatórios." }, { status: 400 });
         }
-        if (!document || (cpf && cpf.length !== 11) || (cnpj && cnpj.length !== 14)) {
-          return Response.json({ ok: false, error: "CPF ou CNPJ válido é obrigatório para identificar o lead." }, { status: 400 });
+        if ((cpf && cpf.length !== 11) || (cnpj && cnpj.length !== 14)) {
+          return Response.json({ ok: false, error: "CPF ou CNPJ inválido." }, { status: 400 });
         }
 
         const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
@@ -75,13 +75,14 @@ export const Route = createFileRoute("/api/admin-leads")({
             ? lead.contact_info as Record<string, unknown>
             : {};
           const savedDocument = String(info.document ?? info.cpf ?? info.cnpj ?? "").replace(/\D/g, "");
-          if (savedDocument) return savedDocument === document;
+          if (document && savedDocument) return savedDocument === document;
           const savedPhone = String(lead.phone ?? "").replace(/\D/g, "");
           const savedEmail = String(lead.email ?? "").trim().toLowerCase();
           return Boolean((phoneDigits && savedPhone === phoneDigits) || (email && savedEmail === email));
         });
 
         if (existing) {
+          if (!document) return Response.json({ ok: true, id: existing.id, existing: true });
           const currentInfo = existing.contact_info && typeof existing.contact_info === "object" && !Array.isArray(existing.contact_info)
             ? existing.contact_info as Record<string, unknown>
             : {};
@@ -102,7 +103,7 @@ export const Route = createFileRoute("/api/admin-leads")({
             destination: payload.phone ? "whatsapp" : "email",
             items: payload.items,
             source: payload.source || "manual",
-            contact_info: { document, document_type: documentType },
+            contact_info: { document: document || null, document_type: documentType },
           })
           .select("id")
           .single();

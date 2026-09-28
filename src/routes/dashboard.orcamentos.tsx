@@ -15,6 +15,7 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  GripVertical,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardSection } from "@/components/dashboard-layout";
@@ -47,6 +48,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { ensureCustomerForApprovedQuote } from "@/lib/customer-conversion";
+import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
 
 export const Route = createFileRoute("/dashboard/orcamentos")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -69,9 +71,10 @@ type OrderRow = {
   items: unknown;
   created_at: string;
   notes?: string | null;
+  sort_order?: number | null;
 };
 
-type QuoteSortKey = "id" | "customer" | "origin" | "total" | "created_at" | "status";
+type QuoteSortKey = "manual" | "id" | "customer" | "origin" | "total" | "created_at" | "status";
 type SortDirection = "asc" | "desc";
 
 type QuoteMeta = {
@@ -181,10 +184,10 @@ type ItemDraft = {
   size_name?: string;
   finish?: string;
   custom_finish?: string;
-  custom_finish_extra?: number;
+  finish_extra?: number;
   color?: string;
   custom_color?: string;
-  custom_color_extra?: number;
+  color_extra?: number;
   product_search?: string;
   height?: string;
   width?: string;
@@ -258,6 +261,16 @@ function normalizeQuoteStatus(status: string | null | undefined): QuoteStatus {
 const currency = (n: number | null | undefined) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(n ?? 0));
 
+// Quotes without a manual position (new ones) come first, newest on top.
+function compareManualOrder(a: OrderRow, b: OrderRow) {
+  const aOrder = a.sort_order ?? null;
+  const bOrder = b.sort_order ?? null;
+  if (aOrder === null && bOrder !== null) return -1;
+  if (aOrder !== null && bOrder === null) return 1;
+  if (aOrder !== null && bOrder !== null && aOrder !== bOrder) return aOrder - bOrder;
+  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+}
+
 function DashboardQuotesPage() {
   const { orcamento } = Route.useSearch();
   const qc = useQueryClient();
@@ -268,8 +281,12 @@ function DashboardQuotesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | QuoteStatus>("all");
   const [originFilter, setOriginFilter] = useState("all");
-  const [sortKey, setSortKey] = useState<QuoteSortKey>("created_at");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [sortKey, setSortKey] = useState<QuoteSortKey>("manual");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [dragHandleId, setDragHandleId] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ id: string; after: boolean } | null>(null);
+  const [manualOrderAvailable, setManualOrderAvailable] = useState(true);
   const [deepLinkOpened, setDeepLinkOpened] = useState(false);
 
   const {
@@ -282,14 +299,23 @@ function DashboardQuotesPage() {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
       try {
-        const { data, error } = await supabase
-          .from("orders" as never)
-          .select(
-            "id, status, origin, customer_name, customer_phone, customer_email, total, items, created_at, notes",
-          )
-          .order("created_at", { ascending: false })
-          .limit(200)
-          .abortSignal(controller.signal);
+        const baseColumns =
+          "id, status, origin, customer_name, customer_phone, customer_email, total, items, created_at, notes";
+        const fetchOrders = (columns: string) =>
+          supabase
+            .from("orders" as never)
+            .select(columns)
+            .order("created_at", { ascending: false })
+            .limit(200)
+            .abortSignal(controller.signal);
+        let { data, error } = await fetchOrders(`${baseColumns}, sort_order`);
+        // Until the sort_order migration is applied, fall back to the old column set.
+        if (error && error.message.includes("sort_order")) {
+          setManualOrderAvailable(false);
+          ({ data, error } = await fetchOrders(baseColumns));
+        } else if (!error) {
+          setManualOrderAvailable(true);
+        }
         if (error) {
           console.warn("[orders] fetch failed:", error.message);
           throw new Error(error.message);
@@ -315,6 +341,7 @@ function DashboardQuotesPage() {
         (!search || haystack.includes(search.toLowerCase()))
       );
     });
+    if (sortKey === "manual") return filtered.sort(compareManualOrder);
     const direction = sortDirection === "asc" ? 1 : -1;
     return filtered.sort((a, b) => {
       let comparison = 0;
@@ -330,7 +357,48 @@ function DashboardQuotesPage() {
     });
   }, [allOrders, originFilter, search, sortDirection, sortKey, statusFilter]);
 
+  const canDrag = sortKey === "manual" && manualOrderAvailable;
+
+  async function moveQuote(draggedId: string, targetId: string, after: boolean) {
+    if (draggedId === targetId) return;
+    // Reorder the full list (not just the filtered view) so hidden quotes keep their place.
+    const ordered = [...allOrders].sort(compareManualOrder);
+    const dragged = ordered.find((order) => order.id === draggedId);
+    if (!dragged) return;
+    const remaining = ordered.filter((order) => order.id !== draggedId);
+    const targetIndex = remaining.findIndex((order) => order.id === targetId);
+    if (targetIndex < 0) return;
+    remaining.splice(after ? targetIndex + 1 : targetIndex, 0, dragged);
+    const changed = remaining
+      .map((order, position) => ({ order, position }))
+      .filter(({ order, position }) => order.sort_order !== position);
+    if (changed.length === 0) return;
+
+    const positions = new Map(remaining.map((order, position) => [order.id, position]));
+    qc.setQueryData<OrderRow[]>(["orders"], (current = []) =>
+      current.map((order) => ({ ...order, sort_order: positions.get(order.id) ?? order.sort_order })),
+    );
+    const results = await Promise.all(
+      changed.map(({ order, position }) =>
+        supabase
+          .from("orders" as never)
+          .update({ sort_order: position } as never)
+          .eq("id", order.id),
+      ),
+    );
+    const failed = results.find((result) => result.error);
+    if (failed?.error) {
+      toast.error(`Não foi possível salvar a ordem: ${failed.error.message}`);
+      await qc.invalidateQueries({ queryKey: ["orders"] });
+    }
+  }
+
   function toggleSort(nextKey: QuoteSortKey) {
+    if (nextKey === "manual") {
+      setSortKey("manual");
+      setSortDirection("asc");
+      return;
+    }
     if (sortKey === nextKey) {
       setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
       return;
@@ -486,6 +554,24 @@ function DashboardQuotesPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-left text-xs uppercase tracking-widest text-muted-foreground">
               <tr>
+                <th className="w-10 py-3 pl-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort("manual")}
+                    className={`inline-flex items-center transition-colors hover:text-foreground ${
+                      sortKey === "manual" ? "text-primary" : "opacity-50"
+                    }`}
+                    title={
+                      manualOrderAvailable
+                        ? "Ordem manual (arraste as linhas)"
+                        : "Ordem manual indisponível: aplique a migration de sort_order"
+                    }
+                    aria-label="Ordenar pela ordem manual"
+                    aria-pressed={sortKey === "manual"}
+                  >
+                    <GripVertical className="h-4 w-4" />
+                  </button>
+                </th>
                 <th className="px-4 py-3">
                   <input
                     type="checkbox"
@@ -543,14 +629,14 @@ function DashboardQuotesPage() {
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
                     Carregando…
                   </td>
                 </tr>
               )}
               {!isLoading && error && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-destructive">
+                  <td colSpan={9} className="px-4 py-8 text-center text-destructive">
                     Erro ao carregar orçamentos:{" "}
                     {error instanceof Error ? error.message : String(error)}
                   </td>
@@ -558,7 +644,7 @@ function DashboardQuotesPage() {
               )}
               {!isLoading && !error && orders.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
                     Nenhum orçamento ainda. Clique em "Novo orçamento" para criar.
                   </td>
                 </tr>
@@ -567,6 +653,33 @@ function DashboardQuotesPage() {
                 <tr
                   key={o.id}
                   tabIndex={0}
+                  draggable={canDrag && dragHandleId === o.id}
+                  onDragStart={(event) => {
+                    event.dataTransfer.effectAllowed = "move";
+                    event.dataTransfer.setData("text/plain", o.id);
+                    setDraggingId(o.id);
+                  }}
+                  onDragOver={(event) => {
+                    if (!draggingId || draggingId === o.id) return;
+                    event.preventDefault();
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const after = event.clientY > rect.top + rect.height / 2;
+                    if (dropTarget?.id !== o.id || dropTarget.after !== after) {
+                      setDropTarget({ id: o.id, after });
+                    }
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    if (draggingId && dropTarget) {
+                      void moveQuote(draggingId, dropTarget.id, dropTarget.after);
+                    }
+                    setDropTarget(null);
+                  }}
+                  onDragEnd={() => {
+                    setDraggingId(null);
+                    setDropTarget(null);
+                    setDragHandleId(null);
+                  }}
                   onClick={() => editOrder(o)}
                   onKeyDown={(event) => {
                     if (event.target !== event.currentTarget) return;
@@ -575,9 +688,30 @@ function DashboardQuotesPage() {
                       editOrder(o);
                     }
                   }}
-                  className="cursor-pointer border-t border-border transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                  className={`cursor-pointer border-t border-border transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${
+                    draggingId === o.id ? "opacity-40" : ""
+                  } ${
+                    dropTarget?.id === o.id
+                      ? dropTarget.after
+                        ? "shadow-[inset_0_-2px_0_0_var(--color-primary)]"
+                        : "shadow-[inset_0_2px_0_0_var(--color-primary)]"
+                      : ""
+                  }`}
                   aria-label={`Editar orçamento de ${o.customer_name}`}
                 >
+                  <td className="py-3 pl-3" onClick={(event) => event.stopPropagation()}>
+                    {canDrag && (
+                      <span
+                        onMouseDown={() => setDragHandleId(o.id)}
+                        onMouseUp={() => setDragHandleId(null)}
+                        className="inline-flex cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
+                        title="Arraste para reordenar"
+                        aria-hidden="true"
+                      >
+                        <GripVertical className="h-4 w-4" />
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
                     <input
                       type="checkbox"
@@ -1341,6 +1475,83 @@ ${meta.note ? module("Observações", `<div style="font-size:13px;line-height:1.
 
 const NewQuoteDialog = NewQuoteDialogImpl;
 
+type AttributeSelection = { value?: string; customName?: string; extra?: number };
+
+function AttributePicker({
+  label,
+  required = false,
+  options,
+  value,
+  customName,
+  extra,
+  onChange,
+}: {
+  label: string;
+  required?: boolean;
+  options: Array<{ name: string; extra: number }>;
+  value?: string;
+  customName?: string;
+  extra?: number;
+  onChange: (patch: AttributeSelection) => void;
+}) {
+  const isCustom = value === "Personalizado";
+  return (
+    <div>
+      <Label className="text-xs">
+        {label}
+        {required ? " *" : ""}
+      </Label>
+      <Select
+        value={isCustom ? "__custom__" : (value ?? "__none__")}
+        onValueChange={(v) => {
+          if (v === "__none__") onChange({ value: undefined, extra: 0 });
+          else if (v === "__custom__") onChange({ value: "Personalizado", extra: 0 });
+          else onChange({ value: v, extra: options.find((o) => o.name === v)?.extra ?? 0 });
+        }}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Selecione" />
+        </SelectTrigger>
+        <SelectContent>
+          {!required && <SelectItem value="__none__">Nenhum</SelectItem>}
+          {options.map((option) => (
+            <SelectItem key={option.name} value={option.name}>
+              {option.name}
+              {option.extra > 0 ? ` (+ ${currency(option.extra)})` : ""}
+            </SelectItem>
+          ))}
+          <SelectItem value="__custom__">Personalizado</SelectItem>
+        </SelectContent>
+      </Select>
+      {value && (
+        <div className={`mt-2 grid gap-2 ${isCustom ? "sm:grid-cols-2" : ""}`}>
+          {isCustom && (
+            <Input
+              placeholder={`Nome ${label === "Cor" ? "da cor" : "do acabamento"}`}
+              value={customName ?? ""}
+              onChange={(event) => onChange({ customName: event.target.value })}
+            />
+          )}
+          <div>
+            <Input
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="Adicional (R$)"
+              aria-label={`Adicional de ${label.toLowerCase()} (R$)`}
+              value={extra ?? 0}
+              onChange={(event) => onChange({ extra: Math.max(0, Number(event.target.value) || 0) })}
+            />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Adicional por unidade, somado ao valor unitário
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DimensionFields({
   item,
   onChange,
@@ -1452,10 +1663,11 @@ function NewQuoteDialogImpl({
         size_name: typeof item.size_name === "string" ? item.size_name : undefined,
         finish: typeof item.finish === "string" ? item.finish : undefined,
         custom_finish: typeof item.custom_finish === "string" ? item.custom_finish : undefined,
-        custom_finish_extra: Number(item.custom_finish_extra) || 0,
+        // Older quotes stored the extra under custom_* keys.
+        finish_extra: Number(item.finish_extra ?? item.custom_finish_extra) || 0,
         color: typeof item.color === "string" ? item.color : undefined,
         custom_color: typeof item.custom_color === "string" ? item.custom_color : undefined,
-        custom_color_extra: Number(item.custom_color_extra) || 0,
+        color_extra: Number(item.color_extra ?? item.custom_color_extra) || 0,
         height: item.height == null ? "" : String(item.height),
         width: item.width == null ? "" : String(item.width),
         length: item.length == null ? "" : String(item.length),
@@ -1586,25 +1798,68 @@ function NewQuoteDialogImpl({
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   };
 
-  const updateCustomAttribute = (
+  const { data: finishCatalog = [] } = useQuery({
+    queryKey: ["quote-finish-catalog"],
+    queryFn: () => fetchAttributeTerms("product_finishes", "finish_catalog"),
+  });
+  const { data: colorCatalog = [] } = useQuery({
+    queryKey: ["quote-color-catalog"],
+    queryFn: () => fetchAttributeTerms("product_colors", "color_catalog"),
+  });
+  const finishExtraByName = useMemo(
+    () => new Map(finishCatalog.map((term) => [term.name, term.extra_price])),
+    [finishCatalog],
+  );
+  const allFinishOptions = useMemo(
+    () => finishCatalog.map((term) => ({ name: term.name, extra: term.extra_price })),
+    [finishCatalog],
+  );
+  const allColorOptions = useMemo(
+    () => colorCatalog.map((term) => ({ name: term.name, extra: term.extra_price })),
+    [colorCatalog],
+  );
+
+  // Keeps the unit price in sync: the previous extra is removed and the new one added.
+  const updateAttribute = (
     idx: number,
     attribute: "finish" | "color",
-    patch: { name?: string; extra?: number },
+    patch: AttributeSelection,
   ) => {
     setItems((prev) =>
       prev.map((item, itemIndex) => {
         if (itemIndex !== idx) return item;
-        const extraKey = attribute === "finish" ? "custom_finish_extra" : "custom_color_extra";
+        const extraKey = attribute === "finish" ? "finish_extra" : "color_extra";
         const nameKey = attribute === "finish" ? "custom_finish" : "custom_color";
         const previousExtra = Number(item[extraKey]) || 0;
         const nextExtra = patch.extra ?? previousExtra;
+        const nextValue = patch.value ?? item[attribute];
         return {
           ...item,
-          [nameKey]: patch.name ?? item[nameKey],
+          [attribute]: nextValue,
+          [nameKey]:
+            nextValue === "Personalizado" ? (patch.customName ?? item[nameKey]) : undefined,
           [extraKey]: nextExtra,
           price: Math.max(0, (Number(item.price) || 0) - previousExtra + nextExtra),
         };
       }),
+    );
+  };
+
+  const moveItem = (idx: number, direction: -1 | 1) => {
+    const target = idx + direction;
+    if (target < 0 || target >= items.length) return;
+    setItems((prev) => {
+      const next = [...prev];
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return next;
+    });
+    setExpandedItems(
+      (current) =>
+        new Set(
+          Array.from(current, (index) =>
+            index === idx ? target : index === target ? idx : index,
+          ),
+        ),
     );
   };
 
@@ -1640,7 +1895,7 @@ function NewQuoteDialogImpl({
     }
     const cpfDigits = cpf.replace(/\D/g, "");
     const cnpjDigits = cnpj.replace(/\D/g, "");
-    if (personType === "fisica" && cpfDigits.length !== 11) {
+    if (personType === "fisica" && cpfDigits.length > 0 && cpfDigits.length !== 11) {
       toast.error("Informe um CPF válido (11 dígitos)");
       return;
     }
@@ -1672,8 +1927,11 @@ function NewQuoteDialogImpl({
       return;
     }
     for (const [index, item] of items.entries()) {
-      if (item.kind !== "catalog" || !item.product_id || !item.name.trim()) continue;
-      const product = products.find((candidate) => candidate.id === item.product_id);
+      if (!item.name.trim()) continue;
+      const product =
+        item.kind === "catalog" && item.product_id
+          ? products.find((candidate) => candidate.id === item.product_id)
+          : undefined;
       if (product && !item.finish) {
         setStep(1);
         setExpandedItems((current) => new Set(current).add(index));
@@ -1714,10 +1972,10 @@ function NewQuoteDialogImpl({
           size_name: i.size_name ?? null,
           finish: i.finish ?? null,
           custom_finish: i.custom_finish?.trim() || null,
-          custom_finish_extra: Number(i.custom_finish_extra) || 0,
+          finish_extra: Number(i.finish_extra) || 0,
           color: i.color ?? null,
           custom_color: i.custom_color?.trim() || null,
-          custom_color_extra: Number(i.custom_color_extra) || 0,
+          color_extra: Number(i.color_extra) || 0,
           height: i.height?.trim() ? Number(i.height) : null,
           width: i.width?.trim() ? Number(i.width) : null,
           length: i.length?.trim() ? Number(i.length) : null,
@@ -2005,7 +2263,7 @@ function NewQuoteDialogImpl({
             </div>
             {personType === "fisica" ? (
               <div>
-                <Label>CPF *</Label>
+                <Label>CPF</Label>
                 <Input
                   value={cpf}
                   onChange={(e) => setCpf(maskCpf(e.target.value))}
@@ -2149,6 +2407,26 @@ function NewQuoteDialogImpl({
                     </button>
                     <button
                       type="button"
+                      onClick={() => moveItem(idx, -1)}
+                      disabled={idx === 0}
+                      className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
+                      aria-label={`Mover ${it.name || "item"} para cima`}
+                      title="Mover para cima"
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveItem(idx, 1)}
+                      disabled={idx === items.length - 1}
+                      className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
+                      aria-label={`Mover ${it.name || "item"} para baixo`}
+                      title="Mover para baixo"
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => removeItem(idx)}
                       className="shrink-0 text-muted-foreground hover:text-destructive"
                       aria-label={`Remover ${it.name || "item"}`}
@@ -2201,10 +2479,10 @@ function NewQuoteDialogImpl({
                                       size_name: undefined,
                                       finish: undefined,
                                       custom_finish: undefined,
-                                      custom_finish_extra: 0,
+                                      finish_extra: 0,
                                       color: undefined,
                                       custom_color: undefined,
-                                      custom_color_extra: 0,
+                                      color_extra: 0,
                                       height: undefined,
                                       width: undefined,
                                       length: undefined,
@@ -2229,10 +2507,10 @@ function NewQuoteDialogImpl({
                                               size_name: undefined,
                                               finish: undefined,
                                               custom_finish: undefined,
-                                              custom_finish_extra: 0,
+                                              finish_extra: 0,
                                               color: undefined,
                                               custom_color: undefined,
-                                              custom_color_extra: 0,
+                                              color_extra: 0,
                                               height: undefined,
                                               width: undefined,
                                               length: undefined,
@@ -2269,10 +2547,10 @@ function NewQuoteDialogImpl({
                                         size_name: undefined,
                                         finish: undefined,
                                         custom_finish: undefined,
-                                        custom_finish_extra: 0,
+                                        finish_extra: 0,
                                         color: undefined,
                                         custom_color: undefined,
-                                        custom_color_extra: 0,
+                                        color_extra: 0,
                                         height: undefined,
                                         width: undefined,
                                         length: undefined,
@@ -2295,8 +2573,11 @@ function NewQuoteDialogImpl({
                                         value={it.size_id ?? ""}
                                         onValueChange={(v) => {
                                           const s = sizes.find((x) => x.id === v);
+                                          // Keep the finish/color extras on top of the new size price.
                                           const priceFromSize = s
-                                            ? (s.sale_price ?? s.base_price)
+                                            ? (Number(s.sale_price ?? s.base_price) || 0) +
+                                              (Number(it.finish_extra) || 0) +
+                                              (Number(it.color_extra) || 0)
                                             : it.price;
                                           updateItem(idx, {
                                             size_id: v,
@@ -2318,118 +2599,27 @@ function NewQuoteDialogImpl({
                                       </Select>
                                     </div>
                                   )}
-                                  {p && (
-                                    <div>
-                                      <Label className="text-xs">Acabamento *</Label>
-                                      <Select
-                                        value={it.finish === "Personalizado" ? "__custom__" : it.finish ?? ""}
-                                        onValueChange={(v) =>
-                                          updateItem(idx, {
-                                            finish: v === "__custom__" ? "Personalizado" : v,
-                                            custom_finish: v === "__custom__" ? it.custom_finish : undefined,
-                                            custom_finish_extra: v === "__custom__" ? it.custom_finish_extra : 0,
-                                            price:
-                                              (Number(it.price) || 0) -
-                                              (Number(it.custom_finish_extra) || 0) +
-                                              (v === "__custom__" ? Number(it.custom_finish_extra) || 0 : 0),
-                                          })
-                                        }
-                                      >
-                                        <SelectTrigger>
-                                          <SelectValue placeholder="Selecione" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {finishes.map((f) => (
-                                            <SelectItem key={f.id} value={f.name}>
-                                              {f.name}
-                                            </SelectItem>
-                                          ))}
-                                          <SelectItem value="__custom__">Personalizado</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                      {it.finish === "Personalizado" && (
-                                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                                          <Input
-                                            placeholder="Nome do acabamento"
-                                            value={it.custom_finish ?? ""}
-                                            onChange={(event) =>
-                                              updateCustomAttribute(idx, "finish", {
-                                                name: event.target.value,
-                                              })
-                                            }
-                                          />
-                                          <Input
-                                            type="number"
-                                            min={0}
-                                            step="0.01"
-                                            placeholder="Adicional (R$)"
-                                            value={it.custom_finish_extra ?? 0}
-                                            onChange={(event) =>
-                                              updateCustomAttribute(idx, "finish", {
-                                                extra: Number(event.target.value) || 0,
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                  {p && (
-                                    <div>
-                                      <Label className="text-xs">Cor *</Label>
-                                      <Select
-                                        value={it.color === "Personalizado" ? "__custom__" : it.color ?? ""}
-                                        onValueChange={(v) =>
-                                          updateItem(idx, {
-                                            color: v === "__custom__" ? "Personalizado" : v,
-                                            custom_color: v === "__custom__" ? it.custom_color : undefined,
-                                            custom_color_extra: v === "__custom__" ? it.custom_color_extra : 0,
-                                            price:
-                                              (Number(it.price) || 0) -
-                                              (Number(it.custom_color_extra) || 0) +
-                                              (v === "__custom__" ? Number(it.custom_color_extra) || 0 : 0),
-                                          })
-                                        }
-                                      >
-                                        <SelectTrigger>
-                                          <SelectValue placeholder="Selecione" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {colors.map((c) => (
-                                            <SelectItem key={c.id} value={c.name}>
-                                              {c.name}
-                                            </SelectItem>
-                                          ))}
-                                          <SelectItem value="__custom__">Personalizado</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                      {it.color === "Personalizado" && (
-                                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                                          <Input
-                                            placeholder="Nome da cor"
-                                            value={it.custom_color ?? ""}
-                                            onChange={(event) =>
-                                              updateCustomAttribute(idx, "color", {
-                                                name: event.target.value,
-                                              })
-                                            }
-                                          />
-                                          <Input
-                                            type="number"
-                                            min={0}
-                                            step="0.01"
-                                            placeholder="Adicional (R$)"
-                                            value={it.custom_color_extra ?? 0}
-                                            onChange={(event) =>
-                                              updateCustomAttribute(idx, "color", {
-                                                extra: Number(event.target.value) || 0,
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
+                                  <AttributePicker
+                                    label="Acabamento"
+                                    required
+                                    options={finishes.map((f) => ({
+                                      name: f.name,
+                                      extra: finishExtraByName.get(f.name) ?? 0,
+                                    }))}
+                                    value={it.finish}
+                                    customName={it.custom_finish}
+                                    extra={it.finish_extra}
+                                    onChange={(patch) => updateAttribute(idx, "finish", patch)}
+                                  />
+                                  <AttributePicker
+                                    label="Cor"
+                                    required
+                                    options={colors.map((c) => ({ name: c.name, extra: 0 }))}
+                                    value={it.color}
+                                    customName={it.custom_color}
+                                    extra={it.color_extra}
+                                    onChange={(patch) => updateAttribute(idx, "color", patch)}
+                                  />
                                 </div>
                               )}
                               {p && (
@@ -2455,6 +2645,24 @@ function NewQuoteDialogImpl({
                             value={it.description ?? ""}
                             onChange={(e) => updateItem(idx, { description: e.target.value })}
                           />
+                          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                            <AttributePicker
+                              label="Acabamento"
+                              options={allFinishOptions}
+                              value={it.finish}
+                              customName={it.custom_finish}
+                              extra={it.finish_extra}
+                              onChange={(patch) => updateAttribute(idx, "finish", patch)}
+                            />
+                            <AttributePicker
+                              label="Cor"
+                              options={allColorOptions}
+                              value={it.color}
+                              customName={it.custom_color}
+                              extra={it.color_extra}
+                              onChange={(patch) => updateAttribute(idx, "color", patch)}
+                            />
+                          </div>
                           <DimensionFields item={it} onChange={(patch) => updateItem(idx, patch)} />
                         </>
                       )}
