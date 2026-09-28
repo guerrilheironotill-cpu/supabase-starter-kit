@@ -162,7 +162,7 @@ function DashboardSeoPage() {
                   O Rank Math <strong>não expõe endpoints REST próprios</strong> para esses campos.
                   Para ler via API, é preciso registrar os campos em{" "}
                   <code className="rounded bg-muted px-1 py-0.5 text-xs">register_rest_field</code>{" "}
-                  no WordPress (mini plugin) — depois o conector WordPress da Lovable puxa
+                  no WordPress (mini plugin) — depois o conector WordPress puxa
                   em <code className="rounded bg-muted px-1 py-0.5 text-xs">/wp-json/wp/v2/posts</code>.
                 </li>
                 <li>
