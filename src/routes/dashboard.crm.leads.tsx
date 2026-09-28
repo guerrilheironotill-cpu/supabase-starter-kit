@@ -16,6 +16,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { maskPhoneBR } from "@/lib/masks";
 import { toast } from "sonner";
 import { RowActionsMenu } from "@/components/row-actions-menu";
 
@@ -44,7 +45,14 @@ type LeadRow = {
 };
 
 type SortKey =
-  "name" | "phone" | "email" | "orders" | "list_name" | "source" | "status" | "created_at";
+  | "name"
+  | "phone"
+  | "email"
+  | "orders"
+  | "list_name"
+  | "source"
+  | "status"
+  | "created_at";
 type SortDirection = "asc" | "desc";
 type LeadOrder = {
   id: string;
@@ -711,8 +719,10 @@ function LeadsPage() {
                       </td>
                       <td className="px-3 py-2">
                         <Input
-                          value={String(draft.phone ?? "")}
-                          onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))}
+                          value={maskPhoneBR(String(draft.phone ?? ""))}
+                          onChange={(e) =>
+                            setDraft((d) => ({ ...d, phone: maskPhoneBR(e.target.value) }))
+                          }
                         />
                       </td>
                       <td className="px-3 py-2">

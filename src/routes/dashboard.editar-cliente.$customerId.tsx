@@ -4,7 +4,7 @@ import { ArrowLeft, Loader2, Save, ShoppingCart, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { maskCnpj, maskCpf } from "@/lib/masks";
+import { maskCnpj, maskCpf, maskPhoneBR } from "@/lib/masks";
 
 type Customer = {
   id: string;
@@ -79,6 +79,7 @@ function EditCustomerPage() {
         ...customer,
         cpf: customer.cpf ? maskCpf(customer.cpf) : null,
         cnpj: customer.cnpj ? maskCnpj(customer.cnpj) : null,
+        phone: customer.phone ? maskPhoneBR(customer.phone) : null,
       });
     }
   }, [customer]);
@@ -204,7 +205,16 @@ function EditCustomerPage() {
             label={label}
             value={String(form[key] ?? "")}
             onChange={(value) =>
-              set(key, key === "cpf" ? maskCpf(value) : key === "cnpj" ? maskCnpj(value) : value)
+              set(
+                key,
+                key === "cpf"
+                  ? maskCpf(value)
+                  : key === "cnpj"
+                    ? maskCnpj(value)
+                    : key === "phone"
+                      ? maskPhoneBR(value)
+                      : value,
+              )
             }
           />
         ))}

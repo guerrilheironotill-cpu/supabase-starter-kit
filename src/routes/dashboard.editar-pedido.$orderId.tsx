@@ -4,7 +4,7 @@ import { ArrowLeft, FileDown, Loader2, Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { maskCpfCnpj } from "@/lib/masks";
+import { maskCpfCnpj, maskPhoneBR } from "@/lib/masks";
 
 type Item = {
   id: string;
@@ -256,7 +256,7 @@ function EditOrderPage() {
         "",
     );
     setEmail(order.customer?.email ?? order.customer_email ?? "");
-    setPhone(order.customer?.phone ?? order.customer_phone ?? "");
+    setPhone(maskPhoneBR(order.customer?.phone ?? order.customer_phone ?? ""));
     setDocument(
       maskCpfCnpj(order.customer?.cpf ?? order.customer?.cnpj ?? order.customer_document ?? ""),
     );
@@ -277,14 +277,15 @@ function EditOrderPage() {
     () => items.reduce((sum, item) => sum + Number(item.quantity) * Number(item.unit_price), 0),
     [items],
   );
-  const discount = Math.round(
-    Math.min(
-      subtotal,
-      discountType === "percentage"
-        ? subtotal * (Math.min(Math.max(discountValue, 0), 100) / 100)
-        : Math.max(discountValue, 0),
-    ) * 100,
-  ) / 100;
+  const discount =
+    Math.round(
+      Math.min(
+        subtotal,
+        discountType === "percentage"
+          ? subtotal * (Math.min(Math.max(discountValue, 0), 100) / 100)
+          : Math.max(discountValue, 0),
+      ) * 100,
+    ) / 100;
   const total = subtotal - discount + shipping;
 
   function updateItem(
@@ -480,7 +481,9 @@ function EditOrderPage() {
       return;
     }
 
-    pdfWindow.document.write("<!doctype html><html><body style='font-family:sans-serif;padding:24px'>Preparando PDF...</body></html>");
+    pdfWindow.document.write(
+      "<!doctype html><html><body style='font-family:sans-serif;padding:24px'>Preparando PDF...</body></html>",
+    );
     pdfWindow.document.close();
 
     let logoSrc = `${window.location.origin}/images/logo-arteno-header-site.svg`;
@@ -622,7 +625,7 @@ function EditOrderPage() {
         <h2 className="md:col-span-2 text-lg font-semibold">Cliente</h2>
         <Field label="Nome" value={name} onChange={setName} />
         <Field label="E-mail" value={email} onChange={setEmail} />
-        <Field label="Telefone" value={phone} onChange={setPhone} />
+        <Field label="Telefone" value={phone} onChange={(value) => setPhone(maskPhoneBR(value))} />
         <Field
           label="CPF/CNPJ"
           value={document}

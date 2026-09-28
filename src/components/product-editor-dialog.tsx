@@ -862,6 +862,17 @@ function ImagesTab({
 }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+
+  const allSelected = images.length > 0 && selected.size === images.length;
+
+  // Selection is tracked by position, so any change to the list order clears it.
+  function updateImages(next: string[]) {
+    setSelected(new Set());
+    setImages(next);
+  }
 
   async function onFiles(files: FileList) {
     setBusy(true);
@@ -879,76 +890,168 @@ function ImagesTab({
     }
   }
 
-  function move(i: number, dir: -1 | 1) {
-    const j = i + dir;
-    if (j < 0 || j >= images.length) return;
+  function moveTo(from: number, to: number) {
+    if (from === to || to < 0 || to >= images.length) return;
     const next = images.slice();
-    [next[i], next[j]] = [next[j], next[i]];
-    setImages(next);
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    updateImages(next);
   }
+
+  function toggle(i: number) {
+    const next = new Set(selected);
+    if (next.has(i)) next.delete(i);
+    else next.add(i);
+    setSelected(next);
+  }
+
+  function removeSelected() {
+    const count = selected.size;
+    if (!count) return;
+    if (!window.confirm(`Excluir ${count} imagem(ns) deste produto?`)) return;
+    updateImages(images.filter((_, k) => !selected.has(k)));
+    toast.success(`${count} imagem(ns) removida(s). Salve o produto para confirmar.`);
+  }
+
+  const toolbarButton =
+    "inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted";
+  const [onlySelected] = Array.from(selected);
 
   return (
     <div className="space-y-3">
-      <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted">
-        {busy ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        ) : (
-          <Upload className="h-3.5 w-3.5" />
+      <div className="flex flex-wrap items-center gap-2">
+        <label className={cn(toolbarButton, "cursor-pointer")}>
+          {busy ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Upload className="h-3.5 w-3.5" />
+          )}
+          Enviar imagens
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files?.length) onFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+        </label>
+        {images.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setSelected(allSelected ? new Set() : new Set(images.map((_, k) => k)))}
+            className={toolbarButton}
+          >
+            {allSelected ? "Limpar seleção" : "Selecionar todas"}
+          </button>
         )}
-        Enviar imagens
-        <input
-          type="file"
-          multiple
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            if (e.target.files?.length) onFiles(e.target.files);
-            e.target.value = "";
-          }}
-        />
-      </label>
+        {selected.size === 1 && onlySelected !== 0 && (
+          <button type="button" onClick={() => moveTo(onlySelected, 0)} className={toolbarButton}>
+            Definir como capa
+          </button>
+        )}
+        {selected.size > 0 && (
+          <button
+            type="button"
+            onClick={removeSelected}
+            className="inline-flex items-center gap-1.5 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/20"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Excluir selecionadas ({selected.size})
+          </button>
+        )}
+      </div>
       {err && <p className="text-xs text-destructive">{err}</p>}
       {images.length === 0 ? (
         <p className="text-xs text-muted-foreground">Sem imagens.</p>
       ) : (
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-          {images.map((url, i) => (
-            <div
-              key={url + i}
-              className="group relative aspect-square overflow-hidden rounded-md bg-muted"
-            >
-              <img src={url} alt="" className="h-full w-full object-cover" />
-              {i === 0 && (
-                <span className="absolute left-1 top-1 rounded bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
-                  Capa
-                </span>
-              )}
-              <div className="absolute inset-x-1 bottom-1 flex justify-between opacity-0 transition-opacity group-hover:opacity-100">
-                <button
-                  type="button"
-                  onClick={() => move(i, -1)}
-                  className="rounded bg-black/60 p-1 text-white hover:bg-black/80"
-                >
-                  <ArrowUp className="h-3 w-3" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => move(i, 1)}
-                  className="rounded bg-black/60 p-1 text-white hover:bg-black/80"
-                >
-                  <ArrowDown className="h-3 w-3" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setImages(images.filter((_, k) => k !== i))}
-                  className="rounded bg-black/60 p-1 text-white hover:bg-black/80"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+        <>
+          <p className="text-xs text-muted-foreground">
+            Arraste as fotos para reordenar. A primeira é a capa. Clique numa foto para
+            selecioná-la.
+          </p>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {images.map((url, i) => (
+              <div
+                key={url + i}
+                draggable
+                onDragStart={(e) => {
+                  setDragIndex(i);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragOver={(e) => {
+                  if (dragIndex === null) return;
+                  e.preventDefault();
+                  setOverIndex(i);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragIndex !== null) moveTo(dragIndex, i);
+                  setDragIndex(null);
+                  setOverIndex(null);
+                }}
+                onDragEnd={() => {
+                  setDragIndex(null);
+                  setOverIndex(null);
+                }}
+                className={cn(
+                  "group relative aspect-square cursor-grab overflow-hidden rounded-md bg-muted active:cursor-grabbing",
+                  selected.has(i) && "ring-2 ring-primary",
+                  overIndex === i && dragIndex !== i && "ring-2 ring-primary/60",
+                  dragIndex === i && "opacity-40",
+                )}
+              >
+                <img
+                  src={url}
+                  alt=""
+                  draggable={false}
+                  onClick={() => toggle(i)}
+                  className="h-full w-full object-cover"
+                />
+                <input
+                  type="checkbox"
+                  checked={selected.has(i)}
+                  onChange={() => toggle(i)}
+                  aria-label={`Selecionar imagem ${i + 1}`}
+                  className="absolute right-1.5 top-1.5 h-4 w-4 cursor-pointer accent-primary"
+                />
+                {i === 0 && (
+                  <span className="absolute left-1 top-1 rounded bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
+                    Capa
+                  </span>
+                )}
+                <div className="absolute inset-x-1 bottom-1 flex justify-between opacity-0 transition-opacity group-hover:opacity-100">
+                  <button
+                    type="button"
+                    onClick={() => moveTo(i, i - 1)}
+                    className="rounded bg-black/60 p-1 text-white hover:bg-black/80"
+                    aria-label="Mover para trás"
+                  >
+                    <ArrowUp className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveTo(i, i + 1)}
+                    className="rounded bg-black/60 p-1 text-white hover:bg-black/80"
+                    aria-label="Mover para frente"
+                  >
+                    <ArrowDown className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateImages(images.filter((_, k) => k !== i))}
+                    className="rounded bg-black/60 p-1 text-white hover:bg-black/80"
+                    aria-label="Remover imagem"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

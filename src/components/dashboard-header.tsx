@@ -1,11 +1,14 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Copy, LogOut } from "lucide-react";
+import { useState } from "react";
+import { Copy, Download, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { absoluteUrl } from "@/lib/site-config";
+import { CatalogDownloadDialog } from "@/components/catalog-download-dialog";
 
 export function DashboardHeader() {
   const navigate = useNavigate();
+  const [catalogOpen, setCatalogOpen] = useState(false);
 
   async function logout() {
     await supabase.auth.signOut();
@@ -38,12 +41,20 @@ export function DashboardHeader() {
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={() => setCatalogOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-white/10 sm:px-4 sm:text-sm"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Baixar catálogo</span>
+          </button>
+          <button
+            type="button"
             onClick={() => void copyCatalogLink()}
             className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-white/10 sm:px-4 sm:text-sm"
           >
             <Copy className="h-4 w-4" />
             <span className="hidden sm:inline">Copiar link do catálogo</span>
-            <span className="sm:hidden">Catálogo</span>
+            <span className="sm:hidden">Link</span>
           </button>
           <button
             type="button"
@@ -55,6 +66,7 @@ export function DashboardHeader() {
           </button>
         </div>
       </div>
+      <CatalogDownloadDialog open={catalogOpen} onOpenChange={setCatalogOpen} adminMode />
     </header>
   );
 }

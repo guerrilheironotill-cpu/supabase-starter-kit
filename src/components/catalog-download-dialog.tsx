@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { LeadInterest, ProfessionalType } from "@/lib/commercial-rules";
-import { maskCnpj } from "@/lib/masks";
+import { maskCnpj, maskPhoneBR } from "@/lib/masks";
 
 export const OPEN_CATALOG_EVENT = "arteno:open-catalog";
 
@@ -22,9 +22,12 @@ export function openCatalogDownload() {
 export function CatalogDownloadDialog({
   open,
   onOpenChange,
+  adminMode = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Admin downloads skip required fields so the catalog can be sent to anyone. */
+  adminMode?: boolean;
 }) {
   const [clientType, setClientType] = useState<LeadInterest>("final");
   const [professionalType, setProfessionalType] = useState<ProfessionalType | "">("");
@@ -35,13 +38,20 @@ export function CatalogDownloadDialog({
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  const required = !adminMode;
+  const requiredMark = required ? <span className="text-destructive">*</span> : null;
+
   async function generate() {
-    if (!name.trim()) return toast.error("Por favor, informe o seu nome.");
-    if (!phone.trim()) return toast.error("Por favor, informe o seu telefone.");
-    if (!email.trim()) return toast.error("Por favor, informe o seu e-mail.");
-    if (clientType === "reseller" && !cnpj.trim()) return toast.error("Informe o CNPJ.");
-    if (clientType === "professional" && !professionalType)
-      return toast.error("Informe a sua área profissional.");
+    if (required) {
+      if (!name.trim()) return toast.error("Por favor, informe o seu nome.");
+      if (!phone.trim()) return toast.error("Por favor, informe o seu telefone.");
+      if (!email.trim()) return toast.error("Por favor, informe o seu e-mail.");
+      if (clientType === "reseller" && !cnpj.trim()) return toast.error("Informe o CNPJ.");
+      if (clientType === "professional" && !professionalType)
+        return toast.error("Informe a sua área profissional.");
+    }
+    // An admin download without any contact data has no lead to register.
+    const hasContact = Boolean(name.trim() || phone.trim() || email.trim());
     setGenerating(true);
     try {
       await downloadPreparedCatalog(
@@ -53,25 +63,27 @@ export function CatalogDownloadDialog({
         setProgress,
       );
 
-      const { error } = await supabase.from("leads").insert({
-        name: name.trim(),
-        phone: phone.trim(),
-        email: email.trim(),
-        destination: "email",
-        source: "catalogo-pdf",
-        client_type: clientType,
-        lead_interest: clientType,
-        professional_type: clientType === "professional" ? professionalType : null,
-        cnpj: clientType === "reseller" ? cnpj : null,
-        categories: ["Todas"],
-        items: {
+      if (hasContact) {
+        const { error } = await supabase.from("leads").insert({
+          name: name.trim(),
+          phone: phone.trim(),
+          email: email.trim(),
+          destination: "email",
+          source: "catalogo-pdf",
           client_type: clientType,
-          professional_type: professionalType || null,
-          catalog: "completo",
-        },
-      } as never);
+          lead_interest: clientType,
+          professional_type: clientType === "professional" ? professionalType || null : null,
+          cnpj: clientType === "reseller" ? cnpj : null,
+          categories: ["Todas"],
+          items: {
+            client_type: clientType,
+            professional_type: professionalType || null,
+            catalog: "completo",
+          },
+        } as never);
 
-      if (error) console.error("Erro ao registrar lead do catálogo:", error);
+        if (error) console.error("Erro ao registrar lead do catálogo:", error);
+      }
       toast.success("Catálogo gerado com sucesso!");
       onOpenChange(false);
     } catch (error) {
@@ -92,36 +104,38 @@ export function CatalogDownloadDialog({
         <div className="grid gap-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
-              Nome <span className="text-destructive">*</span>
+              Nome {requiredMark}
               <input
                 aria-label="Nome"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Seu nome completo"
-                required
+                required={required}
                 className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </label>
             <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
-              Telefone <span className="text-destructive">*</span>
+              Telefone {requiredMark}
               <input
-                aria-label="E-mail"
+                aria-label="Telefone"
+                type="tel"
+                inputMode="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(maskPhoneBR(e.target.value))}
                 placeholder="(00) 00000-0000"
-                required
+                required={required}
                 className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </label>
             <label className="flex flex-col gap-1 text-xs font-semibold text-primary sm:col-span-2">
-              E-mail <span className="text-destructive">*</span>
+              E-mail {requiredMark}
               <input
-                aria-label="Telefone"
+                aria-label="E-mail"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
-                required
+                required={required}
                 className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </label>
@@ -137,7 +151,6 @@ export function CatalogDownloadDialog({
               ].map(([value, label]) => (
                 <label key={value} className="flex items-center gap-2 text-sm">
                   <input
-                    aria-label="Nome da empresa"
                     type="radio"
                     name="catalog-client-type"
                     checked={clientType === value}
@@ -151,11 +164,11 @@ export function CatalogDownloadDialog({
 
           {clientType === "professional" && (
             <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
-              Área profissional <span className="text-destructive">*</span>
+              Área profissional {requiredMark}
               <select
-                aria-label="Perfil do cliente"
+                aria-label="Área profissional"
                 value={professionalType}
-                required
+                required={required}
                 onChange={(e) => setProfessionalType(e.target.value as ProfessionalType)}
                 className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               >
@@ -171,18 +184,24 @@ export function CatalogDownloadDialog({
 
           {clientType === "reseller" && (
             <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
-              CNPJ <span className="text-destructive">*</span>
+              CNPJ {requiredMark}
               <input
-                aria-label="Cidade"
+                aria-label="CNPJ"
                 value={cnpj}
                 onChange={(e) => setCnpj(maskCnpj(e.target.value))}
                 placeholder="00.000.000/0000-00"
-                required
+                required={required}
                 className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </label>
           )}
 
+          {adminMode && (
+            <p className="rounded-lg bg-primary/5 px-3 py-2 text-xs text-primary/70">
+              Todos os campos são opcionais. O tipo de cliente define a versão do catálogo; se
+              preencher algum contato, ele é salvo como lead.
+            </p>
+          )}
           <p className="rounded-lg bg-primary/5 px-3 py-2 text-xs text-primary/70">
             O catálogo inclui todos os produtos, categorias, cores e acabamentos disponíveis.
           </p>
