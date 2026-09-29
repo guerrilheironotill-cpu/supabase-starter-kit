@@ -52,12 +52,14 @@ import { Route as DashboardCategoriasRouteImport } from './routes/dashboard.cate
 import { Route as DashboardCadastrarProdutoRouteImport } from './routes/dashboard.cadastrar-produto'
 import { Route as DashboardAcabamentosRouteImport } from './routes/dashboard.acabamentos'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
+import { Route as CatalogoVariantRouteImport } from './routes/catalogo_.$variant'
 import { Route as ApiUploadMediaRouteImport } from './routes/api/upload-media'
 import { Route as ApiStorageUsageRouteImport } from './routes/api/storage-usage'
 import { Route as ApiServerStorageRouteImport } from './routes/api/server-storage'
 import { Route as ApiQuotesRouteImport } from './routes/api/quotes'
 import { Route as ApiProductImageSourcesRouteImport } from './routes/api/product-image-sources'
 import { Route as ApiHealthEnvRouteImport } from './routes/api/health-env'
+import { Route as ApiCatalogLeadRouteImport } from './routes/api/catalog-lead'
 import { Route as ApiAdminOrdersBulkRouteImport } from './routes/api/admin-orders-bulk'
 import { Route as ApiAdminLeadsBulkRouteImport } from './routes/api/admin-leads-bulk'
 import { Route as ApiAdminLeadsRouteImport } from './routes/api/admin-leads'
@@ -288,6 +290,11 @@ const CategoriaSlugRoute = CategoriaSlugRouteImport.update({
   path: '/categoria/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CatalogoVariantRoute = CatalogoVariantRouteImport.update({
+  id: '/catalogo_/$variant',
+  path: '/catalogo/$variant',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiUploadMediaRoute = ApiUploadMediaRouteImport.update({
   id: '/api/upload-media',
   path: '/api/upload-media',
@@ -316,6 +323,11 @@ const ApiProductImageSourcesRoute = ApiProductImageSourcesRouteImport.update({
 const ApiHealthEnvRoute = ApiHealthEnvRouteImport.update({
   id: '/api/health-env',
   path: '/api/health-env',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCatalogLeadRoute = ApiCatalogLeadRouteImport.update({
+  id: '/api/catalog-lead',
+  path: '/api/catalog-lead',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminOrdersBulkRoute = ApiAdminOrdersBulkRouteImport.update({
@@ -415,12 +427,14 @@ export interface FileRoutesByFullPath {
   '/api/admin-leads': typeof ApiAdminLeadsRoute
   '/api/admin-leads-bulk': typeof ApiAdminLeadsBulkRoute
   '/api/admin-orders-bulk': typeof ApiAdminOrdersBulkRoute
+  '/api/catalog-lead': typeof ApiCatalogLeadRoute
   '/api/health-env': typeof ApiHealthEnvRoute
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
   '/api/quotes': typeof ApiQuotesRoute
   '/api/server-storage': typeof ApiServerStorageRoute
   '/api/storage-usage': typeof ApiStorageUsageRoute
   '/api/upload-media': typeof ApiUploadMediaRoute
+  '/catalogo/$variant': typeof CatalogoVariantRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/cadastrar-produto': typeof DashboardCadastrarProdutoRoute
@@ -478,12 +492,14 @@ export interface FileRoutesByTo {
   '/api/admin-leads': typeof ApiAdminLeadsRoute
   '/api/admin-leads-bulk': typeof ApiAdminLeadsBulkRoute
   '/api/admin-orders-bulk': typeof ApiAdminOrdersBulkRoute
+  '/api/catalog-lead': typeof ApiCatalogLeadRoute
   '/api/health-env': typeof ApiHealthEnvRoute
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
   '/api/quotes': typeof ApiQuotesRoute
   '/api/server-storage': typeof ApiServerStorageRoute
   '/api/storage-usage': typeof ApiStorageUsageRoute
   '/api/upload-media': typeof ApiUploadMediaRoute
+  '/catalogo/$variant': typeof CatalogoVariantRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/cadastrar-produto': typeof DashboardCadastrarProdutoRoute
@@ -542,12 +558,14 @@ export interface FileRoutesById {
   '/api/admin-leads': typeof ApiAdminLeadsRoute
   '/api/admin-leads-bulk': typeof ApiAdminLeadsBulkRoute
   '/api/admin-orders-bulk': typeof ApiAdminOrdersBulkRoute
+  '/api/catalog-lead': typeof ApiCatalogLeadRoute
   '/api/health-env': typeof ApiHealthEnvRoute
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
   '/api/quotes': typeof ApiQuotesRoute
   '/api/server-storage': typeof ApiServerStorageRoute
   '/api/storage-usage': typeof ApiStorageUsageRoute
   '/api/upload-media': typeof ApiUploadMediaRoute
+  '/catalogo_/$variant': typeof CatalogoVariantRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
   '/dashboard/cadastrar-produto': typeof DashboardCadastrarProdutoRoute
@@ -608,12 +626,14 @@ export interface FileRouteTypes {
     | '/api/admin-leads'
     | '/api/admin-leads-bulk'
     | '/api/admin-orders-bulk'
+    | '/api/catalog-lead'
     | '/api/health-env'
     | '/api/product-image-sources'
     | '/api/quotes'
     | '/api/server-storage'
     | '/api/storage-usage'
     | '/api/upload-media'
+    | '/catalogo/$variant'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
     | '/dashboard/cadastrar-produto'
@@ -671,12 +691,14 @@ export interface FileRouteTypes {
     | '/api/admin-leads'
     | '/api/admin-leads-bulk'
     | '/api/admin-orders-bulk'
+    | '/api/catalog-lead'
     | '/api/health-env'
     | '/api/product-image-sources'
     | '/api/quotes'
     | '/api/server-storage'
     | '/api/storage-usage'
     | '/api/upload-media'
+    | '/catalogo/$variant'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
     | '/dashboard/cadastrar-produto'
@@ -734,12 +756,14 @@ export interface FileRouteTypes {
     | '/api/admin-leads'
     | '/api/admin-leads-bulk'
     | '/api/admin-orders-bulk'
+    | '/api/catalog-lead'
     | '/api/health-env'
     | '/api/product-image-sources'
     | '/api/quotes'
     | '/api/server-storage'
     | '/api/storage-usage'
     | '/api/upload-media'
+    | '/catalogo_/$variant'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
     | '/dashboard/cadastrar-produto'
@@ -799,12 +823,14 @@ export interface RootRouteChildren {
   ApiAdminLeadsRoute: typeof ApiAdminLeadsRoute
   ApiAdminLeadsBulkRoute: typeof ApiAdminLeadsBulkRoute
   ApiAdminOrdersBulkRoute: typeof ApiAdminOrdersBulkRoute
+  ApiCatalogLeadRoute: typeof ApiCatalogLeadRoute
   ApiHealthEnvRoute: typeof ApiHealthEnvRoute
   ApiProductImageSourcesRoute: typeof ApiProductImageSourcesRoute
   ApiQuotesRoute: typeof ApiQuotesRoute
   ApiServerStorageRoute: typeof ApiServerStorageRoute
   ApiStorageUsageRoute: typeof ApiStorageUsageRoute
   ApiUploadMediaRoute: typeof ApiUploadMediaRoute
+  CatalogoVariantRoute: typeof CatalogoVariantRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
   ApiGscOverviewRoute: typeof ApiGscOverviewRoute
@@ -1115,6 +1141,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriaSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/catalogo_/$variant': {
+      id: '/catalogo_/$variant'
+      path: '/catalogo/$variant'
+      fullPath: '/catalogo/$variant'
+      preLoaderRoute: typeof CatalogoVariantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/upload-media': {
       id: '/api/upload-media'
       path: '/api/upload-media'
@@ -1155,6 +1188,13 @@ declare module '@tanstack/react-router' {
       path: '/api/health-env'
       fullPath: '/api/health-env'
       preLoaderRoute: typeof ApiHealthEnvRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/catalog-lead': {
+      id: '/api/catalog-lead'
+      path: '/api/catalog-lead'
+      fullPath: '/api/catalog-lead'
+      preLoaderRoute: typeof ApiCatalogLeadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin-orders-bulk': {
@@ -1357,12 +1397,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminLeadsRoute: ApiAdminLeadsRoute,
   ApiAdminLeadsBulkRoute: ApiAdminLeadsBulkRoute,
   ApiAdminOrdersBulkRoute: ApiAdminOrdersBulkRoute,
+  ApiCatalogLeadRoute: ApiCatalogLeadRoute,
   ApiHealthEnvRoute: ApiHealthEnvRoute,
   ApiProductImageSourcesRoute: ApiProductImageSourcesRoute,
   ApiQuotesRoute: ApiQuotesRoute,
   ApiServerStorageRoute: ApiServerStorageRoute,
   ApiStorageUsageRoute: ApiStorageUsageRoute,
   ApiUploadMediaRoute: ApiUploadMediaRoute,
+  CatalogoVariantRoute: CatalogoVariantRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
   ApiGscOverviewRoute: ApiGscOverviewRoute,

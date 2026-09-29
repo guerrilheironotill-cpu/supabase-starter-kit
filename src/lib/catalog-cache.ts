@@ -1,14 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import { buildCatalogPDF, fetchCatalogSnapshot, type CatalogVariant } from "@/lib/pdf-generator";
-
-const BUCKET = "catalog-media";
-// Bump whenever pdf-generator.ts changes the layout, so stale stored PDFs are ignored.
-const CATALOG_LAYOUT_VERSION = "v7";
-const PATHS: Record<CatalogVariant, string> = {
-  standard: `generated/${CATALOG_LAYOUT_VERSION}/catalogo-arteno.pdf`,
-  professional: `generated/${CATALOG_LAYOUT_VERSION}/catalogo-arteno-profissional.pdf`,
-  reseller: `generated/${CATALOG_LAYOUT_VERSION}/catalogo-arteno-revendedor.pdf`,
-};
+import {
+  CATALOG_BUCKET as BUCKET,
+  CATALOG_DIR,
+  CATALOG_FILES,
+  CATALOG_PATHS as PATHS,
+  CATALOG_SLUGS,
+} from "@/lib/catalog-paths";
+import { absoluteUrl } from "@/lib/site-config";
 
 let activeRegeneration: Promise<void> | null = null;
 let rerunRequested = false;
@@ -104,4 +103,25 @@ export async function downloadPreparedCatalog(
 
 export function refreshPreparedCatalogs() {
   return regenerateCatalogCache();
+}
+
+async function isCatalogStored(variant: CatalogVariant) {
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .list(CATALOG_DIR, { search: CATALOG_FILES[variant] });
+  if (error) return false;
+  return (data ?? []).some((file) => file.name === CATALOG_FILES[variant]);
+}
+
+/**
+ * Makes sure the current layout of a catalog is stored and returns its public
+ * share link (/catalogo/<slug>). Generating and uploading requires an admin session.
+ */
+export async function preparedCatalogShareUrl(variant: CatalogVariant) {
+  if (!(await isCatalogStored(variant))) {
+    const snapshot = await fetchCatalogSnapshot();
+    const blob = await buildCatalogPDF(snapshot, variant);
+    await uploadCatalog(PATHS[variant], blob);
+  }
+  return absoluteUrl(`/catalogo/${CATALOG_SLUGS[variant]}`);
 }

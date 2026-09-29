@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { downloadPreparedCatalog } from "@/lib/catalog-cache";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -63,28 +62,39 @@ export function CatalogDownloadDialog({
         setProgress,
       );
 
+      let existingLead = false;
       if (hasContact) {
-        const { error } = await supabase.from("leads").insert({
-          name: name.trim(),
-          phone: phone.trim(),
-          email: email.trim(),
-          destination: "email",
-          source: "catalogo-pdf",
-          client_type: clientType,
-          lead_interest: clientType,
-          professional_type: clientType === "professional" ? professionalType || null : null,
-          cnpj: clientType === "reseller" ? cnpj : null,
-          categories: ["Todas"],
-          items: {
-            client_type: clientType,
-            professional_type: professionalType || null,
-            catalog: "completo",
-          },
-        } as never);
-
-        if (error) console.error("Erro ao registrar lead do catálogo:", error);
+        try {
+          const response = await fetch("/api/catalog-lead", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              name: name.trim(),
+              phone: phone.trim(),
+              email: email.trim(),
+              clientType,
+              professionalType,
+              cnpj,
+            }),
+          });
+          const result = (await response.json()) as {
+            ok?: boolean;
+            existing?: boolean;
+            error?: string;
+          };
+          if (!response.ok || !result.ok) throw new Error(result.error ?? response.statusText);
+          existingLead = Boolean(result.existing);
+        } catch (error) {
+          console.error("Erro ao registrar lead do catálogo:", error);
+        }
       }
-      toast.success("Catálogo gerado com sucesso!");
+      if (existingLead && adminMode) {
+        toast.info(
+          "Este cliente já possui cadastro. O catálogo foi baixado sem criar um novo lead.",
+        );
+      } else {
+        toast.success("Catálogo gerado com sucesso!");
+      }
       onOpenChange(false);
     } catch (error) {
       console.error("Erro ao gerar catálogo:", error);

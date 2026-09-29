@@ -12,11 +12,15 @@ import {
   X,
   Trash2,
   ExternalLink,
+  Send,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { maskPhoneBR } from "@/lib/masks";
+import { normalizeLeadInterest } from "@/lib/commercial-rules";
+import { preparedCatalogShareUrl } from "@/lib/catalog-cache";
+import type { CatalogVariant } from "@/lib/pdf-generator";
 import { toast } from "sonner";
 import { RowActionsMenu } from "@/components/row-actions-menu";
 
@@ -400,6 +404,40 @@ function LeadsPage() {
     toast.success("Lead atualizado");
     setEditing(null);
     qc.invalidateQueries({ queryKey: ["crm-leads"] });
+  };
+
+  const sendCatalog = async (lead: LeadRow) => {
+    const phone = digits(lead.phone);
+    if (phone.length < 10) {
+      toast.error("Este lead não tem um telefone válido para o WhatsApp.");
+      return;
+    }
+    const interest = normalizeLeadInterest(lead.lead_interest || lead.client_type);
+    const variant: CatalogVariant = interest === "final" ? "standard" : interest;
+    // Open the tab right away: browsers block pop-ups opened after an await.
+    const whatsappTab = window.open("", "_blank");
+    const toastId = toast.loading("Preparando o catálogo...");
+    try {
+      const link = await preparedCatalogShareUrl(variant);
+      const firstName = String(lead.name ?? "")
+        .trim()
+        .split(/s+/)[0];
+      const audience =
+        variant === "reseller"
+          ? " para revendedores"
+          : variant === "professional"
+            ? " para profissionais"
+            : "";
+      const text = `Olá${firstName ? `, ${firstName}` : ""}! Segue o catálogo da Arteno${audience}: ${link}`;
+      const whatsappUrl = `https://wa.me/${phone.length <= 11 ? `55${phone}` : phone}?text=${encodeURIComponent(text)}`;
+      if (whatsappTab) whatsappTab.location.href = whatsappUrl;
+      else window.open(whatsappUrl, "_blank");
+      toast.success("WhatsApp aberto com o catálogo.", { id: toastId });
+    } catch (error) {
+      whatsappTab?.close();
+      console.error("Falha ao preparar o catálogo:", error);
+      toast.error("Não foi possível preparar o catálogo.", { id: toastId });
+    }
   };
 
   const removeLead = async (id: string) => {
@@ -793,6 +831,11 @@ function LeadsPage() {
                       <td className="px-3 py-3 text-right">
                         <RowActionsMenu
                           actions={[
+                            {
+                              label: "Enviar catálogo",
+                              icon: Send,
+                              onClick: () => void sendCatalog(l),
+                            },
                             { label: "Editar lead", icon: Pencil, onClick: () => startEdit(l) },
                             {
                               label: "Excluir lead",
