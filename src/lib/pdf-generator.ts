@@ -31,6 +31,9 @@ export type CatalogSnapshot = {
 type ImageCache = Map<string, Promise<string | null>>;
 
 const CATALOG_COVER = "/images/catalogo-capa.jpg";
+// The brand's dark teal-green, the same one behind the cover artwork — used for every
+// dark panel and button in the catalog so they all read as one color, not two.
+const BRAND_DARK: [number, number, number] = [10, 57, 62];
 // Manual per-category cover photo, used instead of a product's own photo when the
 // auto-picked one isn't a good fit. Add an entry here after dropping the file in
 // public/images — there's no admin field for this yet (unlike the per-product override).
@@ -188,24 +191,6 @@ function addPageTitle(pdf: jsPDF, title: string, subtitle?: string) {
   }
 }
 
-function addCategoryTitle(pdf: jsPDF, category: string) {
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const x = 15;
-  const y = 10;
-  const width = pageWidth - 30;
-  const height = 24;
-  pdf.setFillColor(42, 47, 44);
-  pdf.roundedRect(x, y, width, height, 6, 6, "F");
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(20);
-  pdf.text(category, pageWidth / 2, 21, { align: "center" });
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(8);
-  pdf.setTextColor(222, 226, 222);
-  pdf.text("Produtos Arteno", pageWidth / 2, 28, { align: "center" });
-}
-
 /**
  * Same 40/60 split as a product page: the category photo full-bleed on the left (no
  * border), the brand's dark green on the right — never white — with the category name.
@@ -232,7 +217,7 @@ async function addCategoryCover(
     pdf.rect(0, 0, imageWidth, pageHeight, "F");
   }
 
-  pdf.setFillColor(42, 47, 44);
+  pdf.setFillColor(...BRAND_DARK);
   pdf.rect(panelX, 0, panelWidth, pageHeight, "F");
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "normal");
@@ -269,15 +254,6 @@ function addImagePlaceholder(pdf: jsPDF, x: number, y: number, width: number, he
   pdf.text("Imagem não disponível", centerX, centerY + 16, { align: "center" });
 }
 
-function addExternalLink(pdf: jsPDF, label: string, url: string, x: number, y: number) {
-  pdf.setTextColor(25, 92, 150);
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(9);
-  pdf.text(label, x, y);
-  pdf.link(x, y - 4, Math.max(25, pdf.getTextWidth(label)), 6, { url });
-  pdf.setTextColor(42, 47, 44);
-}
-
 /**
  * Every color or finish on a single page: a grid of swatches with a link to the full,
  * browsable gallery on the site (photos, videos and descriptions live there, not here).
@@ -312,8 +288,10 @@ async function addAttributeGridPage(
   }
 
   const gridTop = 38;
-  const linkY = pageHeight - 12;
-  const gridBottom = linkY - 10;
+  const buttonWidth = 90;
+  const buttonHeight = 10;
+  const buttonY = pageHeight - 12 - buttonHeight;
+  const gridBottom = buttonY - 8;
   const columns = items.length <= 6 ? 3 : items.length <= 12 ? 4 : items.length <= 20 ? 5 : 6;
   const rows = Math.ceil(items.length / columns);
   const gap = 5;
@@ -358,7 +336,16 @@ async function addAttributeGridPage(
     );
   }
 
-  addExternalLink(pdf, `Ver todas as opções em detalhe: ${linkUrl}`, linkUrl, margin, linkY);
+  // Same button style as a product's "Clique aqui" — not a text link — so it reads as one
+  // consistent call to action across the whole catalog.
+  const buttonX = pageWidth / 2 - buttonWidth / 2;
+  pdf.setFillColor(...BRAND_DARK);
+  pdf.roundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 5, 5, "F");
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(9);
+  pdf.setTextColor(255, 255, 255);
+  pdf.text("Ver todas as opções em detalhe", pageWidth / 2, buttonY + 6.4, { align: "center" });
+  pdf.link(buttonX, buttonY, buttonWidth, buttonHeight, { url: linkUrl });
 }
 
 type AttributePrice = Pick<AttributeTerm, "name" | "extra_price">;
@@ -412,7 +399,8 @@ function drawProductPriceTable(
   const bodyHeight = headerHeight + rowLineHeight * rowsPerFinish * Math.max(1, finishes.length);
   const tableY = startY;
 
-  pdf.setFillColor(246, 248, 245);
+  // Header row: brand dark green, white text — not the pale gray it used to be.
+  pdf.setFillColor(...BRAND_DARK);
   pdf.rect(tableX, tableY, tableWidth, headerHeight, "F");
   pdf.setDrawColor(218, 222, 218);
   pdf.setLineWidth(0.25);
@@ -423,15 +411,17 @@ function drawProductPriceTable(
     const x = priceX0 + priceCellWidth * column;
     pdf.line(x, tableY, x, tableY + bodyHeight);
   }
+  pdf.setDrawColor(90, 120, 123);
   pdf.line(dimX, tableY + 6, dimX + dimensionWidth, tableY + 6);
   for (let column = 1; column < 3; column += 1) {
     const x = dimX + dimensionCellWidth * column;
-    pdf.line(x, tableY + 6, x, tableY + bodyHeight);
+    pdf.line(x, tableY + 6, x, tableY + headerHeight);
   }
+  pdf.setDrawColor(218, 222, 218);
 
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(7);
-  pdf.setTextColor(42, 47, 44);
+  pdf.setTextColor(255, 255, 255);
   pdf.text("Acabamento", tableX + finishColumnWidth / 2, tableY + headerHeight / 2 + 1.2, {
     align: "center",
   });
@@ -449,22 +439,10 @@ function drawProductPriceTable(
     }
   });
 
+  // Every finish keeps the same plain white background — no alternating tint, so the
+  // row/column grid lines stay unbroken and never look duplicated or thickened.
   const finishList = finishes.length ? finishes : [{ name: "Padrão", extra_price: 0 }];
   const blockHeight = rowLineHeight * rowsPerFinish;
-  // Every second finish gets a faint tint across its whole row block, so the eye can tell
-  // rows apart without a divider line cutting through the merged name.
-  finishList.forEach((_, finishIndex) => {
-    if (finishIndex % 2 === 1) {
-      pdf.setFillColor(247, 248, 246);
-      pdf.rect(
-        tableX,
-        tableY + headerHeight + finishIndex * blockHeight,
-        tableWidth,
-        blockHeight,
-        "F",
-      );
-    }
-  });
 
   let rowY = tableY + headerHeight;
   finishList.forEach((finish, finishIndex) => {
@@ -598,7 +576,7 @@ function addConditionsPage(pdf: jsPDF, variant: "professional" | "reseller") {
   const isReseller = variant === "reseller";
 
   const headerHeight = 46;
-  pdf.setFillColor(42, 47, 44);
+  pdf.setFillColor(...BRAND_DARK);
   pdf.rect(0, 0, pageWidth, headerHeight, "F");
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(8.5);
@@ -638,7 +616,7 @@ function addConditionsPage(pdf: jsPDF, variant: "professional" | "reseller") {
       const x = margin + index * (cardWidth + gap);
       const centerX = x + cardWidth / 2;
       const highlighted = index === RESELLER_TIERS.length - 1;
-      if (highlighted) pdf.setFillColor(42, 47, 44);
+      if (highlighted) pdf.setFillColor(...BRAND_DARK);
       else pdf.setFillColor(242, 244, 241);
       pdf.roundedRect(x, y, cardWidth, cardHeight, 4, 4, "F");
       pdf.setFont("helvetica", "bold");
@@ -674,7 +652,7 @@ function addConditionsPage(pdf: jsPDF, variant: "professional" | "reseller") {
     sectionLabel("DESCONTO", y);
     y += 6;
     const cardHeight = 32;
-    pdf.setFillColor(42, 47, 44);
+    pdf.setFillColor(...BRAND_DARK);
     pdf.roundedRect(margin, y, contentWidth, cardHeight, 4, 4, "F");
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(28);
@@ -895,7 +873,7 @@ export async function buildCatalogPDF(
 
       const buttonX = tableX + (tableWidth - buttonWidth) / 2;
       const buttonY = tableBottom + 6;
-      pdf.setFillColor(42, 47, 44);
+      pdf.setFillColor(...BRAND_DARK);
       pdf.roundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 5, 5, "F");
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(9);
