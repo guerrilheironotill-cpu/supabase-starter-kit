@@ -31,6 +31,12 @@ export type CatalogSnapshot = {
 type ImageCache = Map<string, Promise<string | null>>;
 
 const CATALOG_COVER = "/images/catalogo-capa.jpg";
+// Manual per-category cover photo, used instead of a product's own photo when the
+// auto-picked one isn't a good fit. Add an entry here after dropping the file in
+// public/images — there's no admin field for this yet (unlike the per-product override).
+const CATEGORY_COVER_OVERRIDES: Record<string, string> = {
+  Mesas: "/images/categoria-mesas-capa.jpg",
+};
 
 export async function fetchCatalogSnapshot(): Promise<CatalogSnapshot> {
   const [allProducts, colors, finishes, pdfImages] = await Promise.all([
@@ -200,6 +206,10 @@ function addCategoryTitle(pdf: jsPDF, category: string) {
   pdf.text("Produtos Arteno", pageWidth / 2, 28, { align: "center" });
 }
 
+/**
+ * Same 40/60 split as a product page: the category photo full-bleed on the left (no
+ * border), the brand's dark green on the right — never white — with the category name.
+ */
 async function addCategoryCover(
   pdf: jsPDF,
   category: string,
@@ -208,27 +218,34 @@ async function addCategoryCover(
 ) {
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
+  const imageWidth = pageWidth * 0.4;
+  const panelX = imageWidth;
+  const panelWidth = pageWidth - imageWidth;
+
   if (imageUrl) {
-    const added = await addImageContained(pdf, imageUrl, 0, 0, pageWidth, pageHeight, cache, {
+    const added = await addImageContained(pdf, imageUrl, 0, 0, imageWidth, pageHeight, cache, {
       fit: "cover",
     });
-    if (!added) addImagePlaceholder(pdf, 0, 0, pageWidth, pageHeight);
+    if (!added) addImagePlaceholder(pdf, 0, 0, imageWidth, pageHeight);
   } else {
     pdf.setFillColor(236, 239, 234);
-    pdf.rect(0, 0, pageWidth, pageHeight, "F");
+    pdf.rect(0, 0, imageWidth, pageHeight, "F");
   }
+
   pdf.setFillColor(42, 47, 44);
-  pdf.rect(0, pageHeight * 0.62, pageWidth, pageHeight * 0.38, "F");
+  pdf.rect(panelX, 0, panelWidth, pageHeight, "F");
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(9);
-  pdf.text("COLEÇÃO ARTENO", pageWidth / 2, pageHeight * 0.7, { align: "center" });
+  const centerX = panelX + panelWidth / 2;
+  const centerY = pageHeight / 2;
+  pdf.text("COLEÇÃO ARTENO", centerX, centerY - 12, { align: "center" });
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(46);
-  const lines = pdf.splitTextToSize(category, pageWidth - 40).slice(0, 2);
-  pdf.text(lines, pageWidth / 2, pageHeight * 0.7 + 20, {
+  pdf.setFontSize(36);
+  const lines = pdf.splitTextToSize(category, panelWidth - 24).slice(0, 3);
+  pdf.text(lines, centerX, centerY + 4, {
     align: "center",
-    lineHeightFactor: 1.05,
+    lineHeightFactor: 1.1,
   });
 }
 
@@ -805,7 +822,9 @@ export async function buildCatalogPDF(
     const products = snapshot.products
       .filter((product) => product.category === category)
       .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-    const categoryImage = products.find((product) => product.images?.[0])?.images?.[0];
+    const categoryImage =
+      CATEGORY_COVER_OVERRIDES[category] ??
+      products.find((product) => product.images?.[0])?.images?.[0];
     await addCategoryCover(pdf, category, categoryImage, sharedImageCache);
 
     for (const product of products) {
