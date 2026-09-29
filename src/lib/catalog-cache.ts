@@ -8,6 +8,7 @@ import {
   CATALOG_SLUGS,
 } from "@/lib/catalog-paths";
 import { absoluteUrl } from "@/lib/site-config";
+import { slugify } from "@/lib/products";
 
 let activeRegeneration: Promise<void> | null = null;
 let rerunRequested = false;
@@ -70,16 +71,17 @@ async function downloadBlob(variant: CatalogVariant): Promise<Blob | null> {
   return data;
 }
 
-function saveBlob(blob: Blob, variant: CatalogVariant) {
+function saveBlob(blob: Blob, variant: CatalogVariant, category?: string) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download =
+  const base =
     variant === "reseller"
-      ? "catalogo-arteno-revendedor.pdf"
+      ? "catalogo-arteno-revendedor"
       : variant === "professional"
-        ? "catalogo-arteno-profissional.pdf"
-        : "catalogo-arteno.pdf";
+        ? "catalogo-arteno-profissional"
+        : "catalogo-arteno";
+  anchor.download = `${base}${category ? `-${slugify(category)}` : ""}.pdf`;
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
@@ -99,6 +101,42 @@ export async function downloadPreparedCatalog(
     });
   }
   saveBlob(blob, variant);
+}
+
+/**
+ * Downloads one smaller PDF per selected category, generated fresh each time (these
+ * per-category files are not stored). Returns which categories had no priced products
+ * and were skipped, so the caller can warn about them.
+ */
+export async function downloadCatalogsByCategory(
+  variant: CatalogVariant,
+  categories: string[],
+  onProgress?: (
+    percent: number,
+    current: { index: number; total: number; category: string },
+  ) => void,
+): Promise<{ skipped: string[] }> {
+  const snapshot = await fetchCatalogSnapshot();
+  const imageCache = new Map<string, Promise<string | null>>();
+  const skipped: string[] = [];
+  for (let index = 0; index < categories.length; index += 1) {
+    const category = categories[index];
+    if (!snapshot.categories.includes(category)) {
+      skipped.push(category);
+      continue;
+    }
+    const info = { index, total: categories.length, category };
+    const blob = await buildCatalogPDF(
+      snapshot,
+      variant,
+      (percent) => onProgress?.(Math.round((index * 100 + percent) / categories.length), info),
+      imageCache,
+      { category },
+    );
+    saveBlob(blob, variant, category);
+  }
+  onProgress?.(100, { index: categories.length, total: categories.length, category: "" });
+  return { skipped };
 }
 
 export function refreshPreparedCatalogs() {

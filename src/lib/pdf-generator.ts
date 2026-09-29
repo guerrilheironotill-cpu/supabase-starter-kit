@@ -4,6 +4,7 @@ import {
   fetchProductsWithSizes,
   parseDims,
   productDescriptionToText,
+  productPriceRange,
   type ProductWithSizes,
 } from "./products";
 import { fetchAttributeTerms, type AttributeTerm } from "./dashboard-taxonomies";
@@ -31,11 +32,13 @@ type ImageCache = Map<string, Promise<string | null>>;
 const CATALOG_COVER = "/images/catalogo-capa.jpg";
 
 export async function fetchCatalogSnapshot(): Promise<CatalogSnapshot> {
-  const [products, colors, finishes] = await Promise.all([
+  const [allProducts, colors, finishes] = await Promise.all([
     fetchProductsWithSizes({}),
     fetchAttributeTerms("product_colors", "color_catalog"),
     fetchAttributeTerms("product_finishes", "finish_catalog"),
   ]);
+  // A product with no priced size has nothing to quote and must not reach the catalog.
+  const products = allProducts.filter((product) => productPriceRange(product) !== null);
   // Categories with the most products come first; ties fall back to alphabetical order.
   const categoryCounts = new Map<string, number>();
   for (const product of products) {
@@ -56,6 +59,46 @@ export async function fetchCatalogSnapshot(): Promise<CatalogSnapshot> {
   };
 }
 
+// Source photos come out of Supabase as WEBP at up to 2400px. jsPDF has no native WEBP
+// support: it decodes the image with its own JS decoder and re-embeds the raw pixels,
+// which made catalogs balloon to ~70MB. Re-encoding every photo to a modest JPEG here
+// keeps the "web" quality the catalog actually needs and fixes that inflation at the
+// source, on top of shrinking the file.
+const CATALOG_IMAGE_MAX_DIMENSION = 1400;
+const CATALOG_IMAGE_QUALITY = 0.74;
+
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function compressImageBlob(blob: Blob): Promise<string | null> {
+  if (typeof createImageBitmap !== "function" || typeof document === "undefined") return null;
+  try {
+    const bitmap = await createImageBitmap(blob);
+    const scale = Math.min(1, CATALOG_IMAGE_MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    // Flatten onto white first: JPEG has no alpha channel.
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close?.();
+    return canvas.toDataURL("image/jpeg", CATALOG_IMAGE_QUALITY);
+  } catch {
+    return null;
+  }
+}
+
 async function loadImageAsDataUrl(url: string, cache: ImageCache): Promise<string | null> {
   if (!cache.has(url)) {
     cache.set(
@@ -65,12 +108,7 @@ async function loadImageAsDataUrl(url: string, cache: ImageCache): Promise<strin
           const response = await fetch(url, { mode: "cors" });
           if (!response.ok) return null;
           const blob = await response.blob();
-          return await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
+          return (await compressImageBlob(blob)) ?? (await blobToDataUrl(blob));
         } catch {
           return null;
         }
@@ -263,9 +301,9 @@ function drawFinishTable(
   const priceWidth = tableWidth - dimensionWidth;
   const priceHeaders =
     variant === "reseller"
-      ? ["Referência", "25%", "30%", "35%"]
+      ? ["Preço final", "25%", "30%", "35%"]
       : variant === "professional"
-        ? ["Referência", "Prof. 15%"]
+        ? ["Preço final", "Prof. 15%"]
         : ["Preço"];
   const priceCellWidth = priceWidth / priceHeaders.length;
   const brl = (value: number) => `R$ ${value.toFixed(2).replace(".", ",")}`;
@@ -334,12 +372,17 @@ function drawFinishTable(
       const publicPrice = brl(fullPrice);
       pdf.text(publicPrice, priceX(0), textY, { align: "center" });
       const publicTextWidth = pdf.getTextWidth(publicPrice);
+      // Strike-through in the same dark tone as the price, not the table's light border color.
+      pdf.setDrawColor(42, 47, 44);
+      pdf.setLineWidth(0.3);
       pdf.line(
         priceX(0) - publicTextWidth / 2,
         textY - 1.2,
         priceX(0) + publicTextWidth / 2,
         textY - 1.2,
       );
+      pdf.setDrawColor(218, 222, 218);
+      pdf.setLineWidth(0.25);
     }
     if (variant === "professional") {
       pdf.setFont("helvetica", "bold");
@@ -570,13 +613,25 @@ export async function buildCatalogPDF(
   variant: CatalogVariant,
   onProgress?: (percent: number) => void,
   sharedImageCache: ImageCache = new Map(),
+  options: { category?: string } = {},
 ): Promise<Blob> {
   const pdf = new jsPDF("p", "mm", "a4");
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = 15;
   const contentWidth = pageWidth - margin * 2;
-  const totalItems = snapshot.products.length + snapshot.colors.length + snapshot.finishes.length;
+  // A single-category download skips the shared color/finish galleries: it exists to be a
+  // smaller, faster file focused on that category, not a trimmed copy of the full catalog.
+  const categories = options.category
+    ? snapshot.categories.filter((category) => category === options.category)
+    : snapshot.categories;
+  const includeAttributeSections = !options.category;
+  const productCount = options.category
+    ? snapshot.products.filter((product) => product.category === options.category).length
+    : snapshot.products.length;
+  const totalItems =
+    productCount +
+    (includeAttributeSections ? snapshot.colors.length + snapshot.finishes.length : 0);
   let completed = 0;
   const advance = () => {
     completed += 1;
@@ -607,7 +662,7 @@ export async function buildCatalogPDF(
   };
 
   // Page one is reserved for the cover.
-  for (const category of snapshot.categories) {
+  for (const category of categories) {
     pdf.addPage();
     const products = snapshot.products
       .filter((product) => product.category === category)
@@ -768,8 +823,10 @@ export async function buildCatalogPDF(
     }
   }
 
-  await addAttributeSection("Cores disponíveis", snapshot.colors);
-  await addAttributeSection("Acabamentos disponíveis", snapshot.finishes);
+  if (includeAttributeSections) {
+    await addAttributeSection("Cores disponíveis", snapshot.colors);
+    await addAttributeSection("Acabamentos disponíveis", snapshot.finishes);
+  }
 
   if (variant !== "standard") {
     pdf.insertPage(2);
