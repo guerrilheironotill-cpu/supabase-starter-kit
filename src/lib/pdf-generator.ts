@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import {
   categorySlug,
+  fetchProductPdfImages,
   fetchProductsWithSizes,
   parseDims,
   productDescriptionToText,
@@ -32,13 +33,17 @@ type ImageCache = Map<string, Promise<string | null>>;
 const CATALOG_COVER = "/images/catalogo-capa.jpg";
 
 export async function fetchCatalogSnapshot(): Promise<CatalogSnapshot> {
-  const [allProducts, colors, finishes] = await Promise.all([
+  const [allProducts, colors, finishes, pdfImages] = await Promise.all([
     fetchProductsWithSizes({}),
     fetchAttributeTerms("product_colors", "color_catalog"),
     fetchAttributeTerms("product_finishes", "finish_catalog"),
+    fetchProductPdfImages(),
   ]);
   // A product with no priced size has nothing to quote and must not reach the catalog.
-  const products = allProducts.filter((product) => productPriceRange(product) !== null);
+  const pdfImageByProductId = new Map(pdfImages.map((row) => [row.id, row.pdf_image_url]));
+  const products = allProducts
+    .filter((product) => productPriceRange(product) !== null)
+    .map((product) => ({ ...product, pdf_image_url: pdfImageByProductId.get(product.id) ?? null }));
   // Categories with the most products come first; ties fall back to alphabetical order.
   const categoryCounts = new Map<string, number>();
   for (const product of products) {
@@ -227,22 +232,6 @@ async function addCategoryCover(
   });
 }
 
-function addAttributeTitle(pdf: jsPDF, section: string, item: string, continuation = false) {
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  pdf.setTextColor(105, 112, 107);
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(10);
-  pdf.text(
-    continuation ? `${section.toUpperCase()} — CONTINUAÇÃO` : section.toUpperCase(),
-    pageWidth / 2,
-    16,
-    { align: "center" },
-  );
-  pdf.setTextColor(42, 47, 44);
-  pdf.setFontSize(24);
-  pdf.text(item, pageWidth / 2, 27, { align: "center" });
-}
-
 function addImagePlaceholder(pdf: jsPDF, x: number, y: number, width: number, height: number) {
   pdf.setFillColor(242, 244, 241);
   pdf.setDrawColor(205, 211, 206);
@@ -272,22 +261,107 @@ function addExternalLink(pdf: jsPDF, label: string, url: string, x: number, y: n
   pdf.setTextColor(42, 47, 44);
 }
 
-type FinishGroup = { extraPrice: number; names: string[] };
+/**
+ * Every color or finish on a single page: a grid of swatches with a link to the full,
+ * browsable gallery on the site (photos, videos and descriptions live there, not here).
+ */
+async function addAttributeGridPage(
+  pdf: jsPDF,
+  title: string,
+  items: AttributeTerm[],
+  linkUrl: string,
+  cache: ImageCache,
+) {
+  const margin = 15;
+
+  pdf.addPage("a4", "p");
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const contentWidth = pageWidth - margin * 2;
+  addPageTitle(
+    pdf,
+    title,
+    items.length > 0
+      ? `${items.length} ${items.length === 1 ? "opção disponível" : "opções disponíveis"}`
+      : undefined,
+  );
+
+  if (items.length === 0) {
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(10);
+    pdf.setTextColor(105, 112, 107);
+    pdf.text("Nenhum item cadastrado.", margin, 40);
+    return;
+  }
+
+  const gridTop = 38;
+  const linkY = pageHeight - 12;
+  const gridBottom = linkY - 10;
+  const columns = items.length <= 6 ? 3 : items.length <= 12 ? 4 : items.length <= 20 ? 5 : 6;
+  const rows = Math.ceil(items.length / columns);
+  const gap = 5;
+  const captionHeight = 8;
+  const cellWidth = (contentWidth - gap * (columns - 1)) / columns;
+  const cellHeight = Math.max(
+    16,
+    Math.min(cellWidth, (gridBottom - gridTop - gap * (rows - 1)) / rows - captionHeight),
+  );
+
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index];
+    const column = index % columns;
+    const row = Math.floor(index / columns);
+    const x = margin + column * (cellWidth + gap);
+    const y = gridTop + row * (cellHeight + captionHeight + gap);
+    if (item.image_url) {
+      const added = await addImageContained(
+        pdf,
+        item.image_url,
+        x,
+        y,
+        cellWidth,
+        cellHeight,
+        cache,
+        {
+          fit: "cover",
+        },
+      );
+      if (!added) addImagePlaceholder(pdf, x, y, cellWidth, cellHeight);
+    } else {
+      addImagePlaceholder(pdf, x, y, cellWidth, cellHeight);
+    }
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(42, 47, 44);
+    pdf.text(
+      pdf.splitTextToSize(item.name, cellWidth).slice(0, 1),
+      x + cellWidth / 2,
+      y + cellHeight + 5,
+      { align: "center" },
+    );
+  }
+
+  addExternalLink(pdf, `Ver todas as opções em detalhe: ${linkUrl}`, linkUrl, margin, linkY);
+}
+
+type AttributePrice = Pick<AttributeTerm, "name" | "extra_price">;
 type ProductSize = NonNullable<ProductWithSizes["product_sizes"]>[number];
 
 const TABLE_ROW_HEIGHT = 7;
 const TABLE_HEADER_HEIGHT = 12;
-const GROUP_TITLE_HEIGHT = 7;
-const GROUP_GAP = 5;
 
-function finishGroupHeight(sizeCount: number) {
-  return GROUP_TITLE_HEIGHT + TABLE_HEADER_HEIGHT + TABLE_ROW_HEIGHT * Math.max(1, sizeCount);
+function priceTableHeight(finishCount: number, sizeCount: number) {
+  return TABLE_HEADER_HEIGHT + TABLE_ROW_HEIGHT * Math.max(1, finishCount) * Math.max(1, sizeCount);
 }
 
-/** Draws one finish group (title + price table) and returns the y where it ends. */
-function drawFinishTable(
+/**
+ * One combined price table for the whole product: every applicable finish gets its own
+ * block of rows (one row per size), with its name in a merged cell on the left, in the
+ * order set on the finishes admin page — not one separate table per finish anymore.
+ */
+function drawProductPriceTable(
   pdf: jsPDF,
-  group: FinishGroup,
+  finishes: AttributePrice[],
   sizes: ProductSize[],
   variant: CatalogVariant,
   tableX: number,
@@ -296,115 +370,166 @@ function drawFinishTable(
 ) {
   const rowLineHeight = TABLE_ROW_HEIGHT;
   const headerHeight = TABLE_HEADER_HEIGHT;
-  const dimensionWidth = tableWidth * 0.38;
+  const finishColumnWidth = tableWidth * 0.2;
+  const remainingWidth = tableWidth - finishColumnWidth;
+  const dimensionWidth = remainingWidth * 0.36;
   const dimensionCellWidth = dimensionWidth / 3;
-  const priceWidth = tableWidth - dimensionWidth;
-  const priceHeaders =
+  const priceWidth = remainingWidth - dimensionWidth;
+  // A plain string is a single-line header; a pair stacks "Desc." over the percentage so
+  // the column itself can stay narrow.
+  const priceHeaders: Array<string | [string, string]> =
     variant === "reseller"
-      ? ["Preço final", "25%", "30%", "35%"]
+      ? ["Preço final", ["Desc.", "25%"], ["Desc.", "30%"], ["Desc.", "35%"]]
       : variant === "professional"
-        ? ["Preço final", "Prof. 15%"]
+        ? ["Preço final", ["Desc.", "15%"]]
         : ["Preço"];
   const priceCellWidth = priceWidth / priceHeaders.length;
-  const brl = (value: number) => `R$ ${value.toFixed(2).replace(".", ",")}`;
-  let tableY = startY;
+  const dimX = tableX + finishColumnWidth;
+  const priceX0 = dimX + dimensionWidth;
+  // No "R$" in the cells: with the currency established by the catalog around it, dropping
+  // the prefix here is what actually lets these columns run narrower.
+  const money = (value: number) => value.toFixed(2).replace(".", ",");
+  const rowsPerFinish = Math.max(1, sizes.length);
+  const bodyHeight = headerHeight + rowLineHeight * rowsPerFinish * Math.max(1, finishes.length);
+  const tableY = startY;
 
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(8);
-  pdf.setTextColor(42, 47, 44);
-  const title = `${group.names.length > 1 ? "Acabamentos" : "Acabamento"}: ${group.names.join(", ")}`;
-  pdf.text(pdf.splitTextToSize(title, tableWidth).slice(0, 1), tableX, tableY + 4);
-  tableY += GROUP_TITLE_HEIGHT;
-  const bodyHeight = headerHeight + rowLineHeight * Math.max(1, sizes.length);
   pdf.setFillColor(246, 248, 245);
   pdf.rect(tableX, tableY, tableWidth, headerHeight, "F");
   pdf.setDrawColor(218, 222, 218);
   pdf.setLineWidth(0.25);
   pdf.rect(tableX, tableY, tableWidth, bodyHeight, "S");
-  pdf.line(tableX + dimensionWidth, tableY, tableX + dimensionWidth, tableY + bodyHeight);
+  pdf.line(dimX, tableY, dimX, tableY + bodyHeight);
+  pdf.line(priceX0, tableY, priceX0, tableY + bodyHeight);
   for (let column = 1; column < priceHeaders.length; column += 1) {
-    const x = tableX + dimensionWidth + priceCellWidth * column;
+    const x = priceX0 + priceCellWidth * column;
     pdf.line(x, tableY, x, tableY + bodyHeight);
   }
-  pdf.line(tableX, tableY + 6, tableX + dimensionWidth, tableY + 6);
+  pdf.line(dimX, tableY + 6, dimX + dimensionWidth, tableY + 6);
   for (let column = 1; column < 3; column += 1) {
-    const x = tableX + dimensionCellWidth * column;
+    const x = dimX + dimensionCellWidth * column;
     pdf.line(x, tableY + 6, x, tableY + bodyHeight);
   }
+
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(7);
-  pdf.text("Tamanho", tableX + dimensionWidth / 2, tableY + 4, { align: "center" });
+  pdf.setTextColor(42, 47, 44);
+  pdf.text("Acabamento", tableX + finishColumnWidth / 2, tableY + headerHeight / 2 + 1.2, {
+    align: "center",
+  });
+  pdf.text("Tamanho", dimX + dimensionWidth / 2, tableY + 4, { align: "center" });
   ["Alt.", "Larg.", "Comp."].forEach((label, index) =>
-    pdf.text(label, tableX + dimensionCellWidth * (index + 0.5), tableY + 10, {
-      align: "center",
-    }),
+    pdf.text(label, dimX + dimensionCellWidth * (index + 0.5), tableY + 10, { align: "center" }),
   );
-  priceHeaders.forEach((label, index) =>
-    pdf.text(label, tableX + dimensionWidth + priceCellWidth * (index + 0.5), tableY + 7, {
-      align: "center",
-    }),
-  );
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(7.5);
-  sizes.forEach((size, sizeIndex) => {
-    const rowY = tableY + headerHeight + rowLineHeight * sizeIndex;
-    const textY = rowY + rowLineHeight * 0.68;
-    pdf.line(tableX, rowY, tableX + tableWidth, rowY);
-    const rawSize = size.size || size.name || "Único";
-    const dimensions = parseDims(rawSize);
-    const values = dimensions
-      ? [dimensions.altura, dimensions.largura, dimensions.comprimento]
-      : [rawSize, "—", "—"];
-    values.forEach((value, index) =>
-      pdf.text(
-        pdf.splitTextToSize(value, dimensionCellWidth - 2).slice(0, 1),
-        tableX + dimensionCellWidth * (index + 0.5),
-        textY,
-        { align: "center" },
-      ),
-    );
-    const customerFinalPrice = (size.sale_price ?? size.base_price) + group.extraPrice;
-    const partnerPriceBase = commercialDiscountBase(size.base_price, group.extraPrice);
-    const fullPrice =
-      variant === "professional" || variant === "reseller" ? partnerPriceBase : customerFinalPrice;
-    const priceX = (index: number) => tableX + dimensionWidth + priceCellWidth * (index + 0.5);
-    if (variant === "professional" || variant === "reseller") {
-      const publicPrice = brl(fullPrice);
-      pdf.text(publicPrice, priceX(0), textY, { align: "center" });
-      const publicTextWidth = pdf.getTextWidth(publicPrice);
-      // Strike-through in the same dark tone as the price, not the table's light border color.
-      pdf.setDrawColor(42, 47, 44);
-      pdf.setLineWidth(0.3);
-      pdf.line(
-        priceX(0) - publicTextWidth / 2,
-        textY - 1.2,
-        priceX(0) + publicTextWidth / 2,
-        textY - 1.2,
-      );
-      pdf.setDrawColor(218, 222, 218);
-      pdf.setLineWidth(0.25);
-    }
-    if (variant === "professional") {
-      pdf.setFont("helvetica", "bold");
-      pdf.text(brl(discountedPrice(fullPrice, PROFESSIONAL_DISCOUNT)), priceX(1), textY, {
-        align: "center",
-      });
-      pdf.setFont("helvetica", "normal");
-    } else if (variant === "reseller") {
-      RESELLER_TIERS.forEach((tier, tierIndex) =>
-        pdf.text(brl(discountedPrice(fullPrice, tier.discount)), priceX(tierIndex + 1), textY, {
-          align: "center",
-        }),
-      );
+  priceHeaders.forEach((header, index) => {
+    const x = priceX0 + priceCellWidth * (index + 0.5);
+    if (Array.isArray(header)) {
+      pdf.text(header[0], x, tableY + 5, { align: "center" });
+      pdf.text(header[1], x, tableY + 9.5, { align: "center" });
     } else {
-      pdf.text(brl(fullPrice), priceX(0), textY, { align: "center" });
+      pdf.text(header, x, tableY + 7, { align: "center" });
     }
   });
+
+  let rowY = tableY + headerHeight;
+  (finishes.length ? finishes : [{ name: "Padrão", extra_price: 0 }]).forEach(
+    (finish, finishIndex) => {
+      const blockTop = rowY;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(42, 47, 44);
+      sizes.forEach((size, sizeIndex) => {
+        const textY = rowY + rowLineHeight * 0.68;
+        if (!(finishIndex === 0 && sizeIndex === 0)) {
+          pdf.setDrawColor(230, 233, 229);
+          pdf.setLineWidth(0.2);
+          pdf.line(tableX, rowY, tableX + tableWidth, rowY);
+        }
+        const rawSize = size.size || size.name || "Único";
+        const dimensions = parseDims(rawSize);
+        const values = dimensions
+          ? [dimensions.altura, dimensions.largura, dimensions.comprimento]
+          : [rawSize, "—", "—"];
+        values.forEach((value, index) =>
+          pdf.text(
+            pdf.splitTextToSize(value, dimensionCellWidth - 2).slice(0, 1),
+            dimX + dimensionCellWidth * (index + 0.5),
+            textY,
+            { align: "center" },
+          ),
+        );
+        const extraPrice = Number(finish.extra_price) || 0;
+        const customerFinalPrice = (size.sale_price ?? size.base_price) + extraPrice;
+        const partnerPriceBase = commercialDiscountBase(size.base_price, extraPrice);
+        const fullPrice =
+          variant === "professional" || variant === "reseller"
+            ? partnerPriceBase
+            : customerFinalPrice;
+        const priceX = (index: number) => priceX0 + priceCellWidth * (index + 0.5);
+        if (variant === "professional" || variant === "reseller") {
+          const publicPrice = money(fullPrice);
+          pdf.text(publicPrice, priceX(0), textY, { align: "center" });
+          const publicTextWidth = pdf.getTextWidth(publicPrice);
+          // Strike-through in the same dark tone as the price, not the table's light border color.
+          pdf.setDrawColor(42, 47, 44);
+          pdf.setLineWidth(0.3);
+          pdf.line(
+            priceX(0) - publicTextWidth / 2,
+            textY - 1.2,
+            priceX(0) + publicTextWidth / 2,
+            textY - 1.2,
+          );
+        }
+        if (variant === "professional") {
+          pdf.setFont("helvetica", "bold");
+          pdf.text(money(discountedPrice(fullPrice, PROFESSIONAL_DISCOUNT)), priceX(1), textY, {
+            align: "center",
+          });
+          pdf.setFont("helvetica", "normal");
+        } else if (variant === "reseller") {
+          RESELLER_TIERS.forEach((tier, tierIndex) =>
+            pdf.text(
+              money(discountedPrice(fullPrice, tier.discount)),
+              priceX(tierIndex + 1),
+              textY,
+              {
+                align: "center",
+              },
+            ),
+          );
+        } else {
+          pdf.text(money(fullPrice), priceX(0), textY, { align: "center" });
+        }
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(42, 47, 44);
+        rowY += rowLineHeight;
+      });
+
+      const blockHeight = rowLineHeight * rowsPerFinish;
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(7.5);
+      const nameLines = pdf.splitTextToSize(finish.name, finishColumnWidth - 4).slice(0, 2);
+      const lineHeight = 3.4;
+      const nameStartY =
+        blockTop + blockHeight / 2 - (nameLines.length * lineHeight) / 2 + lineHeight * 0.8;
+      pdf.text(nameLines, tableX + finishColumnWidth / 2, nameStartY, { align: "center" });
+
+      if (finishIndex < finishes.length - 1) {
+        pdf.setDrawColor(205, 211, 206);
+        pdf.setLineWidth(0.35);
+        pdf.line(tableX, rowY, tableX + tableWidth, rowY);
+      }
+    },
+  );
+
   return tableY + bodyHeight;
 }
 
-/** Up to three product photos: one large, side by side, or one large plus two stacked. */
-async function drawProductImages(
+/**
+ * The product's photos fill their whole column edge to edge — no padding, no gap between
+ * two or three stacked photos — cropped (never stretched) to cover the space.
+ */
+async function drawImageColumn(
   pdf: jsPDF,
   images: string[],
   x: number,
@@ -413,42 +538,17 @@ async function drawProductImages(
   height: number,
   cache: ImageCache,
 ) {
-  const gap = 4;
-  const boxes: Array<[number, number, number, number]> =
-    images.length >= 3
-      ? (() => {
-          const mainWidth = (width - gap) * 0.6;
-          const sideWidth = width - gap - mainWidth;
-          const sideHeight = (height - gap) / 2;
-          return [
-            [x, y, mainWidth, height],
-            [x + mainWidth + gap, y, sideWidth, sideHeight],
-            [x + mainWidth + gap, y + sideHeight + gap, sideWidth, sideHeight],
-          ];
-        })()
-      : images.length === 2
-        ? [
-            [x, y, (width - gap) / 2, height],
-            [x + (width + gap) / 2, y, (width - gap) / 2, height],
-          ]
-        : [[x, y, width, height]];
-
   if (images.length === 0) {
     addImagePlaceholder(pdf, x, y, width, height);
     return;
   }
-  for (let index = 0; index < boxes.length; index++) {
-    const [boxX, boxY, boxWidth, boxHeight] = boxes[index];
-    const added = await addImageContained(
-      pdf,
-      images[index],
-      boxX + 2,
-      boxY + 2,
-      boxWidth - 4,
-      boxHeight - 4,
-      cache,
-    );
-    if (!added) addImagePlaceholder(pdf, boxX, boxY, boxWidth, boxHeight);
+  const cellHeight = height / images.length;
+  for (let index = 0; index < images.length; index += 1) {
+    const cellY = y + cellHeight * index;
+    const added = await addImageContained(pdf, images[index], x, cellY, width, cellHeight, cache, {
+      fit: "cover",
+    });
+    if (!added) addImagePlaceholder(pdf, x, cellY, width, cellHeight);
   }
 }
 
@@ -620,50 +720,65 @@ export async function buildCatalogPDF(
   const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = 15;
   const contentWidth = pageWidth - margin * 2;
-  // A single-category download skips the shared color/finish galleries: it exists to be a
-  // smaller, faster file focused on that category, not a trimmed copy of the full catalog.
+  // A single-category download only trims which PRODUCTS are included; colors and finishes
+  // stay in every catalog, and so do the commercial conditions.
   const categories = options.category
     ? snapshot.categories.filter((category) => category === options.category)
     : snapshot.categories;
-  const includeAttributeSections = !options.category;
   const productCount = options.category
     ? snapshot.products.filter((product) => product.category === options.category).length
     : snapshot.products.length;
-  const totalItems =
-    productCount +
-    (includeAttributeSections ? snapshot.colors.length + snapshot.finishes.length : 0);
+  const totalItems = productCount + 2;
   let completed = 0;
   const advance = () => {
     completed += 1;
     onProgress?.(Math.round((completed / Math.max(1, totalItems)) * 100));
   };
 
-  // Product cards: one product per page, bordered card that always wraps its tables.
-  const cardTop = 20;
-  const cardBottomLimit = pageHeight - 14;
-  const padding = 8;
-  const innerX = margin + padding;
-  const innerWidth = contentWidth - padding * 2;
+  // Commercial conditions come right after the cover, before colors/finishes/products —
+  // built in this order (not inserted afterwards) so no page ever inherits the wrong
+  // orientation from a page added before it.
+  if (variant !== "standard") {
+    pdf.addPage("a4", "p");
+    addConditionsPage(pdf, variant);
+  }
+
+  // Every color and finish on its own single page, with a link to the full gallery on the
+  // site, before the products — a buyer picks a finish before browsing what it comes in.
+  await addAttributeGridPage(
+    pdf,
+    "Cores disponíveis",
+    snapshot.colors,
+    absoluteUrl("/acabamentos-e-cores#cores"),
+    sharedImageCache,
+  );
+  advance();
+  await addAttributeGridPage(
+    pdf,
+    "Acabamentos disponíveis",
+    snapshot.finishes,
+    absoluteUrl("/acabamentos-e-cores#acabamentos"),
+    sharedImageCache,
+  );
+  advance();
+
+  // Product pages: landscape, one per product, sized to fit its own content exactly — no
+  // fixed height to run short against, so a product with few sizes never leaves a slab of
+  // empty space and one with many finishes never gets its rows cut off. The photo takes
+  // one side full-bleed (30% of the width) and the pricing the other (70%), alternating
+  // sides product to product so the layout doesn't get monotonous.
+  const productPageWidth = 297;
+  const imageColumnWidth = productPageWidth * 0.3;
+  const tableColumnWidth = productPageWidth - imageColumnWidth;
+  const contentTop = 16;
+  const bottomPadding = 16;
   const buttonWidth = 90;
   const buttonHeight = 10;
-  const footerBlock = 6 + buttonHeight + padding;
-
-  const startProductPage = (category: string) => {
-    pdf.addPage();
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(8);
-    pdf.setTextColor(125, 130, 126);
-    pdf.text(category.toUpperCase(), margin, 14);
-  };
-  const drawCardBorder = (bottom: number) => {
-    pdf.setDrawColor(205, 211, 206);
-    pdf.setLineWidth(0.35);
-    pdf.rect(margin, cardTop, contentWidth, bottom - cardTop, "S");
-  };
+  let productIndex = 0;
 
   // Page one is reserved for the cover.
   for (const category of categories) {
-    pdf.addPage();
+    pdf.addPage("a4", "p");
     const products = snapshot.products
       .filter((product) => product.category === category)
       .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
@@ -672,166 +787,82 @@ export async function buildCatalogPDF(
 
     for (const product of products) {
       const sizes = product.product_sizes ?? [];
-      const applicableFinishes = (product.product_finishes ?? [])
-        .map((relation) => snapshot.finishes.find((finish) => finish.name === relation.name))
-        .filter((finish): finish is AttributeTerm => Boolean(finish));
-      const priceFinishes = applicableFinishes.length
+      // The order here is whatever is set on the finishes admin page (snapshot.finishes is
+      // already sorted that way), not the order the finishes happen to be attached to this
+      // product in.
+      const productFinishNames = new Set(
+        (product.product_finishes ?? []).map((relation) => relation.name),
+      );
+      const applicableFinishes = snapshot.finishes.filter((finish) =>
+        productFinishNames.has(finish.name),
+      );
+      const finishesToShow: AttributePrice[] = applicableFinishes.length
         ? applicableFinishes
-        : [{ name: "Padrão", extra_price: 0 } as AttributeTerm];
-      const finishGroups = Array.from(
-        priceFinishes.reduce((groups, finish) => {
-          const key = Math.round((Number(finish.extra_price) || 0) * 100);
-          const group = groups.get(key) ?? { extraPrice: key / 100, names: [] as string[] };
-          group.names.push(finish.name);
-          groups.set(key, group);
-          return groups;
-        }, new Map<number, FinishGroup>()),
-      ).map(([, group]) => group);
-      const groupHeight = finishGroupHeight(sizes.length);
-      const tablesHeight =
-        finishGroups.length * groupHeight + GROUP_GAP * Math.max(0, finishGroups.length - 1);
+        : [{ name: "Padrão", extra_price: 0 }];
+      const tableHeight = priceTableHeight(finishesToShow.length, sizes.length);
 
-      startProductPage(category);
-      pdf.setTextColor(42, 47, 44);
+      const imageOnLeft = productIndex % 2 === 0;
+      productIndex += 1;
+      const tableX = (imageOnLeft ? imageColumnWidth : 0) + margin;
+      const tableWidth = tableColumnWidth - margin * 2;
+
+      // Measure the title before adding the page: its line count is the one thing that
+      // depends on the font being set, and it decides where everything below it starts.
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(22);
-      const titleLines = pdf.splitTextToSize(product.name, innerWidth).slice(0, 2);
-      const titleY = cardTop + padding + 7;
-      pdf.text(titleLines, innerX, titleY);
-      const imagesTop = titleY + (titleLines.length - 1) * 8.5 + 6;
+      const titleLines = pdf.splitTextToSize(product.name, tableWidth).slice(0, 2);
+      const titleBlockHeight = 7 + (titleLines.length - 1) * 8.5 + 6;
+      const tableTop = contentTop + titleBlockHeight;
+      const pageHeightForProduct = tableTop + tableHeight + 6 + buttonHeight + bottomPadding;
 
-      // Photos take whatever height the tables leave, within sensible bounds.
-      const images = (product.images ?? []).filter(Boolean).slice(0, 3);
-      const available = cardBottomLimit - imagesTop - 8 - tablesHeight - footerBlock;
-      const imageHeight = Math.max(60, Math.min(images.length === 1 ? 150 : 125, available));
-      await drawProductImages(
+      pdf.addPage([productPageWidth, pageHeightForProduct], "l");
+
+      // An admin-set featured photo replaces the gallery entirely for this column; otherwise
+      // fall back to the product's own photos (up to three, stacked).
+      const images = product.pdf_image_url
+        ? [product.pdf_image_url]
+        : (product.images ?? []).filter(Boolean).slice(0, 3);
+      const imageColumnX = imageOnLeft ? 0 : productPageWidth - imageColumnWidth;
+      await drawImageColumn(
         pdf,
         images,
-        innerX,
-        imagesTop,
-        innerWidth,
-        imageHeight,
+        imageColumnX,
+        0,
+        imageColumnWidth,
+        pageHeightForProduct,
         sharedImageCache,
       );
 
-      let tableY = imagesTop + imageHeight + 8;
-      finishGroups.forEach((group, index) => {
-        const isLast = index === finishGroups.length - 1;
-        const needed = groupHeight + (isLast ? footerBlock : 0);
-        if (tableY + needed > cardBottomLimit) {
-          // Close this card and continue the remaining tables on a new page.
-          drawCardBorder(tableY - GROUP_GAP + padding);
-          startProductPage(category);
-          pdf.setTextColor(42, 47, 44);
-          pdf.setFont("helvetica", "bold");
-          pdf.setFontSize(13);
-          pdf.text(
-            pdf.splitTextToSize(`${product.name} (continuação)`, innerWidth).slice(0, 1),
-            innerX,
-            cardTop + padding + 5,
-          );
-          tableY = cardTop + padding + 12;
-        }
-        tableY = drawFinishTable(pdf, group, sizes, variant, innerX, tableY, innerWidth);
-        tableY += GROUP_GAP;
-      });
-      tableY -= GROUP_GAP;
+      pdf.setTextColor(42, 47, 44);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(22);
+      pdf.text(titleLines, tableX, contentTop + 7);
 
-      const buttonX = margin + (contentWidth - buttonWidth) / 2;
-      const buttonY = tableY + 6;
+      const tableBottom = drawProductPriceTable(
+        pdf,
+        finishesToShow,
+        sizes,
+        variant,
+        tableX,
+        tableTop,
+        tableWidth,
+      );
+
+      const buttonX = tableX + (tableWidth - buttonWidth) / 2;
+      const buttonY = tableBottom + 6;
       pdf.setFillColor(42, 47, 44);
       pdf.roundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 5, 5, "F");
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(9);
       pdf.setTextColor(255, 255, 255);
-      pdf.text("Clique aqui para ver detalhes do produto", pageWidth / 2, buttonY + 6.4, {
+      pdf.text("Clique aqui para ver detalhes do produto", tableX + tableWidth / 2, buttonY + 6.4, {
         align: "center",
       });
       pdf.link(buttonX, buttonY, buttonWidth, buttonHeight, {
         url: absoluteUrl(`/produto/${product.slug}`),
       });
-      drawCardBorder(buttonY + buttonHeight + padding);
       advance();
     }
-  }
-
-  async function addAttributeSection(title: string, items: AttributeTerm[]) {
-    if (items.length === 0) {
-      pdf.addPage();
-      addPageTitle(pdf, title);
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(10);
-      pdf.text("Nenhum item cadastrado.", margin, 40);
-    }
-    for (const item of items) {
-      const media = [item.image_url, ...item.gallery].filter((url): url is string => Boolean(url));
-      const mediaPages: string[][] = [];
-      for (let start = 0; start < media.length; start += 4) {
-        mediaPages.push(media.slice(start, start + 4));
-      }
-      if (mediaPages.length === 0) mediaPages.push([]);
-
-      for (let mediaPage = 0; mediaPage < mediaPages.length; mediaPage++) {
-        pdf.addPage();
-        addAttributeTitle(pdf, title, item.name, mediaPage > 0);
-        const positions = [
-          [15, 42],
-          [107, 42],
-          [15, 130],
-          [107, 130],
-        ] as const;
-        const pageMedia = mediaPages[mediaPage];
-        if (pageMedia.length === 0) {
-          addImagePlaceholder(pdf, 15, 42, contentWidth, 100);
-        } else {
-          for (let index = 0; index < pageMedia.length; index++) {
-            const [x, y] = positions[index];
-            const added = await addImageContained(
-              pdf,
-              pageMedia[index],
-              x,
-              y,
-              84,
-              78,
-              sharedImageCache,
-            );
-            if (!added) addImagePlaceholder(pdf, x, y, 84, 78);
-          }
-        }
-        if (mediaPage === mediaPages.length - 1) {
-          let footerY = pageMedia.length === 0 ? 154 : pageMedia.length > 2 ? 222 : 130;
-          if (item.description) {
-            pdf.setFont("helvetica", "normal");
-            pdf.setFontSize(10);
-            pdf.setTextColor(42, 47, 44);
-            const lines = pdf.splitTextToSize(item.description, contentWidth).slice(0, 10);
-            pdf.text(lines, margin, footerY);
-            footerY += lines.length * 4.5 + 4;
-          }
-          if (item.video_url) {
-            addExternalLink(
-              pdf,
-              `Assistir no YouTube: ${item.video_url}`,
-              item.video_url,
-              margin,
-              footerY,
-            );
-          }
-        }
-      }
-      advance();
-    }
-  }
-
-  if (includeAttributeSections) {
-    await addAttributeSection("Cores disponíveis", snapshot.colors);
-    await addAttributeSection("Acabamentos disponíveis", snapshot.finishes);
-  }
-
-  if (variant !== "standard") {
-    pdf.insertPage(2);
-    pdf.setPage(2);
-    addConditionsPage(pdf, variant);
   }
 
   // Cover: brand artwork with the edition on top and the audience at the bottom.
@@ -861,14 +892,6 @@ export async function buildCatalogPDF(
     { align: "center", charSpace: 0.3 },
   );
 
-  const totalPages = pdf.getNumberOfPages();
-  for (let page = 2; page <= totalPages; page++) {
-    pdf.setPage(page);
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(8);
-    pdf.setTextColor(125, 130, 126);
-    pdf.text(`Página ${page} de ${totalPages}`, pageWidth / 2, pageHeight - 7, { align: "center" });
-  }
   onProgress?.(100);
   return pdf.output("blob");
 }

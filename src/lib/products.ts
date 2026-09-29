@@ -11,6 +11,8 @@ export type Product = {
   meta_description?: string | null;
   seo_keywords?: string[];
   product_sizes?: ProductSize[];
+  /** Optional override photo used instead of `images` on this product's page in the catalog PDF. */
+  pdf_image_url?: string | null;
 };
 
 export function validSalePrice(size: Pick<ProductSize, "base_price" | "sale_price">) {
@@ -195,6 +197,33 @@ export async function fetchProductsWithSizes(params: {
   const { data, error } = await orderedQuery;
   if (error) throw error;
   return (data ?? []) as ProductWithSizes[];
+}
+
+/**
+ * Products with a catalog-PDF override photo set. A separate, narrow query — kept apart
+ * from `fetchProductsWithSizes` (used by every product listing) so a not-yet-migrated
+ * `pdf_image_url` column can never break those pages, only this one feature.
+ */
+export async function fetchProductPdfImages(): Promise<
+  Array<{ id: string; pdf_image_url: string | null }>
+> {
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, pdf_image_url")
+    .not("pdf_image_url", "is", null);
+  if (error) {
+    const message = error.message?.toLowerCase() ?? "";
+    if (
+      error.code === "PGRST204" ||
+      message.includes("pdf_image_url") ||
+      message.includes("schema cache") ||
+      message.includes("could not find")
+    ) {
+      return [];
+    }
+    throw error;
+  }
+  return (data ?? []) as Array<{ id: string; pdf_image_url: string | null }>;
 }
 
 export type ProductDetail = ProductWithSizes & {

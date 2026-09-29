@@ -30,6 +30,7 @@ import { Route as CatalogoRouteImport } from './routes/catalogo'
 import { Route as CaracteristicasDoConcretoRouteImport } from './routes/caracteristicas-do-concreto'
 import { Route as BuscaRouteImport } from './routes/busca'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AcabamentosECoresRouteImport } from './routes/acabamentos-e-cores'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
@@ -177,6 +178,11 @@ const BuscaRoute = BuscaRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcabamentosECoresRoute = AcabamentosECoresRouteImport.update({
+  id: '/acabamentos-e-cores',
+  path: '/acabamentos-e-cores',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -402,6 +408,7 @@ const ApiGscOverviewRoute = ApiGscOverviewRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/acabamentos-e-cores': typeof AcabamentosECoresRoute
   '/auth': typeof AuthRoute
   '/busca': typeof BuscaRoute
   '/caracteristicas-do-concreto': typeof CaracteristicasDoConcretoRoute
@@ -468,6 +475,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/acabamentos-e-cores': typeof AcabamentosECoresRoute
   '/auth': typeof AuthRoute
   '/busca': typeof BuscaRoute
   '/caracteristicas-do-concreto': typeof CaracteristicasDoConcretoRoute
@@ -533,6 +541,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/acabamentos-e-cores': typeof AcabamentosECoresRoute
   '/auth': typeof AuthRoute
   '/busca': typeof BuscaRoute
   '/caracteristicas-do-concreto': typeof CaracteristicasDoConcretoRoute
@@ -601,6 +610,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/acabamentos-e-cores'
     | '/auth'
     | '/busca'
     | '/caracteristicas-do-concreto'
@@ -667,6 +677,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/acabamentos-e-cores'
     | '/auth'
     | '/busca'
     | '/caracteristicas-do-concreto'
@@ -731,6 +742,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/acabamentos-e-cores'
     | '/auth'
     | '/busca'
     | '/caracteristicas-do-concreto'
@@ -798,6 +810,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AcabamentosECoresRoute: typeof AcabamentosECoresRoute
   AuthRoute: typeof AuthRoute
   BuscaRoute: typeof BuscaRoute
   CaracteristicasDoConcretoRoute: typeof CaracteristicasDoConcretoRoute
@@ -985,6 +998,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/acabamentos-e-cores': {
+      id: '/acabamentos-e-cores'
+      path: '/acabamentos-e-cores'
+      fullPath: '/acabamentos-e-cores'
+      preLoaderRoute: typeof AcabamentosECoresRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -1372,6 +1392,7 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AcabamentosECoresRoute: AcabamentosECoresRoute,
   AuthRoute: AuthRoute,
   BuscaRoute: BuscaRoute,
   CaracteristicasDoConcretoRoute: CaracteristicasDoConcretoRoute,

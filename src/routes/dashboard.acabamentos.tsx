@@ -5,7 +5,8 @@ import { DashboardSection } from "@/components/dashboard-layout";
 import { DashboardGalleryEditor } from "@/components/dashboard-gallery-editor";
 import { fetchAttributeTerms, type AttributeTerm } from "@/lib/dashboard-taxonomies";
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +42,9 @@ function DashboardFinishesPage() {
   const [deleting, setDeleting] = useState(false);
   const [pdfPending, setPdfPending] = useState(false);
   const [updatingPdf, setUpdatingPdf] = useState(false);
+  const [dragHandleName, setDragHandleName] = useState<string | null>(null);
+  const [draggingName, setDraggingName] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ name: string; after: boolean } | null>(null);
   const { data = [], isLoading } = useQuery({
     queryKey: ["dashboard", "acabamentos"],
     queryFn: fetchFinishes,
@@ -64,6 +68,38 @@ function DashboardFinishesPage() {
     ]);
     const error = updates.find((result) => result.error)?.error;
     if (error) throw error;
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["dashboard", "acabamentos"] }),
+      qc.invalidateQueries({ queryKey: ["attribute-terms", "product_finishes"] }),
+    ]);
+    markPdfPending();
+  }
+
+  // Drag-and-drop reorder: the catalog PDF lists finishes in this exact order, so the
+  // whole list (not just adjacent neighbors) can be reshuffled in one drag.
+  async function moveFinishTo(draggedName: string, targetName: string, after: boolean) {
+    if (draggedName === targetName) return;
+    const ordered = [...data];
+    const draggedIndex = ordered.findIndex((f) => f.name === draggedName);
+    if (draggedIndex < 0) return;
+    const [dragged] = ordered.splice(draggedIndex, 1);
+    const targetIndex = ordered.findIndex((f) => f.name === targetName);
+    if (targetIndex < 0) return;
+    ordered.splice(after ? targetIndex + 1 : targetIndex, 0, dragged);
+    const originalIndex = new Map(data.map((f, index) => [f.name, index]));
+    const changed = ordered
+      .map((f, position) => ({ name: f.name, position }))
+      .filter(({ name, position }) => originalIndex.get(name) !== position);
+    if (changed.length === 0) return;
+    const results = await Promise.all(
+      changed.map(({ name, position }) =>
+        supabase
+          .from("finish_catalog")
+          .upsert({ name, sort_order: position }, { onConflict: "name" }),
+      ),
+    );
+    const failed = results.find((result) => result.error)?.error;
+    if (failed) throw failed;
     await Promise.all([
       qc.invalidateQueries({ queryKey: ["dashboard", "acabamentos"] }),
       qc.invalidateQueries({ queryKey: ["attribute-terms", "product_finishes"] }),
@@ -188,8 +224,61 @@ function DashboardFinishesPage() {
         ) : (
           <div className="grid gap-3">
             {data.map((f, index) => (
-              <div key={f.name} className="relative">
+              <div
+                key={f.name}
+                draggable={dragHandleName === f.name}
+                onDragStart={(event) => {
+                  event.dataTransfer.effectAllowed = "move";
+                  setDraggingName(f.name);
+                }}
+                onDragOver={(event) => {
+                  if (!draggingName || draggingName === f.name) return;
+                  event.preventDefault();
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  const after = event.clientY > rect.top + rect.height / 2;
+                  if (dropTarget?.name !== f.name || dropTarget.after !== after) {
+                    setDropTarget({ name: f.name, after });
+                  }
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  if (draggingName && dropTarget) {
+                    void moveFinishTo(draggingName, dropTarget.name, dropTarget.after).catch(
+                      (error) =>
+                        toast.error(
+                          error instanceof Error
+                            ? error.message
+                            : "Não foi possível salvar a ordem.",
+                        ),
+                    );
+                  }
+                  setDropTarget(null);
+                }}
+                onDragEnd={() => {
+                  setDraggingName(null);
+                  setDropTarget(null);
+                  setDragHandleName(null);
+                }}
+                className={cn(
+                  "relative transition-opacity",
+                  draggingName === f.name && "opacity-40",
+                  dropTarget?.name === f.name &&
+                    (dropTarget.after
+                      ? "shadow-[inset_0_-2px_0_0_var(--color-primary)]"
+                      : "shadow-[inset_0_2px_0_0_var(--color-primary)]"),
+                )}
+              >
                 <div className="absolute right-4 top-4 z-10 flex items-center gap-1">
+                  <button
+                    type="button"
+                    onMouseDown={() => setDragHandleName(f.name)}
+                    onMouseUp={() => setDragHandleName(null)}
+                    aria-label={`Arraste para reordenar ${f.name}`}
+                    title="Arraste para reordenar"
+                    className="cursor-grab rounded-md border border-border bg-background p-1.5 text-foreground hover:bg-muted active:cursor-grabbing"
+                  >
+                    <GripVertical className="h-4 w-4" />
+                  </button>
                   <button
                     type="button"
                     disabled={index === 0}

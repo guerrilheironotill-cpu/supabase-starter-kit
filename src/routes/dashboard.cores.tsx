@@ -5,7 +5,8 @@ import { DashboardSection } from "@/components/dashboard-layout";
 import { DashboardGalleryEditor } from "@/components/dashboard-gallery-editor";
 import { fetchAttributeTerms, type AttributeTerm } from "@/lib/dashboard-taxonomies";
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, Loader2, Plus, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +35,9 @@ function DashboardColorsPage() {
   const qc = useQueryClient();
   const [colorToDelete, setColorToDelete] = useState<AttributeTerm | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [dragHandleName, setDragHandleName] = useState<string | null>(null);
+  const [draggingName, setDraggingName] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ name: string; after: boolean } | null>(null);
   const { data = [], isLoading } = useQuery({
     queryKey: ["dashboard", "cores"],
     queryFn: fetchColors,
@@ -48,11 +52,47 @@ function DashboardColorsPage() {
     const currentOrder = current.sort_order === 9999 ? index : current.sort_order;
     const targetOrder = target.sort_order === 9999 ? targetIndex : target.sort_order;
     const updates = await Promise.all([
-      supabase.from("color_catalog").upsert({ name: current.name, sort_order: targetOrder }, { onConflict: "name" }),
-      supabase.from("color_catalog").upsert({ name: target.name, sort_order: currentOrder }, { onConflict: "name" }),
+      supabase
+        .from("color_catalog")
+        .upsert({ name: current.name, sort_order: targetOrder }, { onConflict: "name" }),
+      supabase
+        .from("color_catalog")
+        .upsert({ name: target.name, sort_order: currentOrder }, { onConflict: "name" }),
     ]);
     const error = updates.find((result) => result.error)?.error;
     if (error) throw error;
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["dashboard", "cores"] }),
+      qc.invalidateQueries({ queryKey: ["attribute-terms", "product_colors"] }),
+    ]);
+    schedulePreparedCatalogRefresh();
+  }
+
+  // Drag-and-drop reorder: the catalog PDF lists colors in this exact order, so the whole
+  // list (not just adjacent neighbors) can be reshuffled in one drag.
+  async function moveColorTo(draggedName: string, targetName: string, after: boolean) {
+    if (draggedName === targetName) return;
+    const ordered = [...data];
+    const draggedIndex = ordered.findIndex((f) => f.name === draggedName);
+    if (draggedIndex < 0) return;
+    const [dragged] = ordered.splice(draggedIndex, 1);
+    const targetIndex = ordered.findIndex((f) => f.name === targetName);
+    if (targetIndex < 0) return;
+    ordered.splice(after ? targetIndex + 1 : targetIndex, 0, dragged);
+    const originalIndex = new Map(data.map((f, index) => [f.name, index]));
+    const changed = ordered
+      .map((f, position) => ({ name: f.name, position }))
+      .filter(({ name, position }) => originalIndex.get(name) !== position);
+    if (changed.length === 0) return;
+    const results = await Promise.all(
+      changed.map(({ name, position }) =>
+        supabase
+          .from("color_catalog")
+          .upsert({ name, sort_order: position }, { onConflict: "name" }),
+      ),
+    );
+    const failed = results.find((result) => result.error)?.error;
+    if (failed) throw failed;
     await Promise.all([
       qc.invalidateQueries({ queryKey: ["dashboard", "cores"] }),
       qc.invalidateQueries({ queryKey: ["attribute-terms", "product_colors"] }),
@@ -129,10 +169,83 @@ function DashboardColorsPage() {
         ) : (
           <div className="grid gap-3">
             {data.map((f, index) => (
-              <div key={f.name} className="relative">
+              <div
+                key={f.name}
+                draggable={dragHandleName === f.name}
+                onDragStart={(event) => {
+                  event.dataTransfer.effectAllowed = "move";
+                  setDraggingName(f.name);
+                }}
+                onDragOver={(event) => {
+                  if (!draggingName || draggingName === f.name) return;
+                  event.preventDefault();
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  const after = event.clientY > rect.top + rect.height / 2;
+                  if (dropTarget?.name !== f.name || dropTarget.after !== after) {
+                    setDropTarget({ name: f.name, after });
+                  }
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  if (draggingName && dropTarget) {
+                    void moveColorTo(draggingName, dropTarget.name, dropTarget.after).catch(
+                      (error) =>
+                        toast.error(
+                          error instanceof Error
+                            ? error.message
+                            : "Não foi possível salvar a ordem.",
+                        ),
+                    );
+                  }
+                  setDropTarget(null);
+                }}
+                onDragEnd={() => {
+                  setDraggingName(null);
+                  setDropTarget(null);
+                  setDragHandleName(null);
+                }}
+                className={cn(
+                  "relative transition-opacity",
+                  draggingName === f.name && "opacity-40",
+                  dropTarget?.name === f.name &&
+                    (dropTarget.after
+                      ? "shadow-[inset_0_-2px_0_0_var(--color-primary)]"
+                      : "shadow-[inset_0_2px_0_0_var(--color-primary)]"),
+                )}
+              >
                 <div className="absolute right-4 top-4 z-10 flex items-center gap-1">
-                  <button type="button" disabled={index === 0} onClick={() => void moveColor(index, -1).catch((error) => toast.error(error.message))} aria-label={`Mover ${f.name} para cima`} className="rounded-md border border-border bg-background p-1.5 text-foreground hover:bg-muted disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
-                  <button type="button" disabled={index === data.length - 1} onClick={() => void moveColor(index, 1).catch((error) => toast.error(error.message))} aria-label={`Mover ${f.name} para baixo`} className="rounded-md border border-border bg-background p-1.5 text-foreground hover:bg-muted disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
+                  <button
+                    type="button"
+                    onMouseDown={() => setDragHandleName(f.name)}
+                    onMouseUp={() => setDragHandleName(null)}
+                    aria-label={`Arraste para reordenar ${f.name}`}
+                    title="Arraste para reordenar"
+                    className="cursor-grab rounded-md border border-border bg-background p-1.5 text-foreground hover:bg-muted active:cursor-grabbing"
+                  >
+                    <GripVertical className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={index === 0}
+                    onClick={() =>
+                      void moveColor(index, -1).catch((error) => toast.error(error.message))
+                    }
+                    aria-label={`Mover ${f.name} para cima`}
+                    className="rounded-md border border-border bg-background p-1.5 text-foreground hover:bg-muted disabled:opacity-30"
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={index === data.length - 1}
+                    onClick={() =>
+                      void moveColor(index, 1).catch((error) => toast.error(error.message))
+                    }
+                    aria-label={`Mover ${f.name} para baixo`}
+                    className="rounded-md border border-border bg-background p-1.5 text-foreground hover:bg-muted disabled:opacity-30"
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                  </button>
                   <RowActionsMenu
                     label={`Ações de ${f.name}`}
                     actions={[
@@ -174,7 +287,8 @@ function DashboardColorsPage() {
                         .select("name, image_url, gallery")
                         .single();
                       if (catalogError) throw catalogError;
-                      if (!savedCatalog) throw new Error("A cor não foi confirmada pelo banco de dados.");
+                      if (!savedCatalog)
+                        throw new Error("A cor não foi confirmada pelo banco de dados.");
 
                       const { error: relationError } = await supabase
                         .from("product_colors")
@@ -199,7 +313,8 @@ function DashboardColorsPage() {
                         .select("name, image_url, gallery")
                         .single();
                       if (catalogError) throw catalogError;
-                      if (!savedCatalog) throw new Error("A cor não foi confirmada pelo banco de dados.");
+                      if (!savedCatalog)
+                        throw new Error("A cor não foi confirmada pelo banco de dados.");
                     }
                     await Promise.all([
                       qc.invalidateQueries({ queryKey: ["dashboard", "cores"] }),

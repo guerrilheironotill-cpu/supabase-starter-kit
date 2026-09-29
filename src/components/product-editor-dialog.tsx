@@ -35,6 +35,8 @@ type ProductData = {
   meta_title: string | null;
   meta_description: string | null;
   seo_keywords: string[];
+  /** Overrides `images` in the catalog PDF's product column when set. */
+  pdf_image_url: string | null;
 };
 
 type Props = {
@@ -149,6 +151,7 @@ function normalizeProduct(row: Partial<ProductData> & { images?: string[] | null
     meta_title: row.meta_title ?? null,
     meta_description: row.meta_description ?? null,
     seo_keywords: row.seo_keywords ?? [],
+    pdf_image_url: row.pdf_image_url ?? null,
   };
 }
 
@@ -224,7 +227,7 @@ async function fetchEditableProduct(productId: string): Promise<ProductData> {
   const withSeo = await supabase
     .from("products")
     .select(
-      "id, slug, name, created_at, description, category, images, active, meta_title, meta_description, seo_keywords",
+      "id, slug, name, created_at, description, category, images, active, meta_title, meta_description, seo_keywords, pdf_image_url",
     )
     .eq("id", productId)
     .maybeSingle();
@@ -458,6 +461,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
         meta_title: product.meta_title,
         meta_description: product.meta_description,
         seo_keywords: product.seo_keywords,
+        pdf_image_url: product.pdf_image_url,
       };
       let savedProductId = product.id;
       const productWrite = product.id
@@ -658,6 +662,8 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
               <ImagesTab
                 images={product.images}
                 setImages={(imgs) => setProduct({ ...product, images: imgs })}
+                pdfImageUrl={product.pdf_image_url}
+                setPdfImageUrl={(url) => setProduct({ ...product, pdf_image_url: url })}
                 uploadImage={uploadImage}
               />
             )}
@@ -854,10 +860,14 @@ function BasicTab({
 function ImagesTab({
   images,
   setImages,
+  pdfImageUrl,
+  setPdfImageUrl,
   uploadImage,
 }: {
   images: string[];
   setImages: (imgs: string[]) => void;
+  pdfImageUrl: string | null;
+  setPdfImageUrl: (url: string | null) => void;
   uploadImage: (f: File) => Promise<string>;
 }) {
   const [busy, setBusy] = useState(false);
@@ -865,6 +875,19 @@ function ImagesTab({
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  const [pdfImageBusy, setPdfImageBusy] = useState(false);
+
+  async function onPdfImageFile(file: File) {
+    setPdfImageBusy(true);
+    try {
+      setPdfImageUrl(await uploadImage(file));
+      toast.success("Imagem de destaque do PDF enviada!");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro no upload");
+    } finally {
+      setPdfImageBusy(false);
+    }
+  }
 
   const allSelected = images.length > 0 && selected.size === images.length;
 
@@ -1053,6 +1076,47 @@ function ImagesTab({
           </div>
         </>
       )}
+
+      <div className="mt-6 border-t border-border pt-4">
+        <p className="text-sm font-medium text-foreground">Imagem de destaque no PDF</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Opcional. Por padrão o catálogo em PDF usa as fotos acima. Envie uma imagem aqui só quando
+          quiser substituí-las por outra, específica para o PDF.
+        </p>
+        <div className="mt-3 flex items-center gap-3">
+          {pdfImageUrl && (
+            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-muted">
+              <img src={pdfImageUrl} alt="" className="h-full w-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setPdfImageUrl(null)}
+                className="absolute right-0.5 top-0.5 rounded bg-black/60 p-0.5 text-white hover:bg-black/80"
+                aria-label="Remover imagem de destaque do PDF"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          )}
+          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted">
+            {pdfImageBusy ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Upload className="h-3.5 w-3.5" />
+            )}
+            {pdfImageUrl ? "Substituir imagem" : "Enviar imagem"}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void onPdfImageFile(file);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        </div>
+      </div>
     </div>
   );
 }

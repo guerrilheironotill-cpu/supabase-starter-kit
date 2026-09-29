@@ -56,9 +56,16 @@ type AttributeKind = "finishes" | "colors";
 function AvailableAttributeSection({
   kind,
   availableNames,
+  showAll = false,
+  id,
 }: {
   kind: AttributeKind;
-  availableNames: string[];
+  /** Which names to show. Ignored when showAll is true. */
+  availableNames?: string[];
+  /** Show every registered item instead of filtering to one product's options. */
+  showAll?: boolean;
+  /** Anchor id, so other pages (like the catalog PDF) can link straight to this section. */
+  id?: string;
 }) {
   const isFinish = kind === "finishes";
   const title = isFinish ? "Acabamentos disponíveis" : "Cores disponíveis";
@@ -72,9 +79,12 @@ function AvailableAttributeSection({
       isFinish ? "product_finishes" : "product_colors",
       isFinish ? "finish_catalog" : "color_catalog",
     )
-      .then((items) => setAttributes(items.filter((item) => item.count > 0).slice(0, 9)))
+      .then((items) => {
+        const withMedia = items.filter((item) => item.count > 0);
+        setAttributes(showAll ? withMedia : withMedia.slice(0, 9));
+      })
       .catch((error) => console.error(`Erro ao buscar ${title.toLowerCase()}:`, error));
-  }, [isFinish, title]);
+  }, [isFinish, title, showAll]);
 
   const images = useMemo(() => (selected ? attributeImages(selected) : []), [selected]);
   const video = useMemo(
@@ -88,8 +98,10 @@ function AvailableAttributeSection({
     if (mediaIndex >= mediaCount) setMediaIndex(0);
   }, [mediaCount, mediaIndex]);
 
-  const availableSet = new Set(availableNames);
-  const visibleAttributes = attributes.filter((attribute) => availableSet.has(attribute.name));
+  const availableSet = useMemo(() => new Set(availableNames ?? []), [availableNames]);
+  const visibleAttributes = showAll
+    ? attributes
+    : attributes.filter((attribute) => availableSet.has(attribute.name));
 
   if (visibleAttributes.length === 0) return null;
 
@@ -112,12 +124,13 @@ function AvailableAttributeSection({
   }
 
   return (
-    <section className="border-t border-primary/10 bg-background py-12 sm:py-16">
+    <section id={id} className="border-t border-primary/10 bg-background py-12 sm:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         <h2 className="text-center font-display text-3xl text-primary sm:text-4xl">{title}</h2>
         <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-relaxed text-primary/80">
-          Selecione {isFinish ? "um acabamento" : "uma cor"} para visualizar suas imagens
-          {isFinish ? " e vídeos" : ""} em detalhes.
+          {showAll
+            ? `Confira todas as opções de ${isFinish ? "acabamento" : "cor"} disponíveis. Selecione uma para visualizar suas imagens${isFinish ? " e vídeos" : ""} em detalhes.`
+            : `Selecione ${isFinish ? "um acabamento" : "uma cor"} para visualizar suas imagens${isFinish ? " e vídeos" : ""} em detalhes.`}
         </p>
 
         <Carousel
@@ -293,10 +306,40 @@ function AvailableAttributeSection({
   );
 }
 
-export function AvailableFinishesSection({ availableNames }: { availableNames: string[] }) {
-  return <AvailableAttributeSection kind="finishes" availableNames={availableNames} />;
+export function AvailableFinishesSection({
+  availableNames,
+  showAll = false,
+  id,
+}: {
+  availableNames?: string[];
+  showAll?: boolean;
+  id?: string;
+}) {
+  return (
+    <AvailableAttributeSection
+      kind="finishes"
+      availableNames={availableNames}
+      showAll={showAll}
+      id={id}
+    />
+  );
 }
 
-export function AvailableColorsSection({ availableNames }: { availableNames: string[] }) {
-  return <AvailableAttributeSection kind="colors" availableNames={availableNames} />;
+export function AvailableColorsSection({
+  availableNames,
+  showAll = false,
+  id,
+}: {
+  availableNames?: string[];
+  showAll?: boolean;
+  id?: string;
+}) {
+  return (
+    <AvailableAttributeSection
+      kind="colors"
+      availableNames={availableNames}
+      showAll={showAll}
+      id={id}
+    />
+  );
 }
