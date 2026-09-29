@@ -888,17 +888,20 @@ export async function buildCatalogPDF(
     }
   }
 
-  // Cover: brand artwork with the edition on top and the audience at the bottom.
+  // Cover: brand artwork with the edition on top and the audience at the bottom, both
+  // centered on the logo — which, in this artwork, sits inside the dark panel on the
+  // right, not in the middle of the whole page.
   pdf.setPage(1);
-  pdf.setFillColor(10, 57, 62);
+  pdf.setFillColor(...BRAND_DARK);
   pdf.rect(0, 0, pageWidth, pageHeight, "F");
   await addImageContained(pdf, snapshot.coverImage, 0, 0, pageWidth, pageHeight, sharedImageCache, {
     fit: "cover",
   });
+  const logoCenterX = pageWidth * 0.67;
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(20);
-  pdf.text(`Catálogo ${snapshot.generatedAt.getFullYear()}`, pageWidth / 2, pageHeight * 0.14, {
+  pdf.text(`Catálogo ${snapshot.generatedAt.getFullYear()}`, logoCenterX, pageHeight * 0.14, {
     align: "center",
     charSpace: 0.6,
   });
@@ -910,7 +913,7 @@ export async function buildCatalogPDF(
       : variant === "professional"
         ? "Profissionais / Especificadores"
         : "Cliente final",
-    pageWidth / 2,
+    logoCenterX,
     pageHeight * 0.88,
     { align: "center", charSpace: 0.3 },
   );
