@@ -274,7 +274,7 @@ async function addAttributeGridPage(
 ) {
   const margin = 15;
 
-  pdf.addPage("a4", "p");
+  pdf.addPage("a4", "l");
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   const contentWidth = pageWidth - margin * 2;
@@ -370,6 +370,8 @@ function drawProductPriceTable(
 ) {
   const rowLineHeight = TABLE_ROW_HEIGHT;
   const headerHeight = TABLE_HEADER_HEIGHT;
+  // Narrow enough that a name like "Concreto Resinado Liso" wraps onto a second line
+  // instead of running the column wide just to fit one long name on a single line.
   const finishColumnWidth = tableWidth * 0.2;
   const remainingWidth = tableWidth - finishColumnWidth;
   const dimensionWidth = remainingWidth * 0.36;
@@ -430,104 +432,115 @@ function drawProductPriceTable(
     }
   });
 
+  const finishList = finishes.length ? finishes : [{ name: "Padrão", extra_price: 0 }];
+  const blockHeight = rowLineHeight * rowsPerFinish;
+  // Every second finish gets a faint tint across its whole row block, so the eye can tell
+  // rows apart without a divider line cutting through the merged name.
+  finishList.forEach((_, finishIndex) => {
+    if (finishIndex % 2 === 1) {
+      pdf.setFillColor(247, 248, 246);
+      pdf.rect(
+        tableX,
+        tableY + headerHeight + finishIndex * blockHeight,
+        tableWidth,
+        blockHeight,
+        "F",
+      );
+    }
+  });
+
   let rowY = tableY + headerHeight;
-  (finishes.length ? finishes : [{ name: "Padrão", extra_price: 0 }]).forEach(
-    (finish, finishIndex) => {
-      const blockTop = rowY;
+  finishList.forEach((finish, finishIndex) => {
+    const blockTop = rowY;
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(42, 47, 44);
+    sizes.forEach((size, sizeIndex) => {
+      const textY = rowY + rowLineHeight * 0.68;
+      // Only within the size/price columns — the divider between two rows of the SAME
+      // finish must not cross the merged "Acabamento" cell.
+      if (sizeIndex > 0) {
+        pdf.setDrawColor(230, 233, 229);
+        pdf.setLineWidth(0.2);
+        pdf.line(dimX, rowY, tableX + tableWidth, rowY);
+      }
+      const rawSize = size.size || size.name || "Único";
+      const dimensions = parseDims(rawSize);
+      const values = dimensions
+        ? [dimensions.altura, dimensions.largura, dimensions.comprimento]
+        : [rawSize, "—", "—"];
+      values.forEach((value, index) =>
+        pdf.text(
+          pdf.splitTextToSize(value, dimensionCellWidth - 2).slice(0, 1),
+          dimX + dimensionCellWidth * (index + 0.5),
+          textY,
+          { align: "center" },
+        ),
+      );
+      const extraPrice = Number(finish.extra_price) || 0;
+      const customerFinalPrice = (size.sale_price ?? size.base_price) + extraPrice;
+      const partnerPriceBase = commercialDiscountBase(size.base_price, extraPrice);
+      const fullPrice =
+        variant === "professional" || variant === "reseller"
+          ? partnerPriceBase
+          : customerFinalPrice;
+      const priceX = (index: number) => priceX0 + priceCellWidth * (index + 0.5);
+      if (variant === "professional" || variant === "reseller") {
+        const publicPrice = money(fullPrice);
+        pdf.text(publicPrice, priceX(0), textY, { align: "center" });
+        const publicTextWidth = pdf.getTextWidth(publicPrice);
+        // Strike-through in the same dark tone as the price, not the table's light border color.
+        pdf.setDrawColor(42, 47, 44);
+        pdf.setLineWidth(0.3);
+        pdf.line(
+          priceX(0) - publicTextWidth / 2,
+          textY - 1.2,
+          priceX(0) + publicTextWidth / 2,
+          textY - 1.2,
+        );
+      }
+      if (variant === "professional") {
+        pdf.setFont("helvetica", "bold");
+        pdf.text(money(discountedPrice(fullPrice, PROFESSIONAL_DISCOUNT)), priceX(1), textY, {
+          align: "center",
+        });
+        pdf.setFont("helvetica", "normal");
+      } else if (variant === "reseller") {
+        RESELLER_TIERS.forEach((tier, tierIndex) =>
+          pdf.text(money(discountedPrice(fullPrice, tier.discount)), priceX(tierIndex + 1), textY, {
+            align: "center",
+          }),
+        );
+      } else {
+        pdf.text(money(fullPrice), priceX(0), textY, { align: "center" });
+      }
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(7.5);
       pdf.setTextColor(42, 47, 44);
-      sizes.forEach((size, sizeIndex) => {
-        const textY = rowY + rowLineHeight * 0.68;
-        if (!(finishIndex === 0 && sizeIndex === 0)) {
-          pdf.setDrawColor(230, 233, 229);
-          pdf.setLineWidth(0.2);
-          pdf.line(tableX, rowY, tableX + tableWidth, rowY);
-        }
-        const rawSize = size.size || size.name || "Único";
-        const dimensions = parseDims(rawSize);
-        const values = dimensions
-          ? [dimensions.altura, dimensions.largura, dimensions.comprimento]
-          : [rawSize, "—", "—"];
-        values.forEach((value, index) =>
-          pdf.text(
-            pdf.splitTextToSize(value, dimensionCellWidth - 2).slice(0, 1),
-            dimX + dimensionCellWidth * (index + 0.5),
-            textY,
-            { align: "center" },
-          ),
-        );
-        const extraPrice = Number(finish.extra_price) || 0;
-        const customerFinalPrice = (size.sale_price ?? size.base_price) + extraPrice;
-        const partnerPriceBase = commercialDiscountBase(size.base_price, extraPrice);
-        const fullPrice =
-          variant === "professional" || variant === "reseller"
-            ? partnerPriceBase
-            : customerFinalPrice;
-        const priceX = (index: number) => priceX0 + priceCellWidth * (index + 0.5);
-        if (variant === "professional" || variant === "reseller") {
-          const publicPrice = money(fullPrice);
-          pdf.text(publicPrice, priceX(0), textY, { align: "center" });
-          const publicTextWidth = pdf.getTextWidth(publicPrice);
-          // Strike-through in the same dark tone as the price, not the table's light border color.
-          pdf.setDrawColor(42, 47, 44);
-          pdf.setLineWidth(0.3);
-          pdf.line(
-            priceX(0) - publicTextWidth / 2,
-            textY - 1.2,
-            priceX(0) + publicTextWidth / 2,
-            textY - 1.2,
-          );
-        }
-        if (variant === "professional") {
-          pdf.setFont("helvetica", "bold");
-          pdf.text(money(discountedPrice(fullPrice, PROFESSIONAL_DISCOUNT)), priceX(1), textY, {
-            align: "center",
-          });
-          pdf.setFont("helvetica", "normal");
-        } else if (variant === "reseller") {
-          RESELLER_TIERS.forEach((tier, tierIndex) =>
-            pdf.text(
-              money(discountedPrice(fullPrice, tier.discount)),
-              priceX(tierIndex + 1),
-              textY,
-              {
-                align: "center",
-              },
-            ),
-          );
-        } else {
-          pdf.text(money(fullPrice), priceX(0), textY, { align: "center" });
-        }
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(7.5);
-        pdf.setTextColor(42, 47, 44);
-        rowY += rowLineHeight;
-      });
+      rowY += rowLineHeight;
+    });
 
-      const blockHeight = rowLineHeight * rowsPerFinish;
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(7.5);
-      const nameLines = pdf.splitTextToSize(finish.name, finishColumnWidth - 4).slice(0, 2);
-      const lineHeight = 3.4;
-      const nameStartY =
-        blockTop + blockHeight / 2 - (nameLines.length * lineHeight) / 2 + lineHeight * 0.8;
-      pdf.text(nameLines, tableX + finishColumnWidth / 2, nameStartY, { align: "center" });
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(7.5);
+    const nameLines = pdf.splitTextToSize(finish.name, finishColumnWidth - 4).slice(0, 2);
+    const lineHeight = 3.4;
+    const nameStartY =
+      blockTop + blockHeight / 2 - (nameLines.length * lineHeight) / 2 + lineHeight * 0.8;
+    pdf.text(nameLines, tableX + finishColumnWidth / 2, nameStartY, { align: "center" });
 
-      if (finishIndex < finishes.length - 1) {
-        pdf.setDrawColor(205, 211, 206);
-        pdf.setLineWidth(0.35);
-        pdf.line(tableX, rowY, tableX + tableWidth, rowY);
-      }
-    },
-  );
+    if (finishIndex < finishList.length - 1) {
+      pdf.setDrawColor(205, 211, 206);
+      pdf.setLineWidth(0.35);
+      pdf.line(tableX, rowY, tableX + tableWidth, rowY);
+    }
+  });
 
   return tableY + bodyHeight;
 }
 
 /**
  * The product's photos fill their whole column edge to edge — no padding, no gap between
- * two or three stacked photos — cropped (never stretched) to cover the space.
+ * two stacked photos — cropped (never stretched) to cover the space.
  */
 async function drawImageColumn(
   pdf: jsPDF,
@@ -556,47 +569,53 @@ function formatMoney(value: number) {
   return `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
+/**
+ * Landscape means much less vertical room than the old portrait design had, so this packs
+ * the discount cards and the rules into full-width rows instead of stacking everything —
+ * the extra width pays for the height that a wide-short page doesn't have.
+ */
 function addConditionsPage(pdf: jsPDF, variant: "professional" | "reseller") {
   const pageWidth = pdf.internal.pageSize.getWidth();
   const margin = 15;
   const contentWidth = pageWidth - margin * 2;
   const isReseller = variant === "reseller";
 
+  const headerHeight = 46;
   pdf.setFillColor(42, 47, 44);
-  pdf.rect(0, 0, pageWidth, 62, "F");
+  pdf.rect(0, 0, pageWidth, headerHeight, "F");
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(9);
+  pdf.setFontSize(8.5);
   pdf.setTextColor(200, 206, 201);
-  pdf.text("CATÁLOGO ARTENO", margin, 24);
+  pdf.text("CATÁLOGO ARTENO", margin, 18);
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(28);
+  pdf.setFontSize(23);
   pdf.setTextColor(255, 255, 255);
-  pdf.text(isReseller ? "Condições para revendedores" : "Condições para profissionais", margin, 38);
+  pdf.text(isReseller ? "Condições para revendedores" : "Condições para profissionais", margin, 30);
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(11);
+  pdf.setFontSize(10);
   pdf.setTextColor(222, 226, 222);
   pdf.text(
     isReseller
       ? "Descontos progressivos exclusivos para parceiros aprovados."
       : "Condição especial para arquitetos, paisagistas, designers e especificadores.",
     margin,
-    49,
+    39,
   );
 
   const sectionLabel = (label: string, y: number) => {
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(9);
+    pdf.setFontSize(8.5);
     pdf.setTextColor(105, 112, 107);
     pdf.text(label, margin, y);
   };
 
-  let y = 80;
+  let y = headerHeight + 11;
   if (isReseller) {
     sectionLabel("FAIXAS DE DESCONTO", y);
     y += 6;
     const gap = 6;
     const cardWidth = (contentWidth - gap * (RESELLER_TIERS.length - 1)) / RESELLER_TIERS.length;
-    const cardHeight = 52;
+    const cardHeight = 36;
     RESELLER_TIERS.forEach((tier, index) => {
       const next = RESELLER_TIERS[index + 1];
       const x = margin + index * (cardWidth + gap);
@@ -606,17 +625,17 @@ function addConditionsPage(pdf: jsPDF, variant: "professional" | "reseller") {
       else pdf.setFillColor(242, 244, 241);
       pdf.roundedRect(x, y, cardWidth, cardHeight, 4, 4, "F");
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(32);
+      pdf.setFontSize(24);
       if (highlighted) pdf.setTextColor(255, 255, 255);
       else pdf.setTextColor(42, 47, 44);
-      pdf.text(`${Math.round(tier.discount * 100)}%`, centerX, y + 22, { align: "center" });
+      pdf.text(`${Math.round(tier.discount * 100)}%`, centerX, y + 15, { align: "center" });
       pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8.5);
+      pdf.setFontSize(7.5);
       if (highlighted) pdf.setTextColor(222, 226, 222);
       else pdf.setTextColor(105, 112, 107);
-      pdf.text("de desconto", centerX, y + 29, { align: "center" });
+      pdf.text("de desconto", centerX, y + 20.5, { align: "center" });
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(9);
+      pdf.setFontSize(8.5);
       if (highlighted) pdf.setTextColor(255, 255, 255);
       else pdf.setTextColor(42, 47, 44);
       pdf.text(
@@ -624,37 +643,37 @@ function addConditionsPage(pdf: jsPDF, variant: "professional" | "reseller") {
           ? `${formatMoney(tier.minimum)} a ${formatMoney(next.minimum - 0.01)}`
           : `A partir de ${formatMoney(tier.minimum)}`,
         centerX,
-        y + 40,
+        y + 28,
         { align: "center" },
       );
       pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8);
+      pdf.setFontSize(7.5);
       if (highlighted) pdf.setTextColor(222, 226, 222);
       else pdf.setTextColor(105, 112, 107);
-      pdf.text("em produtos por pedido", centerX, y + 46, { align: "center" });
+      pdf.text("em produtos por pedido", centerX, y + 32.5, { align: "center" });
     });
-    y += cardHeight + 18;
+    y += cardHeight + 11;
   } else {
     sectionLabel("DESCONTO", y);
     y += 6;
-    const cardHeight = 44;
+    const cardHeight = 32;
     pdf.setFillColor(42, 47, 44);
     pdf.roundedRect(margin, y, contentWidth, cardHeight, 4, 4, "F");
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(40);
+    pdf.setFontSize(28);
     pdf.setTextColor(255, 255, 255);
-    pdf.text(`${Math.round(PROFESSIONAL_DISCOUNT * 100)}%`, margin + 12, y + 28);
-    pdf.setFontSize(13);
-    pdf.text("de desconto sobre a tabela", margin + 62, y + 20);
+    pdf.text(`${Math.round(PROFESSIONAL_DISCOUNT * 100)}%`, margin + 12, y + 21);
+    pdf.setFontSize(12);
+    pdf.text("de desconto sobre a tabela", margin + 55, y + 15);
     pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(9.5);
+    pdf.setFontSize(9);
     pdf.setTextColor(222, 226, 222);
-    pdf.text("Válido para profissionais e especificadores.", margin + 62, y + 28);
-    y += cardHeight + 18;
+    pdf.text("Válido para profissionais e especificadores.", margin + 55, y + 23);
+    y += cardHeight + 11;
   }
 
   sectionLabel("COMO FUNCIONA", y);
-  y += 9;
+  y += 7;
   const rules: Array<[string, string]> = isReseller
     ? [
         [
@@ -674,38 +693,39 @@ function addConditionsPage(pdf: jsPDF, variant: "professional" | "reseller") {
         ],
         ["Modalidade", "Esta condição é destinada a especificação e não caracteriza revenda."],
       ];
-  for (const [label, description] of rules) {
+  // Side by side instead of stacked — a short landscape page has width to spare, not height.
+  const ruleGap = 10;
+  const ruleColumnWidth = (contentWidth - ruleGap * (rules.length - 1)) / rules.length;
+  let rulesBottom = y;
+  rules.forEach(([label, description], index) => {
+    const x = margin + index * (ruleColumnWidth + ruleGap);
     pdf.setFillColor(42, 47, 44);
-    pdf.circle(margin + 2, y - 1.3, 1.3, "F");
+    pdf.circle(x + 2, y - 1.3, 1.3, "F");
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(11);
+    pdf.setFontSize(10.5);
     pdf.setTextColor(42, 47, 44);
-    pdf.text(label, margin + 8, y);
+    pdf.text(label, x + 7, y);
     pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(10);
+    pdf.setFontSize(9);
     pdf.setTextColor(65, 72, 67);
-    const lines = pdf.splitTextToSize(description, contentWidth - 8);
-    pdf.text(lines, margin + 8, y + 6);
-    y += 6 + lines.length * 4.6 + 6;
-    pdf.setDrawColor(225, 229, 225);
-    pdf.setLineWidth(0.25);
-    pdf.line(margin, y - 3, margin + contentWidth, y - 3);
-    y += 4;
-  }
+    const lines = pdf.splitTextToSize(description, ruleColumnWidth - 7);
+    pdf.text(lines, x + 7, y + 6);
+    rulesBottom = Math.max(rulesBottom, y + 6 + lines.length * 4.3);
+  });
+  y = rulesBottom + 10;
 
-  y += 4;
   const notice = isReseller
     ? "Condições exclusivas para parceiros aprovados. O valor do pedido ou o download deste catálogo não concedem aprovação como revendedor."
     : "O download deste catálogo não representa aprovação automática como parceiro.";
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(9);
+  pdf.setFontSize(8.5);
   const noticeLines = pdf.splitTextToSize(notice, contentWidth - 16);
-  const noticeHeight = noticeLines.length * 4.4 + 10;
+  const noticeHeight = noticeLines.length * 4.2 + 9;
   pdf.setDrawColor(205, 211, 206);
   pdf.setFillColor(250, 250, 247);
   pdf.roundedRect(margin, y, contentWidth, noticeHeight, 3, 3, "FD");
   pdf.setTextColor(90, 97, 92);
-  pdf.text(noticeLines, margin + 8, y + 7.5);
+  pdf.text(noticeLines, margin + 8, y + 7);
 }
 
 export async function buildCatalogPDF(
@@ -715,7 +735,7 @@ export async function buildCatalogPDF(
   sharedImageCache: ImageCache = new Map(),
   options: { category?: string } = {},
 ): Promise<Blob> {
-  const pdf = new jsPDF("p", "mm", "a4");
+  const pdf = new jsPDF("l", "mm", "a4");
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = 15;
@@ -739,7 +759,7 @@ export async function buildCatalogPDF(
   // built in this order (not inserted afterwards) so no page ever inherits the wrong
   // orientation from a page added before it.
   if (variant !== "standard") {
-    pdf.addPage("a4", "p");
+    pdf.addPage("a4", "l");
     addConditionsPage(pdf, variant);
   }
 
@@ -764,21 +784,24 @@ export async function buildCatalogPDF(
 
   // Product pages: landscape, one per product, sized to fit its own content exactly — no
   // fixed height to run short against, so a product with few sizes never leaves a slab of
-  // empty space and one with many finishes never gets its rows cut off. The photo takes
-  // one side full-bleed (30% of the width) and the pricing the other (70%), alternating
+  // empty space and one with many finishes never gets its rows cut off — down to a minimum
+  // so a very small table still gets a page that doesn't look paper-thin. The photo takes
+  // one side full-bleed (40% of the width) and the pricing the other (60%), alternating
   // sides product to product so the layout doesn't get monotonous.
   const productPageWidth = 297;
-  const imageColumnWidth = productPageWidth * 0.3;
+  const imageColumnWidth = productPageWidth * 0.4;
   const tableColumnWidth = productPageWidth - imageColumnWidth;
   const contentTop = 16;
   const bottomPadding = 16;
   const buttonWidth = 90;
   const buttonHeight = 10;
+  // ~600px at 96dpi (a common "on-screen" reference), converted to mm.
+  const minProductPageHeight = (600 / 96) * 25.4;
   let productIndex = 0;
 
   // Page one is reserved for the cover.
   for (const category of categories) {
-    pdf.addPage("a4", "p");
+    pdf.addPage("a4", "l");
     const products = snapshot.products
       .filter((product) => product.category === category)
       .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
@@ -813,15 +836,18 @@ export async function buildCatalogPDF(
       const titleLines = pdf.splitTextToSize(product.name, tableWidth).slice(0, 2);
       const titleBlockHeight = 7 + (titleLines.length - 1) * 8.5 + 6;
       const tableTop = contentTop + titleBlockHeight;
-      const pageHeightForProduct = tableTop + tableHeight + 6 + buttonHeight + bottomPadding;
+      const pageHeightForProduct = Math.max(
+        minProductPageHeight,
+        tableTop + tableHeight + 6 + buttonHeight + bottomPadding,
+      );
 
       pdf.addPage([productPageWidth, pageHeightForProduct], "l");
 
       // An admin-set featured photo replaces the gallery entirely for this column; otherwise
-      // fall back to the product's own photos (up to three, stacked).
+      // fall back to the product's own photos (up to two, stacked).
       const images = product.pdf_image_url
         ? [product.pdf_image_url]
-        : (product.images ?? []).filter(Boolean).slice(0, 3);
+        : (product.images ?? []).filter(Boolean).slice(0, 2);
       const imageColumnX = imageOnLeft ? 0 : productPageWidth - imageColumnWidth;
       await drawImageColumn(
         pdf,
@@ -875,7 +901,7 @@ export async function buildCatalogPDF(
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(20);
-  pdf.text(`Catálogo ${snapshot.generatedAt.getFullYear()}`, pageWidth / 2, 42, {
+  pdf.text(`Catálogo ${snapshot.generatedAt.getFullYear()}`, pageWidth / 2, pageHeight * 0.14, {
     align: "center",
     charSpace: 0.6,
   });
@@ -888,7 +914,7 @@ export async function buildCatalogPDF(
         ? "Profissionais / Especificadores"
         : "Cliente final",
     pageWidth / 2,
-    pageHeight - 36,
+    pageHeight * 0.88,
     { align: "center", charSpace: 0.3 },
   );
 
