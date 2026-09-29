@@ -450,7 +450,7 @@ function DashboardProductsPage() {
           <button
             type="button"
             onClick={() => void updateProductsInPdf()}
-            disabled={updatingPdf || !pdfPending}
+            disabled={updatingPdf}
             className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium text-foreground transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
           >
             {updatingPdf ? (
