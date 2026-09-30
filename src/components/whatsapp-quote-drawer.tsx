@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { maskCnpj, maskCpf, maskPhoneBR } from "@/lib/masks";
 import { useQuoteStore } from "@/lib/quote-store";
 import { useLeadsStore } from "@/lib/leads-store";
-import { publicSupabase } from "@/integrations/supabase/client";
 import { compactError, useFormDebugLogStore } from "@/lib/form-debug-log";
 
 import { useWhatsAppNumber } from "@/lib/site-settings";
@@ -155,101 +154,59 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
       `Telefone: ${parsed.data.phone}\n\n` +
       `Produtos:\n${list}`;
 
-    // Persiste no CRM: primeiro no Supabase (best-effort), depois localStorage como fallback
+    const isCnpj =
+      parsed.data.customerType === "reseller" ||
+      (parsed.data.customerType === "professional" && parsed.data.professionalDocument === "cnpj");
+
+    // Local CRM fallback (browser-only cache, separate from the Supabase leads table).
     const payload = {
       name: parsed.data.name,
       phone: parsed.data.phone,
       items,
       source: "whatsapp" as const,
     };
+    addLead(payload);
+
+    // The anon browser client can't write to `orders` (and inserting `leads` this way used
+    // to fail silently too), so both go through a server endpoint with the service role —
+    // fire-and-forget, so it never delays opening WhatsApp.
     addDebugLog({
       level: "info",
       action: "whatsapp_form_submit",
-      message: "Tentativa de gravar lead na tabela public.leads.",
-      details: {
-        table: "public.leads",
-        role: "anon/public client",
-        name: payload.name,
-        phone: payload.phone,
-        itemCount: payload.items.length,
-      },
+      message: "Registrando orçamento e lead via /api/whatsapp-quote.",
+      details: { name: payload.name, phone: payload.phone, itemCount: items.length },
     });
-    // Fire-and-forget (não bloqueia a abertura do WhatsApp)
     void (async () => {
       try {
-        const { error } = await publicSupabase.from("leads" as never).insert(payload as never);
-        if (error) {
-          console.warn("[leads] supabase insert failed:", error.message);
-          addDebugLog({
-            level: "error",
-            action: "supabase_insert_lead_failed",
-            message: error.message,
-            details: compactError(error),
-          });
-          return;
-        }
+        const response = await fetch("/api/whatsapp-quote", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            name: parsed.data.name,
+            phone: parsed.data.phone,
+            customerType: parsed.data.customerType,
+            document: isCnpj ? parsed.data.cnpj : parsed.data.cpf,
+            documentType: isCnpj ? "cnpj" : "cpf",
+            companyName: parsed.data.companyName,
+            items,
+            attribution: getMarketingAttribution(),
+          }),
+        });
+        const result = (await response.json()) as { ok?: boolean; error?: string };
+        if (!response.ok || !result.ok) throw new Error(result.error ?? response.statusText);
         addDebugLog({
           level: "success",
-          action: "supabase_insert_lead_success",
-          message: "Lead enviado ao Supabase sem erro de INSERT.",
-          details: { table: "public.leads" },
+          action: "whatsapp_quote_submit_success",
+          message: "Orçamento e lead registrados com sucesso.",
         });
       } catch (error: unknown) {
-        console.warn("[leads] supabase insert crashed:", error);
+        console.warn("[whatsapp-quote] falha ao registrar orçamento/lead:", error);
         addDebugLog({
           level: "error",
-          action: "supabase_insert_lead_crash",
+          action: "whatsapp_quote_submit_failed",
           message: compactError(error).message,
           details: compactError(error),
         });
-      }
-    })();
-    addLead(payload);
-
-    // Also create an orçamento (order) row so it appears in the dashboard
-    void (async () => {
-      try {
-        const cleanItems = items.map((i) => ({
-          kind: "catalog" as const,
-          product_id: i.id ?? null,
-          name: i.name,
-          description: null,
-          quantity: i.quantity,
-          price: i.unitPrice ?? 0,
-          size_id: null,
-          size_name: i.sizeLabel ?? null,
-          finish: i.finish ?? null,
-          color: i.color ?? null,
-        }));
-        const meta = {
-          __meta: 1,
-          personType: parsed.data.customerType === "final" ? "fisica" : "juridica",
-          customerType: parsed.data.customerType,
-          cpf:
-            parsed.data.customerType === "final" || parsed.data.professionalDocument === "cpf"
-              ? parsed.data.cpf
-              : null,
-          cnpj:
-            parsed.data.customerType === "reseller" || parsed.data.professionalDocument === "cnpj"
-              ? parsed.data.cnpj
-              : null,
-          companyName: parsed.data.customerType !== "final" ? parsed.data.companyName : null,
-          attribution: getMarketingAttribution(),
-          conversionChannel: "whatsapp",
-        };
-        const total = items.reduce((s, i) => s + (i.unitPrice ?? 0) * i.quantity, 0);
-        await publicSupabase.from("orders" as never).insert({
-          status: "orcamento",
-          origin: meta.attribution?.channel ?? "whatsapp",
-          customer_name: parsed.data.name,
-          customer_phone: parsed.data.phone,
-          customer_email: null,
-          items: cleanItems,
-          total,
-          notes: JSON.stringify(meta),
-        } as never);
-      } catch (err) {
-        console.warn("[orders] whatsapp insert failed", err);
       }
     })();
 

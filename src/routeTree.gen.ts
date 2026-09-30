@@ -54,6 +54,7 @@ import { Route as DashboardCadastrarProdutoRouteImport } from './routes/dashboar
 import { Route as DashboardAcabamentosRouteImport } from './routes/dashboard.acabamentos'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 import { Route as CatalogoVariantRouteImport } from './routes/catalogo_.$variant'
+import { Route as ApiWhatsappQuoteRouteImport } from './routes/api/whatsapp-quote'
 import { Route as ApiUploadMediaRouteImport } from './routes/api/upload-media'
 import { Route as ApiStorageUsageRouteImport } from './routes/api/storage-usage'
 import { Route as ApiServerStorageRouteImport } from './routes/api/server-storage'
@@ -301,6 +302,11 @@ const CatalogoVariantRoute = CatalogoVariantRouteImport.update({
   path: '/catalogo/$variant',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWhatsappQuoteRoute = ApiWhatsappQuoteRouteImport.update({
+  id: '/api/whatsapp-quote',
+  path: '/api/whatsapp-quote',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiUploadMediaRoute = ApiUploadMediaRouteImport.update({
   id: '/api/upload-media',
   path: '/api/upload-media',
@@ -441,6 +447,7 @@ export interface FileRoutesByFullPath {
   '/api/server-storage': typeof ApiServerStorageRoute
   '/api/storage-usage': typeof ApiStorageUsageRoute
   '/api/upload-media': typeof ApiUploadMediaRoute
+  '/api/whatsapp-quote': typeof ApiWhatsappQuoteRoute
   '/catalogo/$variant': typeof CatalogoVariantRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
@@ -507,6 +514,7 @@ export interface FileRoutesByTo {
   '/api/server-storage': typeof ApiServerStorageRoute
   '/api/storage-usage': typeof ApiStorageUsageRoute
   '/api/upload-media': typeof ApiUploadMediaRoute
+  '/api/whatsapp-quote': typeof ApiWhatsappQuoteRoute
   '/catalogo/$variant': typeof CatalogoVariantRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
@@ -574,6 +582,7 @@ export interface FileRoutesById {
   '/api/server-storage': typeof ApiServerStorageRoute
   '/api/storage-usage': typeof ApiStorageUsageRoute
   '/api/upload-media': typeof ApiUploadMediaRoute
+  '/api/whatsapp-quote': typeof ApiWhatsappQuoteRoute
   '/catalogo_/$variant': typeof CatalogoVariantRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
@@ -643,6 +652,7 @@ export interface FileRouteTypes {
     | '/api/server-storage'
     | '/api/storage-usage'
     | '/api/upload-media'
+    | '/api/whatsapp-quote'
     | '/catalogo/$variant'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
@@ -709,6 +719,7 @@ export interface FileRouteTypes {
     | '/api/server-storage'
     | '/api/storage-usage'
     | '/api/upload-media'
+    | '/api/whatsapp-quote'
     | '/catalogo/$variant'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
@@ -775,6 +786,7 @@ export interface FileRouteTypes {
     | '/api/server-storage'
     | '/api/storage-usage'
     | '/api/upload-media'
+    | '/api/whatsapp-quote'
     | '/catalogo_/$variant'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
@@ -843,6 +855,7 @@ export interface RootRouteChildren {
   ApiServerStorageRoute: typeof ApiServerStorageRoute
   ApiStorageUsageRoute: typeof ApiStorageUsageRoute
   ApiUploadMediaRoute: typeof ApiUploadMediaRoute
+  ApiWhatsappQuoteRoute: typeof ApiWhatsappQuoteRoute
   CatalogoVariantRoute: typeof CatalogoVariantRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
@@ -1168,6 +1181,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CatalogoVariantRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/whatsapp-quote': {
+      id: '/api/whatsapp-quote'
+      path: '/api/whatsapp-quote'
+      fullPath: '/api/whatsapp-quote'
+      preLoaderRoute: typeof ApiWhatsappQuoteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/upload-media': {
       id: '/api/upload-media'
       path: '/api/upload-media'
@@ -1425,6 +1445,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiServerStorageRoute: ApiServerStorageRoute,
   ApiStorageUsageRoute: ApiStorageUsageRoute,
   ApiUploadMediaRoute: ApiUploadMediaRoute,
+  ApiWhatsappQuoteRoute: ApiWhatsappQuoteRoute,
   CatalogoVariantRoute: CatalogoVariantRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
