@@ -75,6 +75,7 @@ import { Route as DashboardCrmLeadsRouteImport } from './routes/dashboard.crm.le
 import { Route as ApiOrdersReconcilePersonRouteImport } from './routes/api/orders.reconcile-person'
 import { Route as ApiNotaasConnectionRouteImport } from './routes/api/notaas.connection'
 import { Route as ApiGscOverviewRouteImport } from './routes/api/gsc.overview'
+import { Route as ApiAnalyticsOverviewRouteImport } from './routes/api/analytics.overview'
 
 const Api_rootRoute = Api_rootRouteImport.update({
   id: '/api/__root',
@@ -411,6 +412,11 @@ const ApiGscOverviewRoute = ApiGscOverviewRouteImport.update({
   path: '/api/gsc/overview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAnalyticsOverviewRoute = ApiAnalyticsOverviewRouteImport.update({
+  id: '/api/analytics/overview',
+  path: '/api/analytics/overview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -470,6 +476,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
   '/api/notaas/connection': typeof ApiNotaasConnectionRoute
   '/api/orders/reconcile-person': typeof ApiOrdersReconcilePersonRoute
@@ -536,6 +543,7 @@ export interface FileRoutesByTo {
   '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
   '/api/notaas/connection': typeof ApiNotaasConnectionRoute
   '/api/orders/reconcile-person': typeof ApiOrdersReconcilePersonRoute
@@ -605,6 +613,7 @@ export interface FileRoutesById {
   '/dashboard/seo': typeof DashboardSeoRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
   '/api/notaas/connection': typeof ApiNotaasConnectionRoute
   '/api/orders/reconcile-person': typeof ApiOrdersReconcilePersonRoute
@@ -675,6 +684,7 @@ export interface FileRouteTypes {
     | '/dashboard/seo'
     | '/produto/$slug'
     | '/dashboard/'
+    | '/api/analytics/overview'
     | '/api/gsc/overview'
     | '/api/notaas/connection'
     | '/api/orders/reconcile-person'
@@ -741,6 +751,7 @@ export interface FileRouteTypes {
     | '/dashboard/seo'
     | '/produto/$slug'
     | '/dashboard'
+    | '/api/analytics/overview'
     | '/api/gsc/overview'
     | '/api/notaas/connection'
     | '/api/orders/reconcile-person'
@@ -809,6 +820,7 @@ export interface FileRouteTypes {
     | '/dashboard/seo'
     | '/produto/$slug'
     | '/dashboard/'
+    | '/api/analytics/overview'
     | '/api/gsc/overview'
     | '/api/notaas/connection'
     | '/api/orders/reconcile-person'
@@ -859,6 +871,7 @@ export interface RootRouteChildren {
   CatalogoVariantRoute: typeof CatalogoVariantRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
+  ApiAnalyticsOverviewRoute: typeof ApiAnalyticsOverviewRoute
   ApiGscOverviewRoute: typeof ApiGscOverviewRoute
   ApiNotaasConnectionRoute: typeof ApiNotaasConnectionRoute
   ApiOrdersReconcilePersonRoute: typeof ApiOrdersReconcilePersonRoute
@@ -1328,6 +1341,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGscOverviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/analytics/overview': {
+      id: '/api/analytics/overview'
+      path: '/api/analytics/overview'
+      fullPath: '/api/analytics/overview'
+      preLoaderRoute: typeof ApiAnalyticsOverviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1449,6 +1469,7 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogoVariantRoute: CatalogoVariantRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
+  ApiAnalyticsOverviewRoute: ApiAnalyticsOverviewRoute,
   ApiGscOverviewRoute: ApiGscOverviewRoute,
   ApiNotaasConnectionRoute: ApiNotaasConnectionRoute,
   ApiOrdersReconcilePersonRoute: ApiOrdersReconcilePersonRoute,

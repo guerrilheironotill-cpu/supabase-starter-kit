@@ -1,69 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { getGoogleAccessToken } from "@/lib/google-service-account";
 
 const SITE_URL = "https://arteno.com.br/";
 const SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
-
-function b64url(input: ArrayBuffer | Uint8Array | string) {
-  const bytes =
-    typeof input === "string"
-      ? new TextEncoder().encode(input)
-      : input instanceof Uint8Array
-        ? input
-        : new Uint8Array(input);
-  let s = "";
-  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
-  return btoa(s).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
-}
-
-function pemToPkcs8(pem: string) {
-  const b64 = pem
-    .replace(/-----BEGIN PRIVATE KEY-----/, "")
-    .replace(/-----END PRIVATE KEY-----/, "")
-    .replace(/\s+/g, "");
-  const bin = atob(b64);
-  const buf = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-  return buf.buffer;
-}
-
-async function getAccessToken() {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  if (!raw) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON not set");
-  const sa = JSON.parse(raw) as { client_email: string; private_key: string };
-
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: "RS256", typ: "JWT" };
-  const claim = {
-    iss: sa.client_email,
-    scope: SCOPE,
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
-  };
-  const unsigned = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(claim))}`;
-  const key = await crypto.subtle.importKey(
-    "pkcs8",
-    pemToPkcs8(sa.private_key),
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    key,
-    new TextEncoder().encode(unsigned),
-  );
-  const jwt = `${unsigned}.${b64url(sig)}`;
-
-  const r = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
-  });
-  if (!r.ok) throw new Error(`Token ${r.status}: ${await r.text()}`);
-  const { access_token } = (await r.json()) as { access_token: string };
-  return access_token;
-}
 
 function fmtDate(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -86,7 +25,7 @@ export const Route = createFileRoute("/api/gsc/overview")({
 
         const encoded = encodeURIComponent(SITE_URL);
         try {
-          const token = await getAccessToken();
+          const token = await getGoogleAccessToken(SCOPE);
           const baseUrl = `https://searchconsole.googleapis.com/webmasters/v3/sites/${encoded}/searchAnalytics/query`;
           const query = async (
             startDate: Date,
