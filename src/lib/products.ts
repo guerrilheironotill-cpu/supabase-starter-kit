@@ -25,6 +25,21 @@ export function currentPrice(size: Pick<ProductSize, "base_price" | "sale_price"
   return validSalePrice(size) ?? Number(size.base_price);
 }
 
+const SIZE_CODES = ["P", "M", "G", "GG", "XG", "XXG"];
+
+/** Size as shown on the site: code (P, M, G...) before the dash, then the measures. */
+export function sizeDisplayLabel(
+  size: { name?: string | null; size?: string | null },
+  index: number,
+  total: number,
+) {
+  const value = size.name ?? size.size ?? "";
+  const separator = value.indexOf("|");
+  if (separator >= 0) return `${value.slice(0, separator).trim()} — ${value.slice(separator + 1).trim()}`;
+  const code = total === 1 ? "Único" : total <= SIZE_CODES.length ? SIZE_CODES[index] : String(index + 1);
+  return value ? `${code} — ${value}` : code;
+}
+
 export function productPriceRange(product: Pick<Product, "product_sizes">) {
   const sizes = (product.product_sizes ?? []).filter((size) => Number(size.base_price) > 0);
   if (!sizes.length) return null;

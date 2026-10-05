@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FileText,
   Plus,
@@ -50,7 +50,7 @@ import { toast } from "sonner";
 import { ensureCustomerForApprovedQuote } from "@/lib/customer-conversion";
 import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
 import { quoteDiscountAmount } from "@/lib/commercial-rules";
-import { currentPrice } from "@/lib/products";
+import { currentPrice, sizeDisplayLabel, validSalePrice } from "@/lib/products";
 
 export const Route = createFileRoute("/dashboard/orcamentos")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -200,21 +200,24 @@ type ItemDraft = {
   length?: string;
 };
 
-type QuoteStatus = "em_aberto" | "aprovado" | "nao_aprovado";
+type QuoteStatus = "rascunho" | "em_aberto" | "aprovado" | "nao_aprovado";
 
 const STATUS_LABEL: Record<QuoteStatus, string> = {
+  rascunho: "Rascunho",
   em_aberto: "Em aberto",
   aprovado: "Aprovado",
   nao_aprovado: "Não aprovado",
 };
 
 const STATUS_STYLES: Record<QuoteStatus, string> = {
+  rascunho: "bg-slate-500/15 text-slate-400",
   em_aberto: "bg-amber-500/15 text-amber-400",
   aprovado: "bg-emerald-500/15 text-emerald-400",
   nao_aprovado: "bg-red-500/15 text-red-400",
 };
 
 const STATUS_WRITE_CANDIDATES: Record<QuoteStatus, string[]> = {
+  rascunho: ["rascunho", "draft"],
   em_aberto: ["orcamento", "em_aberto", "em aberto", "aberto", "quote_pending", "open"],
   aprovado: ["aprovado", "aprovada", "approved"],
   nao_aprovado: [
@@ -243,6 +246,7 @@ function normalizeQuoteStatus(status: string | null | undefined): QuoteStatus {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[\s-]+/g, "_");
 
+  if (["rascunho", "draft"].includes(clean)) return "rascunho";
   if (["aprovado", "aprovada", "quote_approved", "approved"].includes(clean)) return "aprovado";
   if (
     [
@@ -517,6 +521,7 @@ function DashboardQuotesPage() {
             className="rounded-md border border-border bg-background px-3 py-2 text-sm"
           >
             <option value="all">Todos os status</option>
+            <option value="rascunho">Rascunho</option>
             <option value="em_aberto">Em aberto</option>
             <option value="nao_aprovado">Não aprovado</option>
           </select>
@@ -1901,6 +1906,95 @@ function NewQuoteDialogImpl({
       return next;
     });
 
+  const buildCleanItems = () =>
+    items
+      .filter((i) => i.name.trim())
+      .map((i) => ({
+        kind: i.kind,
+        product_id: i.product_id ?? null,
+        name: i.name,
+        description: i.description ?? null,
+        quantity: Number(i.quantity) || 1,
+        price: Number(i.price) || 0,
+        regular_price: i.regular_price && i.regular_price > 0 ? i.regular_price : null,
+        size_id: i.size_id ?? null,
+        size_name: i.size_name ?? null,
+        finish: i.finish ?? null,
+        custom_finish: i.custom_finish?.trim() || null,
+        finish_extra: Number(i.finish_extra) || 0,
+        color: i.color ?? null,
+        custom_color: i.custom_color?.trim() || null,
+        color_extra: Number(i.color_extra) || 0,
+        height: i.height?.trim() ? Number(i.height) : null,
+        width: i.width?.trim() ? Number(i.width) : null,
+        length: i.length?.trim() ? Number(i.length) : null,
+      }));
+
+  const buildMetaPayload = () =>
+    JSON.stringify({
+      __meta: 1,
+      freight: Number(freight) || 0,
+      freightNote,
+      deadline,
+      payment,
+      pix,
+      note: notes,
+      address,
+      discountType,
+      discountValue: Number(discountValue) || 0,
+      discountReason: discountReason.trim(),
+      personType,
+      cpf: personType === "fisica" ? cpf : null,
+      cnpj: personType === "juridica" ? cnpj : null,
+      companyName: personType === "juridica" ? companyName : null,
+      attribution: initialMeta.attribution,
+      conversionChannel: initialMeta.conversionChannel,
+    });
+
+  // A quote that is closed without being saved is kept as a draft ("rascunho").
+  const sourceIsDraft =
+    editMode && normalizeQuoteStatus(duplicateSource?.status) === "rascunho";
+  const finishedRef = useRef(false);
+  const saveDraftRef = useRef<() => void>(() => {});
+  saveDraftRef.current = () => {
+    if (finishedRef.current) return;
+    if (editMode && !sourceIsDraft) return;
+    const cleanItems = buildCleanItems();
+    if (!name.trim() && !phone.trim() && !email.trim() && cleanItems.length === 0) return;
+    const payload: Record<string, unknown> = {
+      customer_name: name.trim() || "Sem nome",
+      customer_phone: phone || null,
+      customer_email: email || null,
+      items: cleanItems,
+      total,
+      notes: buildMetaPayload(),
+    };
+    void (async () => {
+      const writeStatuses = STATUS_WRITE_CANDIDATES.rascunho;
+      for (const status of writeStatuses) {
+        const { customer_email: _email, ...withoutEmail } = payload;
+        const attempts =
+          sourceIsDraft && duplicateSource
+            ? [payload, withoutEmail]
+            : [{ ...payload, origin: "manual" }, payload, withoutEmail];
+        for (const attempt of attempts) {
+          const query = supabase.from("orders" as never);
+          const { error } =
+            sourceIsDraft && duplicateSource
+              ? await query.update({ ...attempt, status } as never).eq("id", duplicateSource.id)
+              : await query.insert({ ...attempt, status } as never);
+          if (!error) {
+            toast.success("Orçamento salvo como rascunho");
+            return;
+          }
+          console.warn(`[draft save:${status}]`, error.message);
+        }
+      }
+      toast.error("Não foi possível salvar o rascunho do orçamento");
+    })();
+  };
+  useEffect(() => () => saveDraftRef.current(), []);
+
   const submit = async () => {
     if (!name.trim()) {
       toast.error("Informe o nome do cliente");
@@ -1972,28 +2066,7 @@ function NewQuoteDialogImpl({
     }
     setSaving(true);
     try {
-      const cleanItems = items
-        .filter((i) => i.name.trim())
-        .map((i) => ({
-          kind: i.kind,
-          product_id: i.product_id ?? null,
-          name: i.name,
-          description: i.description ?? null,
-          quantity: Number(i.quantity) || 1,
-          price: Number(i.price) || 0,
-          regular_price: i.regular_price && i.regular_price > 0 ? i.regular_price : null,
-          size_id: i.size_id ?? null,
-          size_name: i.size_name ?? null,
-          finish: i.finish ?? null,
-          custom_finish: i.custom_finish?.trim() || null,
-          finish_extra: Number(i.finish_extra) || 0,
-          color: i.color ?? null,
-          custom_color: i.custom_color?.trim() || null,
-          color_extra: Number(i.color_extra) || 0,
-          height: i.height?.trim() ? Number(i.height) : null,
-          width: i.width?.trim() ? Number(i.width) : null,
-          length: i.length?.trim() ? Number(i.length) : null,
-        }));
+      const cleanItems = buildCleanItems();
 
       // 1) create a lead so it also appears in CRM (items as jsonb array — same shape as WhatsApp)
       const leadItems = cleanItems.map((i) => ({
@@ -2006,7 +2079,7 @@ function NewQuoteDialogImpl({
       const accessToken = sessionData.session?.access_token;
       if (!accessToken) throw new Error("Sessão administrativa expirada.");
 
-      if (!editMode) {
+      if (!editMode || sourceIsDraft) {
         const leadResponse = await fetch("/api/admin-leads", {
           method: "POST",
           headers: {
@@ -2036,25 +2109,7 @@ function NewQuoteDialogImpl({
       }
 
       // 2) create the order
-      const metaPayload = JSON.stringify({
-        __meta: 1,
-        freight: Number(freight) || 0,
-        freightNote,
-        deadline,
-        payment,
-        pix,
-        note: notes,
-        address,
-        discountType,
-        discountValue: Number(discountValue) || 0,
-        discountReason: discountReason.trim(),
-        personType,
-        cpf: personType === "fisica" ? cpf : null,
-        cnpj: personType === "juridica" ? cnpj : null,
-        companyName: personType === "juridica" ? companyName : null,
-        attribution: initialMeta.attribution,
-        conversionChannel: initialMeta.conversionChannel,
-      });
+      const metaPayload = buildMetaPayload();
       const basePayload: Record<string, unknown> = {
         customer_name: name,
         customer_phone: phone || null,
@@ -2071,9 +2126,13 @@ function NewQuoteDialogImpl({
       let orderSaved = false;
       if (editMode && duplicateSource) {
         // Origin describes acquisition and must not change when an existing quote is edited.
+        // Saving a draft turns it into a regular open quote.
+        const statusPatch: Record<string, unknown> = sourceIsDraft
+          ? { status: STATUS_WRITE_CANDIDATES.em_aberto[0] }
+          : {};
         const updateAttempts: Record<string, unknown>[] = [
-          { ...basePayload, customer_email: email || null },
-          { ...basePayload },
+          { ...basePayload, ...statusPatch, customer_email: email || null },
+          { ...basePayload, ...statusPatch },
         ];
         for (const payload of updateAttempts) {
           const { error } = await supabase
@@ -2107,6 +2166,7 @@ function NewQuoteDialogImpl({
       }
       if (!orderSaved && orderErr) throw orderErr;
 
+      finishedRef.current = true;
       toast.success(editMode ? "Orçamento atualizado" : "Orçamento criado");
       onCreated();
     } catch (e) {
@@ -2413,6 +2473,10 @@ function NewQuoteDialogImpl({
                             ? "Novo produto do catálogo"
                             : "Novo produto personalizado")}
                       </span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {it.size_name ? `${it.size_name} · ` : ""}
+                        Qtd: {Number(it.quantity) || 0}
+                      </span>
                       <ChevronDown
                         className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
                           expandedItems.has(idx) ? "rotate-180" : ""
@@ -2587,7 +2651,8 @@ function NewQuoteDialogImpl({
                                       <Select
                                         value={it.size_id ?? ""}
                                         onValueChange={(v) => {
-                                          const s = sizes.find((x) => x.id === v);
+                                          const sizeIndex = sizes.findIndex((x) => x.id === v);
+                                          const s = sizes[sizeIndex];
                                           // Keep the finish/color extras on top of the new size price.
                                           const extras =
                                             (Number(it.finish_extra) || 0) +
@@ -2597,7 +2662,9 @@ function NewQuoteDialogImpl({
                                             : it.price;
                                           updateItem(idx, {
                                             size_id: v,
-                                            size_name: s?.name,
+                                            size_name: s
+                                              ? sizeDisplayLabel(s, sizeIndex, sizes.length)
+                                              : undefined,
                                             price: Number(priceFromSize) || 0,
                                             regular_price: s
                                               ? (Number(s.base_price) || 0) + extras
@@ -2609,11 +2676,18 @@ function NewQuoteDialogImpl({
                                           <SelectValue placeholder="Selecione" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                          {sizes.map((s) => (
-                                            <SelectItem key={s.id} value={s.id}>
-                                              {s.name} — {currency(currentPrice(s))}
-                                            </SelectItem>
-                                          ))}
+                                          {sizes.map((s, sizeIndex) => {
+                                            const promo = validSalePrice(s);
+                                            return (
+                                              <SelectItem key={s.id} value={s.id}>
+                                                {sizeDisplayLabel(s, sizeIndex, sizes.length)}
+                                                {" — "}
+                                                {promo !== null
+                                                  ? `${currency(promo)} (regular ${currency(s.base_price)})`
+                                                  : currency(s.base_price)}
+                                              </SelectItem>
+                                            );
+                                          })}
                                         </SelectContent>
                                       </Select>
                                     </div>
@@ -2711,6 +2785,11 @@ function NewQuoteDialogImpl({
                               })
                             }
                           />
+                          {it.regular_price != null && it.regular_price > it.price && (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Regular {currency(it.regular_price)} · Promocional {currency(it.price)}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="mt-3 flex justify-end">
