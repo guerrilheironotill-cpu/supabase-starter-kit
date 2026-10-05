@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { maskCpfCnpj, maskPhoneBR } from "@/lib/masks";
+import { quoteDiscountAmount } from "@/lib/commercial-rules";
 
 type Item = {
   id: string;
@@ -14,6 +15,7 @@ type Item = {
   unit_price: number;
   total: number;
   meta: {
+    regular_price?: number | null;
     size_name?: string | null;
     finish?: string | null;
     color?: string | null;
@@ -277,15 +279,15 @@ function EditOrderPage() {
     () => items.reduce((sum, item) => sum + Number(item.quantity) * Number(item.unit_price), 0),
     [items],
   );
-  const discount =
-    Math.round(
-      Math.min(
-        subtotal,
-        discountType === "percentage"
-          ? subtotal * (Math.min(Math.max(discountValue, 0), 100) / 100)
-          : Math.max(discountValue, 0),
-      ) * 100,
-    ) / 100;
+  const discount = quoteDiscountAmount(
+    items.map((item) => ({
+      price: Number(item.unit_price) || 0,
+      quantity: Number(item.quantity) || 0,
+      regularPrice: item.meta?.regular_price,
+    })),
+    discountType,
+    discountValue,
+  );
   const total = subtotal - discount + shipping;
 
   function updateItem(
@@ -405,6 +407,7 @@ function EditOrderPage() {
           description: item.meta?.description || null,
           quantity: Number(item.quantity) || 1,
           price: Number(item.unit_price) || 0,
+          regular_price: Number(item.meta?.regular_price) > 0 ? Number(item.meta?.regular_price) : null,
           size_name: item.meta?.size_name || null,
           finish: item.meta?.finish || null,
           color: item.meta?.color || null,
@@ -691,7 +694,10 @@ function EditOrderPage() {
                 <NumberField
                   label="Valor unitário (R$)"
                   value={item.unit_price}
-                  onChange={(value) => updateItem(index, { unit_price: value })}
+                  onChange={(value) =>
+                    // A manual price replaces the catalog price, so it becomes the discount base.
+                    updateItem(index, { unit_price: value }, { regular_price: null })
+                  }
                 />
                 <label className="grid gap-1 text-sm md:col-span-2 lg:col-span-3">
                   Descrição / detalhes

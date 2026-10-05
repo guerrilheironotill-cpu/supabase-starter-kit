@@ -49,6 +49,8 @@ import {
 import { toast } from "sonner";
 import { ensureCustomerForApprovedQuote } from "@/lib/customer-conversion";
 import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
+import { quoteDiscountAmount } from "@/lib/commercial-rules";
+import { currentPrice } from "@/lib/products";
 
 export const Route = createFileRoute("/dashboard/orcamentos")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -160,17 +162,19 @@ function parseMeta(raw: string | null | undefined): QuoteMeta {
 }
 
 function calculateDiscount(
-  subtotal: number,
+  items: Array<{ price: number; quantity: number; regular_price?: number | null }>,
   type: "percentage" | "fixed",
   value: number,
 ) {
-  const safeSubtotal = Math.max(0, Number(subtotal) || 0);
-  const safeValue = Math.max(0, Number(value) || 0);
-  const amount =
-    type === "percentage"
-      ? safeSubtotal * (Math.min(safeValue, 100) / 100)
-      : Math.min(safeValue, safeSubtotal);
-  return Math.round(amount * 100) / 100;
+  return quoteDiscountAmount(
+    items.map((i) => ({
+      price: Number(i.price) || 0,
+      quantity: Number(i.quantity) || 0,
+      regularPrice: i.regular_price,
+    })),
+    type,
+    value,
+  );
 }
 
 type ItemDraft = {
@@ -180,6 +184,8 @@ type ItemDraft = {
   description?: string;
   quantity: number;
   price: number;
+  /** Regular unit price (extras included); the percentage discount is based on it. */
+  regular_price?: number;
   size_id?: string;
   size_name?: string;
   finish?: string;
@@ -950,6 +956,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
             name: string;
             quantity: number;
             price: number;
+            regular_price?: number | null;
             size_name?: string | null;
             finish?: string | null;
             custom_finish?: string | null;
@@ -985,7 +992,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
         0,
       );
       const shipping = Number(meta.freight) || 0;
-      const discount = calculateDiscount(subtotal, meta.discountType, meta.discountValue);
+      const discount = calculateDiscount(items, meta.discountType, meta.discountValue);
       const totalVal = subtotal - discount + shipping;
       const orderEditorNote = JSON.stringify({
         __order_editor_meta: 1,
@@ -1068,6 +1075,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
           unit_price: Number(i.price) || 0,
           total: (Number(i.price) || 0) * (Number(i.quantity) || 1),
           meta: {
+            regular_price: Number(i.regular_price) > 0 ? Number(i.regular_price) : null,
             size_name: i.size_name ?? null,
             finish: i.finish ?? null,
             custom_finish: i.custom_finish ?? null,
@@ -1240,7 +1248,7 @@ function ShareMenu({
     (s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 0),
     0,
   );
-  const discount = calculateDiscount(itemsSubtotal, meta.discountType, meta.discountValue);
+  const discount = calculateDiscount(items, meta.discountType, meta.discountValue);
   const discountLabel =
     meta.discountType === "percentage"
       ? `Desconto (${meta.discountValue}%)`
@@ -1659,6 +1667,7 @@ function NewQuoteDialogImpl({
         description: typeof item.description === "string" ? item.description : undefined,
         quantity: Number(item.quantity) || 1,
         price: Number(item.price) || 0,
+        regular_price: Number(item.regular_price) > 0 ? Number(item.regular_price) : undefined,
         size_id: typeof item.size_id === "string" ? item.size_id : undefined,
         size_name: typeof item.size_name === "string" ? item.size_name : undefined,
         finish: typeof item.finish === "string" ? item.finish : undefined,
@@ -1791,7 +1800,7 @@ function NewQuoteDialogImpl({
     () => items.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 0), 0),
     [items],
   );
-  const discount = calculateDiscount(itemsSubtotal, discountType, discountValue);
+  const discount = calculateDiscount(items, discountType, discountValue);
   const total = itemsSubtotal - discount + (Number(freight) || 0);
 
   const updateItem = (idx: number, patch: Partial<ItemDraft>) => {
@@ -1840,6 +1849,10 @@ function NewQuoteDialogImpl({
             nextValue === "Personalizado" ? (patch.customName ?? item[nameKey]) : undefined,
           [extraKey]: nextExtra,
           price: Math.max(0, (Number(item.price) || 0) - previousExtra + nextExtra),
+          regular_price:
+            item.regular_price == null
+              ? undefined
+              : Math.max(0, item.regular_price - previousExtra + nextExtra),
         };
       }),
     );
@@ -1968,6 +1981,7 @@ function NewQuoteDialogImpl({
           description: i.description ?? null,
           quantity: Number(i.quantity) || 1,
           price: Number(i.price) || 0,
+          regular_price: i.regular_price && i.regular_price > 0 ? i.regular_price : null,
           size_id: i.size_id ?? null,
           size_name: i.size_name ?? null,
           finish: i.finish ?? null,
@@ -2555,6 +2569,7 @@ function NewQuoteDialogImpl({
                                         width: undefined,
                                         length: undefined,
                                         price: 0,
+                                        regular_price: undefined,
                                       })
                                     }
                                     className="text-xs font-medium text-muted-foreground hover:text-foreground"
@@ -2574,15 +2589,19 @@ function NewQuoteDialogImpl({
                                         onValueChange={(v) => {
                                           const s = sizes.find((x) => x.id === v);
                                           // Keep the finish/color extras on top of the new size price.
+                                          const extras =
+                                            (Number(it.finish_extra) || 0) +
+                                            (Number(it.color_extra) || 0);
                                           const priceFromSize = s
-                                            ? (Number(s.sale_price ?? s.base_price) || 0) +
-                                              (Number(it.finish_extra) || 0) +
-                                              (Number(it.color_extra) || 0)
+                                            ? currentPrice(s) + extras
                                             : it.price;
                                           updateItem(idx, {
                                             size_id: v,
                                             size_name: s?.name,
                                             price: Number(priceFromSize) || 0,
+                                            regular_price: s
+                                              ? (Number(s.base_price) || 0) + extras
+                                              : it.regular_price,
                                           });
                                         }}
                                       >
@@ -2592,7 +2611,7 @@ function NewQuoteDialogImpl({
                                         <SelectContent>
                                           {sizes.map((s) => (
                                             <SelectItem key={s.id} value={s.id}>
-                                              {s.name} — {currency(s.sale_price ?? s.base_price)}
+                                              {s.name} — {currency(currentPrice(s))}
                                             </SelectItem>
                                           ))}
                                         </SelectContent>
@@ -2684,7 +2703,13 @@ function NewQuoteDialogImpl({
                             min={0}
                             step="0.01"
                             value={it.price}
-                            onChange={(e) => updateItem(idx, { price: Number(e.target.value) })}
+                            onChange={(e) =>
+                              // A manual price replaces the catalog price, so it becomes the discount base.
+                              updateItem(idx, {
+                                price: Number(e.target.value),
+                                regular_price: undefined,
+                              })
+                            }
                           />
                         </div>
                       </div>

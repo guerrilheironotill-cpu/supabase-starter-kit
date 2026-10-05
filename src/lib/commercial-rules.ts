@@ -30,6 +30,39 @@ export function commercialDiscountBase(basePrice: number, finishExtra = 0) {
   return Math.round((Number(basePrice) + Number(finishExtra)) * 100) / 100;
 }
 
+type DiscountableItem = {
+  price: number;
+  quantity: number;
+  /** Regular (non-promotional) unit price, extras included. Falls back to `price`. */
+  regularPrice?: number | null;
+};
+
+/**
+ * Quote discount. A percentage is applied on each item's regular price; if the
+ * promotional price is already lower, the promotional price stands (the customer
+ * never pays more than the price shown on the site). A fixed amount comes off the subtotal.
+ */
+export function quoteDiscountAmount(
+  items: DiscountableItem[],
+  type: "percentage" | "fixed",
+  value: number,
+) {
+  const safeValue = Math.max(0, Number(value) || 0);
+  const subtotal = items.reduce(
+    (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0),
+    0,
+  );
+  if (type === "fixed") return Math.round(Math.min(safeValue, Math.max(0, subtotal)) * 100) / 100;
+  const rate = Math.min(safeValue, 100) / 100;
+  const amount = items.reduce((sum, item) => {
+    const price = Number(item.price) || 0;
+    const regular = Number(item.regularPrice) > 0 ? Number(item.regularPrice) : price;
+    const target = Math.min(price, discountedPrice(regular, rate));
+    return sum + (price - target) * (Number(item.quantity) || 0);
+  }, 0);
+  return Math.round(amount * 100) / 100;
+}
+
 export function resellerDiscountForSubtotal(subtotal: number) {
   if (subtotal >= 10_000) return 0.35;
   if (subtotal >= 5_000) return 0.3;
