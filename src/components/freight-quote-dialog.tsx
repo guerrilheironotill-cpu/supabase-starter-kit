@@ -225,6 +225,7 @@ export function FreightQuoteEditor({
   const [loadDetails, setLoadDetails] = useState("");
   const [loadingIncluded, setLoadingIncluded] = useState(false);
   const [emptyLoad, setEmptyLoad] = useState(true);
+  const [sharedLoad, setSharedLoad] = useState(false);
   const [photoNote, setPhotoNote] = useState("");
   const [pickupDate, setPickupDate] = useState("");
   const [pickupFlexible, setPickupFlexible] = useState(true);
@@ -242,6 +243,7 @@ export function FreightQuoteEditor({
     setLoadDetails(existing?.load_details ?? "");
     setLoadingIncluded(existing?.loading_included ?? false);
     setEmptyLoad(existing?.empty_load ?? true);
+    setSharedLoad(existing?.shared_load ?? false);
     setPhotoNote(existing?.photo_note ?? "");
     setPickupDate(existing?.pickup_date ?? pickupDateFromDeadline(deadlineText) ?? "");
     setPickupFlexible(existing?.pickup_flexible ?? true);
@@ -296,6 +298,7 @@ export function FreightQuoteEditor({
       loading_included: loadingIncluded,
       photo_note: photoNote.trim() || null,
       empty_load: emptyLoad,
+      shared_load: sharedLoad,
       pickup_date: pickupDate || null,
       pickup_flexible: pickupFlexible,
       notes: notes.trim() || null,
@@ -499,6 +502,14 @@ export function FreightQuoteEditor({
                   onChange={(e) => setEmptyLoad(e.target.checked)}
                 />
                 Vasos vazios, sem plantas
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={sharedLoad}
+                  onChange={(e) => setSharedLoad(e.target.checked)}
+                />
+                Aceita carga compartilhada
               </label>
             </div>
             <div>

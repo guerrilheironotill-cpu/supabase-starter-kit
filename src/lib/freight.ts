@@ -39,6 +39,8 @@ export type PublicFreightQuote = {
   photoNote: string | null;
   /** True when the items come from the catalog, so photos are shown automatically. */
   hasPhotos: boolean;
+  /** The carrier may combine this load with other cargo. */
+  sharedLoad: boolean;
   emptyLoad: boolean;
   pickupDate: string | null;
   pickupFlexible: boolean;
@@ -83,6 +85,7 @@ export type FreightQuoteRow = {
   loading_included: boolean;
   photo_note: string | null;
   empty_load: boolean;
+  shared_load: boolean;
   pickup_date: string | null;
   pickup_flexible: boolean;
   notes: string | null;
@@ -154,6 +157,7 @@ export function rowToPublic(row: FreightQuoteRow): PublicFreightQuote {
       Boolean(item.product_id || item.size_id),
     ),
     emptyLoad: row.empty_load,
+    sharedLoad: row.shared_load === true,
     pickupDate: row.pickup_date,
     pickupFlexible: row.pickup_flexible,
     // access_notes and the street addresses stay private (chosen carrier only).
@@ -202,7 +206,11 @@ export function itemDimensions(item: FreightItem) {
   if (item.height && item.width && item.length) {
     return `${item.height} × ${item.width} × ${item.length} cm`;
   }
-  return null;
+  // Older items only carry the measures inside the size label, e.g. "M — 30x30x80cm".
+  const match = (item.size ?? "").match(
+    /(d+(?:[.,]d+)?)s*(?:cm)?s*[x×]s*(d+(?:[.,]d+)?)s*(?:cm)?s*[x×]s*(d+(?:[.,]d+)?)/i,
+  );
+  return match ? `${match[1]} × ${match[2]} × ${match[3]} cm` : null;
 }
 
 export async function lookupCep(cep: string) {
@@ -253,6 +261,9 @@ export function freightPostText(quote: PublicFreightQuote, link: string) {
     weight !== null ? `⚖️ Peso total: *± ${weight.toLocaleString("pt-BR")} kg*` : null,
     quote.loadDetails ? `📐 ${quote.loadDetails}` : null,
     date ? `📅 Data: *${date}*${quote.pickupFlexible ? " ou próxima" : ""}` : null,
+    quote.sharedLoad
+      ? "🤝 Pode ser carga compartilhada"
+      : "🚫 Carga exclusiva, sem compartilhar",
     quote.emptyLoad ? "🪴 Os vasos vão vazios, sem plantas" : null,
     quote.notes ? `📝 ${quote.notes}` : null,
   ].filter(Boolean) as string[];

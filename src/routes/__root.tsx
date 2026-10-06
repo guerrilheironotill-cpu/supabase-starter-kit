@@ -201,10 +201,8 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isDashboard = pathname.startsWith("/dashboard");
-  // Freight pages are standalone: no cookie banner or tracking, and the customer form
-  // also has no site header/footer.
-  const isFreightForm = pathname.startsWith("/frete-cliente/");
-  const isStandalone = isFreightForm || pathname.startsWith("/frete/");
+  // Freight pages are standalone: no site header/footer, cookie banner or tracking.
+  const isStandalone = pathname.startsWith("/frete-cliente/") || pathname.startsWith("/frete/");
   // The dashboard setting is the homepage fallback. Route-specific metadata
   // must remain authoritative on catalog, category and product pages.
   useApplySiteSeo(pathname === "/");
@@ -224,11 +222,11 @@ function RootComponent() {
               }
         }
       >
-        {isDashboard ? <DashboardHeader /> : isFreightForm ? null : <SiteHeader />}
+        {isDashboard ? <DashboardHeader /> : isStandalone ? null : <SiteHeader />}
         <main className="flex-1" suppressHydrationWarning>
           <Outlet />
         </main>
-        {!isDashboard && !isFreightForm && <SiteFooter />}
+        {!isDashboard && !isStandalone && <SiteFooter />}
       </div>
       {!isDashboard && !isStandalone && <CookieConsentBanner />}
       {!isDashboard && !isStandalone && <AnalyticsLoader />}

@@ -305,9 +305,6 @@ function FreightQuotesPage() {
                                 )}
                                 <span className="ml-2 text-muted-foreground">
                                   {money(proposal.price)}
-                                  {proposal.deadline_days !== null
-                                    ? ` · ${proposal.deadline_days} dia(s)`
-                                    : ""}
                                 </span>
                                 {proposal.notes && (
                                   <p className="text-xs text-muted-foreground">{proposal.notes}</p>

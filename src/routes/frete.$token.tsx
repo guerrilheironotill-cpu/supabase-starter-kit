@@ -99,7 +99,6 @@ function FreightQuotePage() {
     name: "",
     phone: "",
     price: "",
-    deadlineDays: "",
     notes: "",
     website: "",
   });
@@ -192,32 +191,56 @@ function FreightQuotePage() {
         <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Carga
         </h2>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="border border-border bg-white p-3">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">Quantidade</p>
+            <p className="mt-1 font-display text-2xl text-primary">
+              {units} vaso{units === 1 ? "" : "s"}
+            </p>
+          </div>
+          <div className="border border-border bg-white p-3">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">Peso total</p>
+            <p className="mt-1 font-display text-2xl text-primary">
+              {weight !== null ? `± ${weight.toLocaleString("pt-BR")} kg` : "—"}
+            </p>
+          </div>
+        </div>
         <ul className="mt-3 divide-y divide-border">
-          {quote.items.map((item, index) => (
-            <li key={`${item.name}-${index}`} className="flex items-center gap-4 py-3 text-sm">
-              {item.image_url && (
-                <img
-                  src={item.image_url}
-                  alt={item.name}
-                  loading="lazy"
-                  className="h-16 w-16 shrink-0 border border-border object-cover"
-                />
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="font-medium text-foreground">{item.name}</div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {[
-                    item.size,
-                    itemDimensions(item),
-                    item.weight_kg ? `± ${item.weight_kg} kg cada` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
+          {quote.items.map((item, index) => {
+            const measures = itemDimensions(item);
+            const code = (item.size ?? "").split("—")[0].trim();
+            return (
+              <li key={`${item.name}-${index}`} className="flex items-center gap-4 py-4">
+                {item.image_url && (
+                  <img
+                    src={item.image_url}
+                    alt={item.name}
+                    loading="lazy"
+                    className="h-24 w-24 shrink-0 border border-border object-cover"
+                  />
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="font-display text-lg text-foreground">
+                    {item.name}
+                    {code && <span className="ml-2 text-sm text-muted-foreground">{code}</span>}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2 text-sm font-semibold text-foreground">
+                    {measures && (
+                      <span className="border border-primary/30 bg-primary/5 px-2.5 py-1">
+                        📏 {measures}
+                      </span>
+                    )}
+                    {item.weight_kg ? (
+                      <span className="border border-primary/30 bg-primary/5 px-2.5 py-1">
+                        ⚖️ ± {item.weight_kg.toLocaleString("pt-BR")} kg cada
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-              <strong className="shrink-0 text-foreground">{item.quantity} un.</strong>
-            </li>
-          ))}
+                <strong className="shrink-0 text-lg text-foreground">{item.quantity} un.</strong>
+              </li>
+            );
+          })}
         </ul>
       </section>
 
@@ -247,6 +270,13 @@ function FreightQuotePage() {
               {quote.pickupFlexible ? " ou próxima" : ""}
             </li>
           )}
+          <li>
+            {quote.sharedLoad ? (
+              <>🤝 <strong>Pode ser carga compartilhada</strong></>
+            ) : (
+              <>🚫 <strong>Carga exclusiva</strong>, sem compartilhar</>
+            )}
+          </li>
           {quote.emptyLoad && <li>🌿 Os vasos vão vazios, sem plantas</li>}
           {quote.notes && <li className="whitespace-pre-line">📝 {quote.notes}</li>}
         </ul>
@@ -304,19 +334,6 @@ function FreightQuotePage() {
                 placeholder="Ex: 2500,00"
                 value={form.price}
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
-              />
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Prazo de entrega (dias)
-              </span>
-              <input
-                type="number"
-                min={0}
-                max={365}
-                className={inputClass}
-                value={form.deadlineDays}
-                onChange={(e) => setForm({ ...form, deadlineDays: e.target.value })}
               />
             </label>
           </div>

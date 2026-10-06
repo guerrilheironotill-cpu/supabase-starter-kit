@@ -44,7 +44,6 @@ export const Route = createFileRoute("/api/freight/$token")({
         const phone = text(body.phone, 30).replace(/[^\d+()\-\s]/g, "");
         const phoneDigits = phone.replace(/\D/g, "");
         const price = Number(body.price);
-        const deadline = body.deadlineDays === "" || body.deadlineDays == null ? null : Number(body.deadlineDays);
         const notes = text(body.notes, 1000);
 
         if (!name) return Response.json({ ok: false, error: "Informe seu nome." }, { status: 400 });
@@ -53,9 +52,6 @@ export const Route = createFileRoute("/api/freight/$token")({
         }
         if (!Number.isFinite(price) || price <= 0 || price > 1_000_000) {
           return Response.json({ ok: false, error: "Informe o valor da cotação." }, { status: 400 });
-        }
-        if (deadline !== null && (!Number.isInteger(deadline) || deadline < 0 || deadline > 365)) {
-          return Response.json({ ok: false, error: "Prazo inválido." }, { status: 400 });
         }
 
         const { data: quote } = await admin
@@ -86,7 +82,6 @@ export const Route = createFileRoute("/api/freight/$token")({
           carrier_name: name,
           carrier_phone: phone,
           price,
-          deadline_days: deadline,
           notes: notes || null,
         });
         if (insertError) {
@@ -101,7 +96,6 @@ export const Route = createFileRoute("/api/freight/$token")({
           `Olá! Envio minha cotação de frete ${row.origin_district ?? row.origin_city} → ${row.dest_district ?? row.dest_city} (ref. ${row.token}).`,
           `Nome: ${name}`,
           `Valor: ${money}`,
-          deadline !== null ? `Prazo: ${deadline} dia(s)` : null,
           notes ? `Obs.: ${notes}` : null,
         ]
           .filter(Boolean)
