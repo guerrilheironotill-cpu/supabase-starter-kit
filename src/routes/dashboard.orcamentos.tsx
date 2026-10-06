@@ -16,6 +16,7 @@ import {
   ArrowUp,
   ArrowDown,
   GripVertical,
+  Truck,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardSection } from "@/components/dashboard-layout";
@@ -1226,6 +1227,126 @@ function StatusSelect({ order }: { order: OrderRow }) {
   );
 }
 
+type ProductFull = {
+  id: string;
+  name: string;
+  product_sizes: Array<{
+    id: string;
+    name: string;
+    size?: string;
+    base_price: number;
+    sale_price: number | null;
+    weight_kg?: number | null;
+    sort_order: number;
+  }>;
+  product_finishes: Array<{ id: string; name: string; sort_order: number }>;
+  product_colors: Array<{ id: string; name: string; sort_order: number }>;
+};
+
+async function fetchProductsForQuote() {
+  const load = (sizeColumns: string) =>
+    supabase
+      .from("products")
+      .select(
+        `id, name, product_sizes(${sizeColumns}), product_finishes(id, name, sort_order), product_colors(id, name, sort_order)`,
+      )
+      .eq("active", true)
+      .order("name")
+      .limit(500);
+  const columns = "id, name, size, base_price, sale_price, sort_order";
+  let { data, error } = await load(`${columns}, weight_kg`);
+  // Until the weight_kg migration is applied, fall back to the old column set.
+  if (error) ({ data, error } = await load(columns));
+  if (error) return [] as ProductFull[];
+  return (data ?? []) as unknown as ProductFull[];
+}
+
+type FreightSourceItem = {
+  name: string;
+  quantity: number;
+  product_id?: string | null;
+  size_id?: string | null;
+  size_name?: string | null;
+  height?: number | string | null;
+  width?: number | string | null;
+  length?: number | string | null;
+};
+
+/**
+ * Items of a quote in the shape the freight quote needs, with the unit weight taken from the
+ * catalog. Older quotes may carry stale size ids or no size, so the size is also matched by
+ * label/name, and by being the product's only size.
+ */
+function toFreightItems(items: FreightSourceItem[], products: ProductFull[]) {
+  return items
+    .filter((i) => String(i.name ?? "").trim())
+    .map((i) => {
+      const product = products.find((p) => p.id === i.product_id);
+      const sizes = [...(product?.product_sizes ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+      const wanted = String(i.size_name ?? "").trim().toLocaleLowerCase("pt-BR");
+      const size =
+        sizes.find((s) => s.id === i.size_id) ??
+        sizes.find(
+          (s, index) =>
+            wanted &&
+            (String(s.name ?? "").trim().toLocaleLowerCase("pt-BR") === wanted ||
+              sizeDisplayLabel(s, index, sizes.length).toLocaleLowerCase("pt-BR") === wanted),
+        ) ??
+        (sizes.length === 1 ? sizes[0] : undefined);
+      const weight = size?.weight_kg ?? null;
+      return {
+        name: i.name,
+        quantity: Number(i.quantity) || 1,
+        size: i.size_name ?? null,
+        height: Number(i.height) || null,
+        width: Number(i.width) || null,
+        length: Number(i.length) || null,
+        size_id: size?.id ?? null,
+        weight_kg: weight,
+        catalog_weight_kg: weight,
+      };
+    });
+}
+
+function FreightMenuDialog({
+  order,
+  open,
+  onOpenChange,
+}: {
+  order: OrderRow;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { data: products = [] } = useQuery({
+    queryKey: ["products-for-quote"],
+    queryFn: fetchProductsForQuote,
+    enabled: open,
+  });
+  const items = toFreightItems(
+    Array.isArray(order.items) ? (order.items as FreightSourceItem[]) : [],
+    products,
+  );
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Cotação de frete</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Orçamento de {order.customer_name}: {items.length} produto(s). Peça os dados de entrega ao
+          cliente por um link ou preencha tudo agora.
+        </p>
+        <FreightQuoteActions
+          items={items}
+          orderId={order.id}
+          customerLabel={order.customer_name}
+          customerPhone={order.customer_phone ?? ""}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ShareMenu({
   order,
   onEdit,
@@ -1456,7 +1577,10 @@ ${meta.note ? module("Observações", `<div style="font-size:13px;line-height:1.
     window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
   };
 
+  const [freightOpen, setFreightOpen] = useState(false);
+
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1482,8 +1606,13 @@ ${meta.note ? module("Observações", `<div style="font-size:13px;line-height:1.
         <DropdownMenuItem onClick={sendEmail}>
           <Mail className="mr-2 h-4 w-4" /> Enviar por e-mail
         </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setFreightOpen(true)}>
+          <Truck className="mr-2 h-4 w-4" /> Cotação de frete
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    <FreightMenuDialog order={order} open={freightOpen} onOpenChange={setFreightOpen} />
+    </>
   );
 }
 
@@ -1772,40 +1901,9 @@ function NewQuoteDialogImpl({
     setShowCustomerSuggestions(false);
   };
 
-  type ProductFull = {
-    id: string;
-    name: string;
-    product_sizes: Array<{
-      id: string;
-      name: string;
-      size?: string;
-      base_price: number;
-      sale_price: number | null;
-      weight_kg?: number | null;
-      sort_order: number;
-    }>;
-    product_finishes: Array<{ id: string; name: string; sort_order: number }>;
-    product_colors: Array<{ id: string; name: string; sort_order: number }>;
-  };
   const { data: products = [] } = useQuery({
     queryKey: ["products-for-quote"],
-    queryFn: async () => {
-      const load = (sizeColumns: string) =>
-        supabase
-          .from("products")
-          .select(
-            `id, name, product_sizes(${sizeColumns}), product_finishes(id, name, sort_order), product_colors(id, name, sort_order)`,
-          )
-          .eq("active", true)
-          .order("name")
-          .limit(500);
-      const columns = "id, name, size, base_price, sale_price, sort_order";
-      let { data, error } = await load(`${columns}, weight_kg`);
-      // Until the weight_kg migration is applied, fall back to the old column set.
-      if (error) ({ data, error } = await load(columns));
-      if (error) return [] as ProductFull[];
-      return (data ?? []) as unknown as ProductFull[];
-    },
+    queryFn: fetchProductsForQuote,
   });
 
   const itemsSubtotal = useMemo(
@@ -2531,25 +2629,7 @@ function NewQuoteDialogImpl({
                   <Label className="text-xs">Cotação de frete com transportadores</Label>
                   <div className="mt-1">
                     <FreightQuoteActions
-                      items={items
-                        .filter((i) => i.name.trim())
-                        .map((i) => {
-                          const catalogWeight =
-                            products
-                              .find((p) => p.id === i.product_id)
-                              ?.product_sizes.find((s) => s.id === i.size_id)?.weight_kg ?? null;
-                          return {
-                            name: i.name,
-                            quantity: Number(i.quantity) || 1,
-                            size: i.size_name ?? null,
-                            height: Number(i.height) || null,
-                            width: Number(i.width) || null,
-                            length: Number(i.length) || null,
-                            size_id: i.size_id ?? null,
-                            weight_kg: catalogWeight,
-                            catalog_weight_kg: catalogWeight,
-                          };
-                        })}
+                      items={toFreightItems(items, products)}
                       orderId={editMode ? duplicateSource?.id : null}
                       customerLabel={name}
                       customerPhone={phone}
