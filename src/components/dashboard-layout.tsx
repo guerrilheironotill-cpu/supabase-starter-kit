@@ -21,6 +21,7 @@ import {
   Plug,
   UserCog,
   FileEdit,
+  Truck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ type NavItem = {
     | "/dashboard"
     | "/dashboard/orcamentos"
     | "/dashboard/pedidos"
+    | "/dashboard/fretes"
     | "/dashboard/clientes"
     | "/dashboard/produtos"
     | "/dashboard/categorias"
@@ -56,6 +58,7 @@ const NAV: NavItem[] = [
   { to: "/dashboard", label: "Visão geral", icon: LayoutDashboard, exact: true },
   { to: "/dashboard/orcamentos", label: "Orçamentos", icon: FileText },
   { to: "/dashboard/pedidos", label: "Pedidos", icon: ShoppingCart },
+  { to: "/dashboard/fretes", label: "Cotações de frete", icon: Truck },
   { to: "/dashboard/clientes", label: "Clientes", icon: UserRound },
   { to: "/dashboard/produtos", label: "Produtos", icon: Package },
   { to: "/dashboard/categorias", label: "Categorias", icon: Layers, child: true },

@@ -51,6 +51,7 @@ import { ensureCustomerForApprovedQuote } from "@/lib/customer-conversion";
 import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
 import { quoteDiscountAmount } from "@/lib/commercial-rules";
 import { currentPrice, sizeDisplayLabel, validSalePrice } from "@/lib/products";
+import { FreightQuoteActions } from "@/components/freight-quote-dialog";
 
 export const Route = createFileRoute("/dashboard/orcamentos")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -1780,6 +1781,7 @@ function NewQuoteDialogImpl({
       size?: string;
       base_price: number;
       sale_price: number | null;
+      weight_kg?: number | null;
       sort_order: number;
     }>;
     product_finishes: Array<{ id: string; name: string; sort_order: number }>;
@@ -1788,16 +1790,21 @@ function NewQuoteDialogImpl({
   const { data: products = [] } = useQuery({
     queryKey: ["products-for-quote"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("products")
-        .select(
-          "id, name, product_sizes(id, name, size, base_price, sale_price, sort_order), product_finishes(id, name, sort_order), product_colors(id, name, sort_order)",
-        )
-        .eq("active", true)
-        .order("name")
-        .limit(500);
+      const load = (sizeColumns: string) =>
+        supabase
+          .from("products")
+          .select(
+            `id, name, product_sizes(${sizeColumns}), product_finishes(id, name, sort_order), product_colors(id, name, sort_order)`,
+          )
+          .eq("active", true)
+          .order("name")
+          .limit(500);
+      const columns = "id, name, size, base_price, sale_price, sort_order";
+      let { data, error } = await load(`${columns}, weight_kg`);
+      // Until the weight_kg migration is applied, fall back to the old column set.
+      if (error) ({ data, error } = await load(columns));
       if (error) return [] as ProductFull[];
-      return (data ?? []) as ProductFull[];
+      return (data ?? []) as unknown as ProductFull[];
     },
   });
 
@@ -1896,6 +1903,100 @@ function NewQuoteDialogImpl({
             .map((index) => (index > idx ? index - 1 : index)),
         ),
     );
+  };
+
+  // Catalog items with a chosen size edit regular and promotional prices separately.
+  const itemExtras = (it: ItemDraft) =>
+    (Number(it.finish_extra) || 0) + (Number(it.color_extra) || 0);
+  const itemRegular = (it: ItemDraft) => it.regular_price ?? it.price;
+  const itemPromo = (it: ItemDraft) => (it.price < itemRegular(it) ? it.price : null);
+  const catalogPrices = (it: ItemDraft) => {
+    if (it.kind !== "catalog" || !it.size_id) return null;
+    const size = products
+      .find((p) => p.id === it.product_id)
+      ?.product_sizes.find((s) => s.id === it.size_id);
+    if (!size) return null;
+    const promo = validSalePrice(size);
+    const extras = itemExtras(it);
+    return {
+      sizeId: size.id,
+      regular: Number(size.base_price) + extras,
+      promo: promo === null ? null : promo + extras,
+    };
+  };
+  const setRegularPrice = (idx: number, value: number) => {
+    const it = items[idx];
+    const promo = itemPromo(it);
+    priceDirty.current = true;
+    updateItem(idx, {
+      regular_price: value,
+      price: promo !== null && promo < value ? promo : value,
+    });
+  };
+  const setPromoPrice = (idx: number, value: number) => {
+    const it = items[idx];
+    const regular = itemRegular(it);
+    priceDirty.current = true;
+    updateItem(idx, {
+      regular_price: regular,
+      price: value > 0 && value < regular ? value : regular,
+    });
+  };
+  const queryClient = useQueryClient();
+  const priceDirty = useRef(false);
+  const [priceConfirm, setPriceConfirm] = useState<number | null>(null);
+  const [savingProductPrice, setSavingProductPrice] = useState(false);
+  const checkCatalogChange = (idx: number) => {
+    if (!priceDirty.current) return;
+    priceDirty.current = false;
+    const it = items[idx];
+    const catalog = catalogPrices(it);
+    if (!catalog) return;
+    const differs = (a: number | null, b: number | null) =>
+      a === null || b === null ? a !== b : Math.abs(a - b) > 0.001;
+    if (
+      differs(itemRegular(it), catalog.regular) ||
+      differs(itemPromo(it), catalog.promo)
+    ) {
+      setPriceConfirm(idx);
+    }
+  };
+  const applyPriceToProduct = async () => {
+    if (priceConfirm === null) return;
+    const it = items[priceConfirm];
+    const catalog = it ? catalogPrices(it) : null;
+    if (!it || !catalog) return setPriceConfirm(null);
+    const extras = itemExtras(it);
+    const promo = itemPromo(it);
+    setSavingProductPrice(true);
+    const { error } = await supabase
+      .from("product_sizes")
+      .update({
+        base_price: Math.round((itemRegular(it) - extras) * 100) / 100,
+        sale_price: promo === null ? null : Math.round((promo - extras) * 100) / 100,
+      })
+      .eq("id", catalog.sizeId);
+    setSavingProductPrice(false);
+    if (error) {
+      toast.error(`Não foi possível alterar o produto: ${error.message}`);
+      return;
+    }
+    toast.success("Preço do produto atualizado");
+    void queryClient.invalidateQueries({ queryKey: ["products-for-quote"] });
+    void queryClient.invalidateQueries({ queryKey: ["products"] });
+    setPriceConfirm(null);
+  };
+  const revertPriceToCatalog = () => {
+    if (priceConfirm === null) return;
+    const it = items[priceConfirm];
+    const catalog = it ? catalogPrices(it) : null;
+    if (it && catalog) {
+      updateItem(priceConfirm, {
+        regular_price: catalog.regular,
+        price: catalog.promo ?? catalog.regular,
+      });
+    }
+    setPriceConfirm(null);
   };
 
   const toggleItem = (idx: number) =>
@@ -2426,6 +2527,35 @@ function NewQuoteDialogImpl({
                     />
                   </div>
                 </div>
+                <div>
+                  <Label className="text-xs">Cotação de frete com transportadores</Label>
+                  <div className="mt-1">
+                    <FreightQuoteActions
+                      items={items
+                        .filter((i) => i.name.trim())
+                        .map((i) => {
+                          const catalogWeight =
+                            products
+                              .find((p) => p.id === i.product_id)
+                              ?.product_sizes.find((s) => s.id === i.size_id)?.weight_kg ?? null;
+                          return {
+                            name: i.name,
+                            quantity: Number(i.quantity) || 1,
+                            size: i.size_name ?? null,
+                            height: Number(i.height) || null,
+                            width: Number(i.width) || null,
+                            length: Number(i.length) || null,
+                            size_id: i.size_id ?? null,
+                            weight_kg: catalogWeight,
+                            catalog_weight_kg: catalogWeight,
+                          };
+                        })}
+                      orderId={editMode ? duplicateSource?.id : null}
+                      customerLabel={name}
+                      customerPhone={phone}
+                    />
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -2760,7 +2890,11 @@ function NewQuoteDialogImpl({
                         </>
                       )}
 
-                      <div className="mt-2 grid grid-cols-2 gap-2">
+                      <div
+                        className={`mt-2 grid gap-2 ${
+                          catalogPrices(it) ? "grid-cols-3" : "grid-cols-2"
+                        }`}
+                      >
                         <div>
                           <Label className="text-xs">Qtd</Label>
                           <Input
@@ -2770,6 +2904,33 @@ function NewQuoteDialogImpl({
                             onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })}
                           />
                         </div>
+                        {catalogPrices(it) ? (
+                          <>
+                            <div>
+                              <Label className="text-xs">Valor regular (R$)</Label>
+                              <Input
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                value={itemRegular(it)}
+                                onChange={(e) => setRegularPrice(idx, Number(e.target.value))}
+                                onBlur={() => checkCatalogChange(idx)}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Valor promocional (R$)</Label>
+                              <Input
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                placeholder="Sem promoção"
+                                value={itemPromo(it) ?? ""}
+                                onChange={(e) => setPromoPrice(idx, Number(e.target.value))}
+                                onBlur={() => checkCatalogChange(idx)}
+                              />
+                            </div>
+                          </>
+                        ) : (
                         <div>
                           <Label className="text-xs">Valor unitário (R$)</Label>
                           <Input
@@ -2791,6 +2952,7 @@ function NewQuoteDialogImpl({
                             </p>
                           )}
                         </div>
+                        )}
                       </div>
                       <div className="mt-3 flex justify-end">
                         <Button
@@ -2946,6 +3108,46 @@ function NewQuoteDialogImpl({
           </Button>
         )}
       </DialogFooter>
+
+      <Dialog
+        open={priceConfirm !== null}
+        onOpenChange={(next) => {
+          // Dismissing keeps the change only in this quote.
+          if (!next && !savingProductPrice) setPriceConfirm(null);
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Alterar o valor do produto?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Você mudou o valor de {priceConfirm !== null ? items[priceConfirm]?.name : "este item"}.
+            Quer atualizar também o cadastro do produto (preço no site) ou aplicar apenas neste
+            orçamento?
+          </p>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={revertPriceToCatalog}
+              disabled={savingProductPrice}
+            >
+              Desfazer
+            </Button>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => setPriceConfirm(null)}
+              disabled={savingProductPrice}
+            >
+              Só neste orçamento
+            </Button>
+            <Button type="button" onClick={() => void applyPriceToProduct()} disabled={savingProductPrice}>
+              {savingProductPrice ? "Salvando…" : "Alterar no produto também"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DialogContent>
   );
 }

@@ -34,6 +34,8 @@ import { Route as AcabamentosECoresRouteImport } from './routes/acabamentos-e-co
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
+import { Route as FreteTokenRouteImport } from './routes/frete.$token'
+import { Route as FreteClienteTokenRouteImport } from './routes/frete-cliente.$token'
 import { Route as DashboardSeoRouteImport } from './routes/dashboard.seo'
 import { Route as DashboardProdutosRouteImport } from './routes/dashboard.produtos'
 import { Route as DashboardPerfilRouteImport } from './routes/dashboard.perfil'
@@ -43,6 +45,7 @@ import { Route as DashboardPaginasRouteImport } from './routes/dashboard.paginas
 import { Route as DashboardOrcamentosRouteImport } from './routes/dashboard.orcamentos'
 import { Route as DashboardMidiaRouteImport } from './routes/dashboard.midia'
 import { Route as DashboardIntegracoesRouteImport } from './routes/dashboard.integracoes'
+import { Route as DashboardFretesRouteImport } from './routes/dashboard.fretes'
 import { Route as DashboardDesempenhoRouteImport } from './routes/dashboard.desempenho'
 import { Route as DashboardDebugRouteImport } from './routes/dashboard.debug'
 import { Route as DashboardCrmRouteImport } from './routes/dashboard.crm'
@@ -75,6 +78,8 @@ import { Route as DashboardCrmLeadsRouteImport } from './routes/dashboard.crm.le
 import { Route as ApiOrdersReconcilePersonRouteImport } from './routes/api/orders.reconcile-person'
 import { Route as ApiNotaasConnectionRouteImport } from './routes/api/notaas.connection'
 import { Route as ApiGscOverviewRouteImport } from './routes/api/gsc.overview'
+import { Route as ApiFreightTokenRouteImport } from './routes/api/freight.$token'
+import { Route as ApiFreightFormTokenRouteImport } from './routes/api/freight-form.$token'
 import { Route as ApiAnalyticsOverviewRouteImport } from './routes/api/analytics.overview'
 
 const Api_rootRoute = Api_rootRouteImport.update({
@@ -202,6 +207,16 @@ const ProdutoSlugRoute = ProdutoSlugRouteImport.update({
   path: '/produto/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FreteTokenRoute = FreteTokenRouteImport.update({
+  id: '/frete/$token',
+  path: '/frete/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FreteClienteTokenRoute = FreteClienteTokenRouteImport.update({
+  id: '/frete-cliente/$token',
+  path: '/frete-cliente/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardSeoRoute = DashboardSeoRouteImport.update({
   id: '/seo',
   path: '/seo',
@@ -245,6 +260,11 @@ const DashboardMidiaRoute = DashboardMidiaRouteImport.update({
 const DashboardIntegracoesRoute = DashboardIntegracoesRouteImport.update({
   id: '/integracoes',
   path: '/integracoes',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardFretesRoute = DashboardFretesRouteImport.update({
+  id: '/fretes',
+  path: '/fretes',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardDesempenhoRoute = DashboardDesempenhoRouteImport.update({
@@ -412,6 +432,16 @@ const ApiGscOverviewRoute = ApiGscOverviewRouteImport.update({
   path: '/api/gsc/overview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFreightTokenRoute = ApiFreightTokenRouteImport.update({
+  id: '/api/freight/$token',
+  path: '/api/freight/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFreightFormTokenRoute = ApiFreightFormTokenRouteImport.update({
+  id: '/api/freight-form/$token',
+  path: '/api/freight-form/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAnalyticsOverviewRoute = ApiAnalyticsOverviewRouteImport.update({
   id: '/api/analytics/overview',
   path: '/api/analytics/overview',
@@ -465,6 +495,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/crm': typeof DashboardCrmRouteWithChildren
   '/dashboard/debug': typeof DashboardDebugRoute
   '/dashboard/desempenho': typeof DashboardDesempenhoRoute
+  '/dashboard/fretes': typeof DashboardFretesRoute
   '/dashboard/integracoes': typeof DashboardIntegracoesRoute
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
@@ -474,9 +505,13 @@ export interface FileRoutesByFullPath {
   '/dashboard/perfil': typeof DashboardPerfilRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
+  '/frete-cliente/$token': typeof FreteClienteTokenRoute
+  '/frete/$token': typeof FreteTokenRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
+  '/api/freight-form/$token': typeof ApiFreightFormTokenRoute
+  '/api/freight/$token': typeof ApiFreightTokenRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
   '/api/notaas/connection': typeof ApiNotaasConnectionRoute
   '/api/orders/reconcile-person': typeof ApiOrdersReconcilePersonRoute
@@ -533,6 +568,7 @@ export interface FileRoutesByTo {
   '/dashboard/crm': typeof DashboardCrmRouteWithChildren
   '/dashboard/debug': typeof DashboardDebugRoute
   '/dashboard/desempenho': typeof DashboardDesempenhoRoute
+  '/dashboard/fretes': typeof DashboardFretesRoute
   '/dashboard/integracoes': typeof DashboardIntegracoesRoute
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
@@ -541,9 +577,13 @@ export interface FileRoutesByTo {
   '/dashboard/perfil': typeof DashboardPerfilRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
+  '/frete-cliente/$token': typeof FreteClienteTokenRoute
+  '/frete/$token': typeof FreteTokenRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
+  '/api/freight-form/$token': typeof ApiFreightFormTokenRoute
+  '/api/freight/$token': typeof ApiFreightTokenRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
   '/api/notaas/connection': typeof ApiNotaasConnectionRoute
   '/api/orders/reconcile-person': typeof ApiOrdersReconcilePersonRoute
@@ -602,6 +642,7 @@ export interface FileRoutesById {
   '/dashboard/crm': typeof DashboardCrmRouteWithChildren
   '/dashboard/debug': typeof DashboardDebugRoute
   '/dashboard/desempenho': typeof DashboardDesempenhoRoute
+  '/dashboard/fretes': typeof DashboardFretesRoute
   '/dashboard/integracoes': typeof DashboardIntegracoesRoute
   '/dashboard/midia': typeof DashboardMidiaRoute
   '/dashboard/orcamentos': typeof DashboardOrcamentosRoute
@@ -611,9 +652,13 @@ export interface FileRoutesById {
   '/dashboard/perfil': typeof DashboardPerfilRoute
   '/dashboard/produtos': typeof DashboardProdutosRoute
   '/dashboard/seo': typeof DashboardSeoRoute
+  '/frete-cliente/$token': typeof FreteClienteTokenRoute
+  '/frete/$token': typeof FreteTokenRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
+  '/api/freight-form/$token': typeof ApiFreightFormTokenRoute
+  '/api/freight/$token': typeof ApiFreightTokenRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
   '/api/notaas/connection': typeof ApiNotaasConnectionRoute
   '/api/orders/reconcile-person': typeof ApiOrdersReconcilePersonRoute
@@ -673,6 +718,7 @@ export interface FileRouteTypes {
     | '/dashboard/crm'
     | '/dashboard/debug'
     | '/dashboard/desempenho'
+    | '/dashboard/fretes'
     | '/dashboard/integracoes'
     | '/dashboard/midia'
     | '/dashboard/orcamentos'
@@ -682,9 +728,13 @@ export interface FileRouteTypes {
     | '/dashboard/perfil'
     | '/dashboard/produtos'
     | '/dashboard/seo'
+    | '/frete-cliente/$token'
+    | '/frete/$token'
     | '/produto/$slug'
     | '/dashboard/'
     | '/api/analytics/overview'
+    | '/api/freight-form/$token'
+    | '/api/freight/$token'
     | '/api/gsc/overview'
     | '/api/notaas/connection'
     | '/api/orders/reconcile-person'
@@ -741,6 +791,7 @@ export interface FileRouteTypes {
     | '/dashboard/crm'
     | '/dashboard/debug'
     | '/dashboard/desempenho'
+    | '/dashboard/fretes'
     | '/dashboard/integracoes'
     | '/dashboard/midia'
     | '/dashboard/orcamentos'
@@ -749,9 +800,13 @@ export interface FileRouteTypes {
     | '/dashboard/perfil'
     | '/dashboard/produtos'
     | '/dashboard/seo'
+    | '/frete-cliente/$token'
+    | '/frete/$token'
     | '/produto/$slug'
     | '/dashboard'
     | '/api/analytics/overview'
+    | '/api/freight-form/$token'
+    | '/api/freight/$token'
     | '/api/gsc/overview'
     | '/api/notaas/connection'
     | '/api/orders/reconcile-person'
@@ -809,6 +864,7 @@ export interface FileRouteTypes {
     | '/dashboard/crm'
     | '/dashboard/debug'
     | '/dashboard/desempenho'
+    | '/dashboard/fretes'
     | '/dashboard/integracoes'
     | '/dashboard/midia'
     | '/dashboard/orcamentos'
@@ -818,9 +874,13 @@ export interface FileRouteTypes {
     | '/dashboard/perfil'
     | '/dashboard/produtos'
     | '/dashboard/seo'
+    | '/frete-cliente/$token'
+    | '/frete/$token'
     | '/produto/$slug'
     | '/dashboard/'
     | '/api/analytics/overview'
+    | '/api/freight-form/$token'
+    | '/api/freight/$token'
     | '/api/gsc/overview'
     | '/api/notaas/connection'
     | '/api/orders/reconcile-person'
@@ -870,8 +930,12 @@ export interface RootRouteChildren {
   ApiWhatsappQuoteRoute: typeof ApiWhatsappQuoteRoute
   CatalogoVariantRoute: typeof CatalogoVariantRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
+  FreteClienteTokenRoute: typeof FreteClienteTokenRoute
+  FreteTokenRoute: typeof FreteTokenRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
   ApiAnalyticsOverviewRoute: typeof ApiAnalyticsOverviewRoute
+  ApiFreightFormTokenRoute: typeof ApiFreightFormTokenRoute
+  ApiFreightTokenRoute: typeof ApiFreightTokenRoute
   ApiGscOverviewRoute: typeof ApiGscOverviewRoute
   ApiNotaasConnectionRoute: typeof ApiNotaasConnectionRoute
   ApiOrdersReconcilePersonRoute: typeof ApiOrdersReconcilePersonRoute
@@ -1054,6 +1118,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProdutoSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/frete/$token': {
+      id: '/frete/$token'
+      path: '/frete/$token'
+      fullPath: '/frete/$token'
+      preLoaderRoute: typeof FreteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/frete-cliente/$token': {
+      id: '/frete-cliente/$token'
+      path: '/frete-cliente/$token'
+      fullPath: '/frete-cliente/$token'
+      preLoaderRoute: typeof FreteClienteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/seo': {
       id: '/dashboard/seo'
       path: '/seo'
@@ -1115,6 +1193,13 @@ declare module '@tanstack/react-router' {
       path: '/integracoes'
       fullPath: '/dashboard/integracoes'
       preLoaderRoute: typeof DashboardIntegracoesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/fretes': {
+      id: '/dashboard/fretes'
+      path: '/fretes'
+      fullPath: '/dashboard/fretes'
+      preLoaderRoute: typeof DashboardFretesRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/desempenho': {
@@ -1341,6 +1426,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGscOverviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/freight/$token': {
+      id: '/api/freight/$token'
+      path: '/api/freight/$token'
+      fullPath: '/api/freight/$token'
+      preLoaderRoute: typeof ApiFreightTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/freight-form/$token': {
+      id: '/api/freight-form/$token'
+      path: '/api/freight-form/$token'
+      fullPath: '/api/freight-form/$token'
+      preLoaderRoute: typeof ApiFreightFormTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/analytics/overview': {
       id: '/api/analytics/overview'
       path: '/api/analytics/overview'
@@ -1386,6 +1485,7 @@ interface DashboardRouteChildren {
   DashboardCrmRoute: typeof DashboardCrmRouteWithChildren
   DashboardDebugRoute: typeof DashboardDebugRoute
   DashboardDesempenhoRoute: typeof DashboardDesempenhoRoute
+  DashboardFretesRoute: typeof DashboardFretesRoute
   DashboardIntegracoesRoute: typeof DashboardIntegracoesRoute
   DashboardMidiaRoute: typeof DashboardMidiaRoute
   DashboardOrcamentosRoute: typeof DashboardOrcamentosRoute
@@ -1411,6 +1511,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardCrmRoute: DashboardCrmRouteWithChildren,
   DashboardDebugRoute: DashboardDebugRoute,
   DashboardDesempenhoRoute: DashboardDesempenhoRoute,
+  DashboardFretesRoute: DashboardFretesRoute,
   DashboardIntegracoesRoute: DashboardIntegracoesRoute,
   DashboardMidiaRoute: DashboardMidiaRoute,
   DashboardOrcamentosRoute: DashboardOrcamentosRoute,
@@ -1468,8 +1569,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWhatsappQuoteRoute: ApiWhatsappQuoteRoute,
   CatalogoVariantRoute: CatalogoVariantRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
+  FreteClienteTokenRoute: FreteClienteTokenRoute,
+  FreteTokenRoute: FreteTokenRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
   ApiAnalyticsOverviewRoute: ApiAnalyticsOverviewRoute,
+  ApiFreightFormTokenRoute: ApiFreightFormTokenRoute,
+  ApiFreightTokenRoute: ApiFreightTokenRoute,
   ApiGscOverviewRoute: ApiGscOverviewRoute,
   ApiNotaasConnectionRoute: ApiNotaasConnectionRoute,
   ApiOrdersReconcilePersonRoute: ApiOrdersReconcilePersonRoute,

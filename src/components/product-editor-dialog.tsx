@@ -19,6 +19,8 @@ type SizeRow = {
   length: string;
   base_price: number;
   sale_price: number | null;
+  /** Unit weight in kg, used to total the load of freight quotes. */
+  weight_kg: number | null;
   sort_order: number;
 };
 type AttrRow = { id?: string; name: string; sort_order: number };
@@ -218,6 +220,7 @@ const sizesSignature = (rows: SizeRow[]) =>
       name: sizeName(row),
       base_price: row.base_price,
       sale_price: row.sale_price,
+      weight_kg: row.weight_kg,
     })),
   );
 
@@ -326,6 +329,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
             name?: string;
             base_price: number;
             sale_price: number | null;
+            weight_kg?: number | null;
             sort_order: number;
           }>
         ).map((x, index, all) => {
@@ -341,6 +345,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
             ...parseSizeDimensions(name),
             base_price: x.base_price ?? 0,
             sale_price: x.sale_price ?? null,
+            weight_kg: x.weight_kg ?? null,
             sort_order: x.sort_order ?? 0,
           };
         });
@@ -516,6 +521,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
               size: sizeName(s),
               base_price: s.base_price,
               sale_price: s.sale_price,
+              weight_kg: s.weight_kg,
               sort_order: i,
             })),
           ),
@@ -1209,7 +1215,7 @@ function SizesTab({ rows, setRows }: { rows: SizeRow[]; setRows: (r: SizeRow[]) 
               />
             </Field>
           </div>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
             <Field label="Preço (R$)">
               <input
                 type="number"
@@ -1229,6 +1235,19 @@ function SizesTab({ rows, setRows }: { rows: SizeRow[]; setRows: (r: SizeRow[]) 
                 value={r.sale_price ?? ""}
                 onChange={(e) =>
                   update(i, { sale_price: e.target.value === "" ? null : Number(e.target.value) })
+                }
+              />
+            </Field>
+            <Field label="Peso (kg)">
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                className={inputCls}
+                placeholder="Usado no frete"
+                value={r.weight_kg ?? ""}
+                onChange={(e) =>
+                  update(i, { weight_kg: e.target.value === "" ? null : Number(e.target.value) })
                 }
               />
             </Field>
@@ -1253,6 +1272,7 @@ function SizesTab({ rows, setRows }: { rows: SizeRow[]; setRows: (r: SizeRow[]) 
               length: "",
               base_price: 0,
               sale_price: null,
+              weight_kg: null,
               sort_order: rows.length,
             },
           ])
