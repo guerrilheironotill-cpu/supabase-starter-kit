@@ -157,12 +157,14 @@ function OrcamentoPage() {
     email: "",
     phone: "",
     customerType: "final",
-    professionalDocument: "cnpj",
+    professionalDocument: "cpf",
     cpf: "",
     cnpj: "",
     companyName: "",
     resellerRulesAccepted: false,
   });
+  // Resellers always register with CNPJ; final customers and professionals pick CPF or CNPJ.
+  const usesCpf = customer.customerType !== "reseller" && customer.professionalDocument === "cpf";
   const [customerAddress, setCustomerAddress] = useState<Address>(EMPTY_ADDRESS);
   const [sameAsDelivery, setSameAsDelivery] = useState(true);
   const whatsappNumber = useWhatsAppNumber();
@@ -312,10 +314,7 @@ function OrcamentoPage() {
     lines.push("");
     lines.push("CLIENTE");
     lines.push(`Nome: ${customer.name}`);
-    if (
-      customer.customerType === "reseller" ||
-      (customer.customerType === "professional" && customer.professionalDocument === "cnpj")
-    ) {
+    if (!usesCpf) {
       lines.push(`Empresa: ${customer.companyName}`);
       if (customer.cnpj) lines.push(`CNPJ: ${customer.cnpj}`);
     } else {
@@ -366,11 +365,7 @@ function OrcamentoPage() {
         effectiveDelivery === "shipping"
           ? `${a.street}, ${a.number}${a.complement ? ` (${a.complement})` : ""} — ${a.neighborhood}, ${a.city}/${a.state} — CEP ${a.cep}`
           : "Retirar na fábrica",
-      personType:
-        customer.customerType === "final" ||
-        (customer.customerType === "professional" && customer.professionalDocument === "cpf")
-          ? "fisica"
-          : "juridica",
+      personType: usesCpf ? "fisica" : "juridica",
       customerType: customer.customerType,
       ...(customer.customerType === "reseller" && customer.resellerRulesAccepted
         ? {
@@ -379,17 +374,10 @@ function OrcamentoPage() {
             resellerRulesAcceptedAt: new Date().toISOString(),
           }
         : {}),
-      cpf:
-        customer.customerType === "final" ||
-        (customer.customerType === "professional" && customer.professionalDocument === "cpf")
-          ? customer.cpf
-          : null,
-      cnpj:
-        customer.customerType === "reseller" ||
-        (customer.customerType === "professional" && customer.professionalDocument === "cnpj")
-          ? customer.cnpj
-          : null,
-      companyName: customer.customerType !== "final" ? customer.companyName : null,
+      cpf: usesCpf ? customer.cpf : null,
+      cnpj: usesCpf ? null : customer.cnpj,
+      companyName:
+        customer.customerType !== "final" || !usesCpf ? customer.companyName : null,
       attribution: getMarketingAttribution(),
       conversionChannel: "site_form",
     };
@@ -472,14 +460,7 @@ function OrcamentoPage() {
   const canGoStep2 = productErrors.length === 0;
   const cpfDigits = customer.cpf.replace(/\D/g, "");
   const cnpjDigits = customer.cnpj.replace(/\D/g, "");
-  const docOk =
-    customer.customerType === "final"
-      ? cpfDigits.length === 11
-      : customer.customerType === "reseller"
-        ? cnpjDigits.length === 14
-        : customer.professionalDocument === "cpf"
-          ? cpfDigits.length === 11
-          : cnpjDigits.length === 14;
+  const docOk = usesCpf ? cpfDigits.length === 11 : cnpjDigits.length === 14;
   const canGoStep3 =
     customer.name.trim() !== "" &&
     customer.email.trim() !== "" &&
@@ -495,13 +476,9 @@ function OrcamentoPage() {
     ...(!customer.phone.trim() ? ["Informe o telefone ou WhatsApp."] : []),
     ...(!docOk
       ? [
-          customer.customerType === "reseller"
-            ? "Informe um CNPJ válido com 14 dígitos."
-            : customer.customerType === "final"
-              ? "Informe um CPF válido com 11 dígitos."
-              : customer.professionalDocument === "cpf"
-                ? "Informe um CPF válido com 11 dígitos."
-                : "Informe um CNPJ válido com 14 dígitos.",
+          usesCpf
+            ? "Informe um CPF válido com 11 dígitos."
+            : "Informe um CNPJ válido com 14 dígitos.",
         ]
       : []),
     ...(customer.customerType === "reseller" && !customer.resellerRulesAccepted
@@ -1053,6 +1030,7 @@ function StepCustomer({
   customerAddress: Address;
   setCustomerAddress: (updater: (a: Address) => Address) => void;
 }) {
+  const usesCpf = customer.customerType !== "reseller" && customer.professionalDocument === "cpf";
   return (
     <div className="space-y-8">
       <section>
@@ -1071,7 +1049,7 @@ function StepCustomer({
             >
               <CustomerProfileCard
                 title="Cliente final"
-                lines={["Cadastro via CPF", "Sem compra mínima", "Preços e promoções do site"]}
+                lines={["Cadastro via CPF ou CNPJ", "Sem compra mínima", "Preços e promoções do site"]}
                 icon={UserRound}
                 selected={customer.customerType === "final"}
                 onSelect={() =>
@@ -1113,7 +1091,7 @@ function StepCustomer({
             onChange={(v) => setCustomer((c) => ({ ...c, name: v }))}
             className="sm:col-span-2"
           />
-          {customer.customerType !== "final" && (
+          {(customer.customerType !== "final" || !usesCpf) && (
             <Field
               label="Nome da empresa"
               value={customer.companyName}
@@ -1121,7 +1099,7 @@ function StepCustomer({
               className="sm:col-span-2"
             />
           )}
-          {customer.customerType === "professional" && (
+          {customer.customerType !== "reseller" && (
             <div className="sm:col-span-2">
               <span className="block text-xs font-medium uppercase tracking-widest text-muted-foreground">
                 Documento
@@ -1164,8 +1142,7 @@ function StepCustomer({
               </span>
             </label>
           )}
-          {customer.customerType === "final" ||
-          (customer.customerType === "professional" && customer.professionalDocument === "cpf") ? (
+          {usesCpf ? (
             <Field
               label="CPF"
               required

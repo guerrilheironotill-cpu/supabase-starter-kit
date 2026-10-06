@@ -21,6 +21,7 @@ import {
   lookupCep,
   maskCep,
   newFreightToken,
+  pickupDateFromDeadline,
   rowToPublic,
   totalUnits,
   totalWeightKg,
@@ -205,6 +206,7 @@ export function FreightQuoteEditor({
   orderId,
   customerLabel,
   existing,
+  deadlineText,
   onSaved,
 }: {
   open: boolean;
@@ -213,6 +215,8 @@ export function FreightQuoteEditor({
   orderId?: string | null;
   customerLabel?: string;
   existing?: FreightQuoteRow;
+  /** Production deadline of the quote, used to suggest the pickup date. */
+  deadlineText?: string;
   onSaved?: () => void;
 }) {
   const [saving, setSaving] = useState(false);
@@ -239,7 +243,7 @@ export function FreightQuoteEditor({
     setLoadingIncluded(existing?.loading_included ?? false);
     setEmptyLoad(existing?.empty_load ?? true);
     setPhotoNote(existing?.photo_note ?? "");
-    setPickupDate(existing?.pickup_date ?? "");
+    setPickupDate(existing?.pickup_date ?? pickupDateFromDeadline(deadlineText) ?? "");
     setPickupFlexible(existing?.pickup_flexible ?? true);
     setNotes(existing?.notes ?? "");
     setWeights(
@@ -383,9 +387,23 @@ export function FreightQuoteEditor({
               CEP, sem o endereço completo nem o nome do cliente.
             </p>
             {existing?.status === "respondida" && (
-              <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-                O cliente já preencheu os dados de entrega. Confira e complete o que falta.
-              </p>
+              <div className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                <p className="font-medium">O cliente já preencheu os dados de entrega:</p>
+                <ul className="mt-1 list-disc pl-5">
+                  <li>
+                    {[existing.dest_address, existing.dest_district, existing.dest_city && `${existing.dest_city}/${existing.dest_state}`, existing.dest_cep && `CEP ${existing.dest_cep}`]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </li>
+                  <li>
+                    {existing.loading_included
+                      ? `Com descarga · ${existing.dest_floor === "terreo" ? "térreo" : "andar superior"} · ${existing.dest_stairs ? "com escada" : "sem escada"}`
+                      : "Apenas o frete (sem descarga)"}
+                  </li>
+                  {existing.access_notes && <li>{existing.access_notes}</li>}
+                </ul>
+                <p className="mt-1">Os campos abaixo já vêm preenchidos. Complete o que falta.</p>
+              </div>
             )}
             <PlaceFields
               title="Retirada"
@@ -440,7 +458,9 @@ export function FreightQuoteEditor({
               />
             </div>
             <div>
-              <Label className="text-xs">Fotos</Label>
+              <Label className="text-xs">
+                Fotos: as fotos dos produtos do catálogo entram sozinhas na página. Aviso opcional
+              </Label>
               <Input
                 placeholder="Ex: Sem foto: os vasos ainda serão produzidos"
                 value={photoNote}
@@ -449,7 +469,9 @@ export function FreightQuoteEditor({
             </div>
             <div className="grid items-end gap-2 sm:grid-cols-[180px_1fr]">
               <div>
-                <Label className="text-xs">Data de coleta</Label>
+                <Label className="text-xs">
+                  Data de coleta{deadlineText ? ` (prazo: ${deadlineText})` : ""}
+                </Label>
                 <Input type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} />
               </div>
               <label className="flex items-center gap-2 pb-2 text-sm">
@@ -517,11 +539,13 @@ export function FreightQuoteActions({
   orderId,
   customerLabel,
   customerPhone,
+  deadlineText,
 }: {
   items: FreightItem[];
   orderId?: string | null;
   customerLabel?: string;
   customerPhone?: string;
+  deadlineText?: string;
 }) {
   const [editorOpen, setEditorOpen] = useState(false);
   const [requesting, setRequesting] = useState(false);
@@ -545,6 +569,9 @@ export function FreightQuoteActions({
       origin_state: origin.state || null,
       origin_floor: origin.floor,
       origin_stairs: origin.stairs,
+      // Calculated from the production deadline; the admin can edit it when publishing.
+      pickup_date: pickupDateFromDeadline(deadlineText),
+      pickup_flexible: true,
       items,
     } as never);
     setRequesting(false);
@@ -571,6 +598,7 @@ export function FreightQuoteActions({
         items={items}
         orderId={orderId}
         customerLabel={customerLabel}
+        deadlineText={deadlineText}
       />
 
       <Dialog open={request !== null} onOpenChange={(next) => !next && setRequest(null)}>

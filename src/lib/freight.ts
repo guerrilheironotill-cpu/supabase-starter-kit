@@ -1,4 +1,8 @@
 export type FreightItem = {
+  /** Catalog product, used to pull its photo into the public page. */
+  product_id?: string | null;
+  /** Filled on the server for the public page; never stored. */
+  image_url?: string | null;
   name: string;
   quantity: number;
   size?: string | null;
@@ -33,6 +37,8 @@ export type PublicFreightQuote = {
   loadDetails: string | null;
   loadingIncluded: boolean;
   photoNote: string | null;
+  /** True when the items come from the catalog, so photos are shown automatically. */
+  hasPhotos: boolean;
   emptyLoad: boolean;
   pickupDate: string | null;
   pickupFlexible: boolean;
@@ -144,6 +150,9 @@ export function rowToPublic(row: FreightQuoteRow): PublicFreightQuote {
     loadDetails: row.load_details,
     loadingIncluded: row.loading_included,
     photoNote: row.photo_note,
+    hasPhotos: (Array.isArray(row.items) ? row.items : []).some((item) =>
+      Boolean(item.product_id || item.size_id),
+    ),
     emptyLoad: row.empty_load,
     pickupDate: row.pickup_date,
     pickupFlexible: row.pickup_flexible,
@@ -238,7 +247,9 @@ export function freightPostText(quote: PublicFreightQuote, link: string) {
     quote.loadingIncluded
       ? "🚛 Frete *com carga/descarga*"
       : "🚛 Somente o frete, *sem carga/descarga*",
-    quote.photoNote ? `📷 ${quote.photoNote}` : null,
+    quote.photoNote || quote.hasPhotos
+      ? `📷 ${quote.photoNote ?? "Fotos dos vasos na página do link"}`
+      : null,
     weight !== null ? `⚖️ Peso total: *± ${weight.toLocaleString("pt-BR")} kg*` : null,
     quote.loadDetails ? `📐 ${quote.loadDetails}` : null,
     date ? `📅 Data: *${date}*${quote.pickupFlexible ? " ou próxima" : ""}` : null,
@@ -287,4 +298,31 @@ export function chosenCarrierMessage(row: FreightQuoteRow, carrierName: string) 
   ]
     .filter((line) => line !== null)
     .join("\n");
+}
+
+/**
+ * Pickup date from a free-text production deadline such as "15 dias úteis", "10 a 15 dias"
+ * or "3 semanas": today plus the (largest) number found. Business days skip weekends.
+ * Returns yyyy-mm-dd, or null when no number is found.
+ */
+export function pickupDateFromDeadline(text: string | null | undefined, from = new Date()) {
+  const numbers = (text ?? "").match(/\d+/g)?.map(Number) ?? [];
+  const amount = numbers.length ? Math.max(...numbers) : 0;
+  if (!amount) return null;
+  const normalized = (text ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const weeks = /semana/.test(normalized);
+  const businessDays = /util|uteis/.test(normalized);
+  const date = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  if (businessDays) {
+    let remaining = weeks ? amount * 5 : amount;
+    while (remaining > 0) {
+      date.setDate(date.getDate() + 1);
+      const day = date.getDay();
+      if (day !== 0 && day !== 6) remaining -= 1;
+    }
+  } else {
+    date.setDate(date.getDate() + (weeks ? amount * 7 : amount));
+  }
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }

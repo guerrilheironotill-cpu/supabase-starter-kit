@@ -87,7 +87,8 @@ function FreightQuotesPage() {
         proposals: (proposals.data ?? []) as unknown as Proposal[],
       };
     },
-    staleTime: 15_000,
+    staleTime: 0,
+    refetchInterval: 30_000,
   });
 
   const proposalsByQuote = useMemo(() => {

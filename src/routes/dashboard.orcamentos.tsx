@@ -1295,6 +1295,7 @@ function toFreightItems(items: FreightSourceItem[], products: ProductFull[]) {
         (sizes.length === 1 ? sizes[0] : undefined);
       const weight = size?.weight_kg ?? null;
       return {
+        product_id: i.product_id ?? null,
         name: i.name,
         quantity: Number(i.quantity) || 1,
         size: i.size_name ?? null,
@@ -1341,6 +1342,7 @@ function FreightMenuDialog({
           orderId={order.id}
           customerLabel={order.customer_name}
           customerPhone={order.customer_phone ?? ""}
+          deadlineText={parseMeta(order.notes).deadline}
         />
       </DialogContent>
     </Dialog>
@@ -2633,6 +2635,7 @@ function NewQuoteDialogImpl({
                       orderId={editMode ? duplicateSource?.id : null}
                       customerLabel={name}
                       customerPhone={phone}
+                      deadlineText={deadline}
                     />
                   </div>
                 </div>

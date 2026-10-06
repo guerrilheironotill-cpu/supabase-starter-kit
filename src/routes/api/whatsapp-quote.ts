@@ -110,11 +110,18 @@ export const Route = createFileRoute("/api/whatsapp-quote")({
         const total = cleanItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
         const meta = {
           __meta: 1,
-          personType: payload.customerType === "final" ? "fisica" : "juridica",
+          // Final customers may also buy with a CNPJ.
+          personType:
+            payload.customerType === "final" && payload.documentType !== "cnpj"
+              ? "fisica"
+              : "juridica",
           customerType: payload.customerType ?? "final",
           cpf: payload.documentType === "cpf" ? (payload.document ?? null) : null,
           cnpj: payload.documentType === "cnpj" ? (payload.document ?? null) : null,
-          companyName: payload.customerType !== "final" ? (payload.companyName ?? null) : null,
+          companyName:
+            payload.customerType !== "final" || payload.documentType === "cnpj"
+              ? (payload.companyName ?? null)
+              : null,
           attribution,
           conversionChannel: "whatsapp",
         };

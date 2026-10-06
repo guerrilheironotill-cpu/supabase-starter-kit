@@ -79,7 +79,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
+  head: ({ matches }) => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
@@ -128,7 +128,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap",
       },
     ],
-    scripts: [
+    // Freight pages are private working links: no site structured data (SEO).
+    scripts: matches.some((m) => m.pathname.startsWith("/frete"))
+      ? []
+      : [
       {
         type: "application/ld+json",
         children: JSON.stringify({
@@ -198,6 +201,10 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isDashboard = pathname.startsWith("/dashboard");
+  // Freight pages are standalone: no cookie banner or tracking, and the customer form
+  // also has no site header/footer.
+  const isFreightForm = pathname.startsWith("/frete-cliente/");
+  const isStandalone = isFreightForm || pathname.startsWith("/frete/");
   // The dashboard setting is the homepage fallback. Route-specific metadata
   // must remain authoritative on catalog, category and product pages.
   useApplySiteSeo(pathname === "/");
@@ -217,14 +224,14 @@ function RootComponent() {
               }
         }
       >
-        {isDashboard ? <DashboardHeader /> : <SiteHeader />}
+        {isDashboard ? <DashboardHeader /> : isFreightForm ? null : <SiteHeader />}
         <main className="flex-1" suppressHydrationWarning>
           <Outlet />
         </main>
-        {!isDashboard && <SiteFooter />}
+        {!isDashboard && !isFreightForm && <SiteFooter />}
       </div>
-      {!isDashboard && <CookieConsentBanner />}
-      {!isDashboard && <AnalyticsLoader />}
+      {!isDashboard && !isStandalone && <CookieConsentBanner />}
+      {!isDashboard && !isStandalone && <AnalyticsLoader />}
       <Toaster position="bottom-right" richColors closeButton />
     </QueryClientProvider>
   );

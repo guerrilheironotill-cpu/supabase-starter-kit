@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, MessageCircle, PackageCheck } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { getPublicFreight } from "@/lib/freight-server";
+import { absoluteUrl } from "@/lib/site-config";
 import {
   floorLabel,
   formatPickupDate,
@@ -10,16 +12,46 @@ import {
   totalUnits,
   totalWeightKg,
   type FreightPlace,
-  type PublicFreightQuote,
 } from "@/lib/freight";
 
 export const Route = createFileRoute("/frete/$token")({
-  head: () => ({
-    meta: [
-      { title: "Cotação de frete — Arteno Vaso & Decor" },
-      { name: "robots", content: "noindex, nofollow" },
-    ],
-  }),
+  // Loaded on the server so the link preview (WhatsApp, Facebook) already carries the freight data.
+  loader: async ({ params }) => getPublicFreight({ data: params.token }),
+  head: ({ loaderData, params }) => {
+    const quote = loaderData?.quote ?? null;
+    const units = quote ? totalUnits(quote.items) : 0;
+    const weight = quote ? totalWeightKg(quote.items) : null;
+    const title = quote
+      ? `Frete: ${units} vaso${units === 1 ? "" : "s"} de concreto · ${quote.origin.district ?? quote.origin.city} → ${quote.destination.district ?? quote.destination.city}`
+      : "Cotação de frete — Arteno";
+    const description = quote
+      ? [
+          `Retirada em ${placeShort(quote.origin)}, entrega em ${placeShort(quote.destination)}.`,
+          weight !== null ? `Peso total ± ${weight.toLocaleString("pt-BR")} kg.` : null,
+          quote.status === "fechada" ? "Frete encerrado." : "Veja os detalhes e envie sua cotação.",
+        ]
+          .filter(Boolean)
+          .join(" ")
+      : "Detalhes do frete e envio de cotação.";
+    const image =
+      quote?.items.find((item) => item.image_url)?.image_url ?? absoluteUrl("/images/og-arteno.jpg");
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { name: "robots", content: "noindex, nofollow, noarchive" },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:image", content: image },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: absoluteUrl(`/frete/${params.token}`) },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+        { name: "twitter:image", content: image },
+      ],
+    };
+  },
   component: FreightQuotePage,
 });
 
@@ -57,8 +89,8 @@ function PlaceBlock({
 
 function FreightQuotePage() {
   const { token } = Route.useParams();
-  const [quote, setQuote] = useState<PublicFreightQuote | null>(null);
-  const [state, setState] = useState<"loading" | "ready" | "notfound" | "error">("loading");
+  const { quote, error: loadError } = Route.useLoaderData();
+  const state = loadError ? "error" : quote ? "ready" : "notfound";
   const [formOpen, setFormOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,23 +103,6 @@ function FreightQuotePage() {
     notes: "",
     website: "",
   });
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/freight/${encodeURIComponent(token)}`)
-      .then(async (response) => {
-        if (cancelled) return;
-        if (response.status === 404) return setState("notfound");
-        const data = (await response.json()) as { ok?: boolean; quote?: PublicFreightQuote };
-        if (!response.ok || !data.quote) return setState("error");
-        setQuote(data.quote);
-        setState("ready");
-      })
-      .catch(() => !cancelled && setState("error"));
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -119,14 +134,11 @@ function FreightQuotePage() {
   }
 
   const wrapper = (children: React.ReactNode) => (
-    <main className="min-h-[calc(100vh-96px)] bg-white py-12">
+    <main className="min-h-screen bg-white py-12">
       <div className="mx-auto max-w-3xl px-4 sm:px-6">{children}</div>
     </main>
   );
 
-  if (state === "loading") {
-    return wrapper(<p className="text-center text-muted-foreground">Carregando cotação…</p>);
-  }
   if (state === "notfound" || state === "error" || !quote) {
     return wrapper(
       <div className="border border-border bg-card p-8 text-center">
@@ -182,8 +194,16 @@ function FreightQuotePage() {
         </h2>
         <ul className="mt-3 divide-y divide-border">
           {quote.items.map((item, index) => (
-            <li key={`${item.name}-${index}`} className="flex justify-between gap-4 py-3 text-sm">
-              <div>
+            <li key={`${item.name}-${index}`} className="flex items-center gap-4 py-3 text-sm">
+              {item.image_url && (
+                <img
+                  src={item.image_url}
+                  alt={item.name}
+                  loading="lazy"
+                  className="h-16 w-16 shrink-0 border border-border object-cover"
+                />
+              )}
+              <div className="min-w-0 flex-1">
                 <div className="font-medium text-foreground">{item.name}</div>
                 <div className="mt-1 text-xs text-muted-foreground">
                   {[
@@ -227,7 +247,7 @@ function FreightQuotePage() {
               {quote.pickupFlexible ? " ou próxima" : ""}
             </li>
           )}
-          {quote.emptyLoad && <li>🪴 Os vasos vão vazios, sem plantas</li>}
+          {quote.emptyLoad && <li>🌿 Os vasos vão vazios, sem plantas</li>}
           {quote.notes && <li className="whitespace-pre-line">📝 {quote.notes}</li>}
         </ul>
       </section>

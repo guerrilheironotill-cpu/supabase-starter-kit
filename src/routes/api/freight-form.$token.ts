@@ -68,7 +68,6 @@ export const Route = createFileRoute("/api/freight-form/$token")({
         const street = text(body.street, 120);
         const number = text(body.number, 20);
         const complement = text(body.complement, 80);
-        const pickupDate = text(body.pickupDate, 10);
         if (cep.length !== 8) {
           return Response.json({ ok: false, error: "Informe o CEP de entrega." }, { status: 400 });
         }
@@ -78,10 +77,6 @@ export const Route = createFileRoute("/api/freight-form/$token")({
         if (!city || state.length !== 2) {
           return Response.json({ ok: false, error: "Informe cidade e UF." }, { status: 400 });
         }
-        if (pickupDate && !/^\d{4}-\d{2}-\d{2}$/.test(pickupDate)) {
-          return Response.json({ ok: false, error: "Data inválida." }, { status: 400 });
-        }
-
         const { error } = await admin
           .from("freight_quotes")
           .update({
@@ -94,16 +89,7 @@ export const Route = createFileRoute("/api/freight-form/$token")({
             // Private: only the chosen carrier receives the full address.
             dest_address: [`${street}, ${number}`, complement].filter(Boolean).join(" - "),
             loading_included: needsUnloading,
-            // The pickup date is the admin's call; the customer's wish goes in the notes.
-            access_notes:
-              [
-                needsUnloading ? text(body.accessNotes, 500) : "",
-                pickupDate
-                  ? `Cliente quer receber em ${pickupDate.split("-").reverse().slice(0, 2).join("/")}${body.dateFlexible === true ? " ou próxima" : ""}`
-                  : "",
-              ]
-                .filter(Boolean)
-                .join(" · ") || null,
+            access_notes: needsUnloading ? text(body.accessNotes, 500) || null : null,
             status: "respondida",
             customer_answered_at: new Date().toISOString(),
           })

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
-import { rowToPublic, type FreightQuoteRow } from "@/lib/freight";
+import type { FreightQuoteRow } from "@/lib/freight";
+import { loadPublicFreight } from "@/lib/freight-server";
 
 const FALLBACK_WHATSAPP = "5548988486279";
 
@@ -20,18 +21,10 @@ export const Route = createFileRoute("/api/freight/$token")({
   server: {
     handlers: {
       GET: async ({ params }) => {
-        const admin = adminClient();
-        if (!admin) return Response.json({ ok: false, error: "Serviço indisponível." }, { status: 500 });
-        const { data, error } = await admin
-          .from("freight_quotes")
-          .select("*")
-          .eq("token", params.token)
-          .maybeSingle();
+        const { quote, error } = await loadPublicFreight(params.token);
         if (error) return Response.json({ ok: false, error: "Serviço indisponível." }, { status: 500 });
-        if (!data || !isPublished(data as FreightQuoteRow)) {
-          return Response.json({ ok: false, error: "Cotação não encontrada." }, { status: 404 });
-        }
-        return Response.json({ ok: true, quote: rowToPublic(data as FreightQuoteRow) });
+        if (!quote) return Response.json({ ok: false, error: "Cotação não encontrada." }, { status: 404 });
+        return Response.json({ ok: true, quote });
       },
 
       POST: async ({ request, params }) => {

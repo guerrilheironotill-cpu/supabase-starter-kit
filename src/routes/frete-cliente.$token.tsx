@@ -39,8 +39,6 @@ function CustomerFreightFormPage() {
     floor: "terreo",
     stairs: false,
     accessNotes: "",
-    pickupDate: "",
-    dateFlexible: true,
     website: "",
   });
 
@@ -282,26 +280,6 @@ function CustomerFreightFormPage() {
         </label>
         </div>
         )}
-
-        <div className="grid items-end gap-4 sm:grid-cols-[200px_1fr]">
-          <label className="block">
-            <span className={labelClass}>Data desejada (opcional)</span>
-            <input
-              type="date"
-              className={inputClass}
-              value={form.pickupDate}
-              onChange={(e) => setForm({ ...form, pickupDate: e.target.value })}
-            />
-          </label>
-          <label className="flex items-center gap-2 pb-2.5 text-sm">
-            <input
-              type="checkbox"
-              checked={form.dateFlexible}
-              onChange={(e) => setForm({ ...form, dateFlexible: e.target.checked })}
-            />
-            Pode ser em data próxima
-          </label>
-        </div>
 
         <input
           type="text"
