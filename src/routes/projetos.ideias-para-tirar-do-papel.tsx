@@ -1,4 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
+import { PROJECTS_PUBLIC } from "@/lib/feature-flags";
+import { useIsAdmin } from "@/lib/use-is-admin";
+
 import { useEffect } from "react";
 import { CircleHelp } from "lucide-react";
 import {
@@ -22,6 +26,7 @@ export const Route = createFileRoute("/projetos/ideias-para-tirar-do-papel")({
   head: () => ({
     meta: [
       { title: TITLE },
+      ...(PROJECTS_PUBLIC ? [] : [{ name: "robots", content: "noindex, nofollow" }]),
       { name: "description", content: DESCRIPTION },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
@@ -42,6 +47,12 @@ function WhatsAppIcon() {
 }
 
 function IdeasPage() {
+  const navigate = useNavigate();
+  const isAdmin = useIsAdmin();
+  const blocked = !PROJECTS_PUBLIC && isAdmin !== true;
+  useEffect(() => {
+    if (!PROJECTS_PUBLIC && isAdmin === false) void navigate({ to: "/", replace: true });
+  }, [isAdmin, navigate]);
   const whatsappNumber = useWhatsAppNumber();
   const projectLink = (name: string) =>
     whatsappLinkFrom(
@@ -56,8 +67,10 @@ function IdeasPage() {
   // The page view itself is sent by AnalyticsLoader; this event marks a visit to this page
   // as an audience of its own in GA.
   useEffect(() => {
-    trackGaEvent("view_idea_projects", { projects: IDEA_PROJECTS.length });
-  }, []);
+    if (!blocked) trackGaEvent("view_idea_projects", { projects: IDEA_PROJECTS.length });
+  }, [blocked]);
+
+  if (blocked) return null;
 
   return (
     <main className="bg-background text-primary">

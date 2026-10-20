@@ -1,4 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { PROJECTS_PUBLIC } from "@/lib/feature-flags";
+import { useIsAdmin } from "@/lib/use-is-admin";
+
 import { ArrowRight } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
 import { absoluteUrl } from "@/lib/site-config";
@@ -19,6 +24,13 @@ export const Route = createFileRoute("/projetos/")({
 });
 
 function DevelopedProjectsPage() {
+  const navigate = useNavigate();
+  const isAdmin = useIsAdmin();
+  const blocked = !PROJECTS_PUBLIC && isAdmin !== true;
+  useEffect(() => {
+    if (!PROJECTS_PUBLIC && isAdmin === false) void navigate({ to: "/", replace: true });
+  }, [isAdmin, navigate]);
+  if (blocked) return null;
   return (
     <main className="bg-background text-primary">
       <PageHero

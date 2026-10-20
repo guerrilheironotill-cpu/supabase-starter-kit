@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { SITE_URL } from "@/lib/site-config";
+import { PROJECTS_PUBLIC } from "@/lib/feature-flags";
 
 type Entry = {
   path: string;
@@ -57,12 +58,16 @@ export const Route = createFileRoute("/sitemap.xml")({
             priority: "0.8",
             images: ["/images/mobiliario-urbano/hero-praca-v1.webp"],
           },
-          {
-            path: "/projetos/ideias-para-tirar-do-papel",
-            changefreq: "monthly",
-            priority: "0.7",
-            images: ["/images/projetos/escultura-infinito.webp"],
-          },
+          ...(PROJECTS_PUBLIC
+            ? [
+                {
+                  path: "/projetos/ideias-para-tirar-do-papel",
+                  changefreq: "monthly",
+                  priority: "0.7",
+                  images: ["/images/projetos/escultura-infinito.webp"],
+                },
+              ]
+            : []),
           { path: "/politica-de-cookies", changefreq: "yearly", priority: "0.2" },
         ];
 
