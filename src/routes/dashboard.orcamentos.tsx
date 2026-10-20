@@ -1378,6 +1378,10 @@ function ShareMenu({
         height?: number | null;
         width?: number | null;
         length?: number | null;
+        custom_finish?: string | null;
+        custom_color?: string | null;
+        finish_extra?: number | null;
+        color_extra?: number | null;
       }>)
     : [];
   const meta = parseMeta(order.notes);
@@ -1471,10 +1475,27 @@ function ShareMenu({
       return parts.length ? `<div class="muted">${parts.join(" · ")}</div>` : "";
     };
     const rows = items
-      .map(
-        (i) =>
-          `<tr><td>${i.name}${attrLine(i)}${i.description ? `<div class="muted">${i.description}</div>` : ""}</td><td>${i.quantity}</td><td>${currency(i.price)}</td><td>${currency((i.price ?? 0) * (i.quantity ?? 1))}</td></tr>`,
-      )
+      .map((i) => {
+        const finishExtra = Number(i.finish_extra) || 0;
+        const colorExtra = Number(i.color_extra) || 0;
+        const extras = finishExtra + colorExtra;
+        const unit = Number(i.price) || 0;
+        const finishName = i.finish === "Personalizado" ? i.custom_finish || i.finish : i.finish;
+        const colorName = i.color === "Personalizado" ? i.custom_color || i.color : i.color;
+        const unitCell =
+          extras > 0
+            ? `${currency(Math.max(0, unit - extras))}${
+                finishExtra > 0
+                  ? `<div class="muted">+ Acabamento${finishName ? ` (${finishName})` : ""}: ${currency(finishExtra)}</div>`
+                  : ""
+              }${
+                colorExtra > 0
+                  ? `<div class="muted">+ Cor${colorName ? ` (${colorName})` : ""}: ${currency(colorExtra)}</div>`
+                  : ""
+              }<div class="muted"><b>= ${currency(unit)}</b></div>`
+            : currency(unit);
+        return `<tr><td>${i.name}${attrLine(i)}${i.description ? `<div class="muted">${i.description}</div>` : ""}</td><td>${i.quantity}</td><td>${unitCell}</td><td>${currency(unit * (i.quantity ?? 1))}</td></tr>`;
+      })
       .join("");
     const module = (title: string, body: string) =>
       `<section class="mod"><h2>${title}</h2><div>${body}</div></section>`;
@@ -1701,6 +1722,55 @@ function AttributePicker({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Unit value split into base + extras, with the resulting unit total and subtotal. */
+function ItemPriceBreakdown({
+  base,
+  finishLabel,
+  finishExtra,
+  colorLabel,
+  colorExtra,
+  quantity,
+}: {
+  base: number;
+  finishLabel?: string;
+  finishExtra: number;
+  colorLabel?: string;
+  colorExtra: number;
+  quantity: number;
+}) {
+  const unit = base + finishExtra + colorExtra;
+  return (
+    <div className="mt-3 rounded-md border border-dashed border-border bg-muted/30 p-3 text-sm">
+      <div className="flex justify-between">
+        <span className="text-muted-foreground">Valor unitário base</span>
+        <span>{currency(base)}</span>
+      </div>
+      {finishExtra > 0 && (
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">
+            + Acabamento{finishLabel ? ` (${finishLabel})` : ""}
+          </span>
+          <span>{currency(finishExtra)}</span>
+        </div>
+      )}
+      {colorExtra > 0 && (
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">+ Cor{colorLabel ? ` (${colorLabel})` : ""}</span>
+          <span>{currency(colorExtra)}</span>
+        </div>
+      )}
+      <div className="mt-1 flex justify-between border-t border-border pt-1 font-medium">
+        <span>Total unitário</span>
+        <span>{currency(unit)}</span>
+      </div>
+      <div className="flex justify-between text-xs text-muted-foreground">
+        <span>Subtotal ({quantity} un.)</span>
+        <span>{currency(unit * quantity)}</span>
+      </div>
     </div>
   );
 }
@@ -2063,18 +2133,24 @@ function NewQuoteDialogImpl({
       promo: promo === null ? null : promo + extras,
     };
   };
-  const setRegularPrice = (idx: number, value: number) => {
+  // The stored unit price already includes the extras (totals, discounts and the public
+  // quote rely on it); the editor shows and edits the base value and keeps extras apart.
+  const money2 = (value: number) => Math.round(value * 100) / 100;
+  const baseOf = (it: ItemDraft, full: number) => money2(Math.max(0, full - itemExtras(it)));
+  const setRegularPrice = (idx: number, base: number) => {
     const it = items[idx];
     const promo = itemPromo(it);
+    const value = money2(base + itemExtras(it));
     priceDirty.current = true;
     updateItem(idx, {
       regular_price: value,
       price: promo !== null && promo < value ? promo : value,
     });
   };
-  const setPromoPrice = (idx: number, value: number) => {
+  const setPromoPrice = (idx: number, base: number) => {
     const it = items[idx];
     const regular = itemRegular(it);
+    const value = base > 0 ? money2(base + itemExtras(it)) : 0;
     priceDirty.current = true;
     updateItem(idx, {
       regular_price: regular,
@@ -3042,24 +3118,24 @@ function NewQuoteDialogImpl({
                         {catalogPrices(it) ? (
                           <>
                             <div>
-                              <Label className="text-xs">Valor regular (R$)</Label>
+                              <Label className="text-xs">Valor base regular (R$)</Label>
                               <Input
                                 type="number"
                                 min={0}
                                 step="0.01"
-                                value={itemRegular(it)}
+                                value={baseOf(it, itemRegular(it))}
                                 onChange={(e) => setRegularPrice(idx, Number(e.target.value))}
                                 onBlur={() => checkCatalogChange(idx)}
                               />
                             </div>
                             <div>
-                              <Label className="text-xs">Valor promocional (R$)</Label>
+                              <Label className="text-xs">Valor base promocional (R$)</Label>
                               <Input
                                 type="number"
                                 min={0}
                                 step="0.01"
                                 placeholder="Sem promoção"
-                                value={itemPromo(it) ?? ""}
+                                value={itemPromo(it) === null ? "" : baseOf(it, itemPromo(it)!)}
                                 onChange={(e) => setPromoPrice(idx, Number(e.target.value))}
                                 onBlur={() => checkCatalogChange(idx)}
                               />
@@ -3067,29 +3143,41 @@ function NewQuoteDialogImpl({
                           </>
                         ) : (
                           <div>
-                            <Label className="text-xs">Valor unitário (R$)</Label>
+                            <Label className="text-xs">Valor unitário base (R$)</Label>
                             <Input
                               type="number"
                               min={0}
                               step="0.01"
-                              value={it.price}
+                              value={baseOf(it, it.price)}
                               onChange={(e) =>
                                 // A manual price replaces the catalog price, so it becomes the discount base.
                                 updateItem(idx, {
-                                  price: Number(e.target.value),
+                                  price: money2(Number(e.target.value) + itemExtras(it)),
                                   regular_price: undefined,
                                 })
                               }
                             />
                             {it.regular_price != null && it.regular_price > it.price && (
                               <p className="mt-1 text-xs text-muted-foreground">
-                                Regular {currency(it.regular_price)} · Promocional{" "}
-                                {currency(it.price)}
+                                Regular {currency(baseOf(it, it.regular_price))} · Promocional{" "}
+                                {currency(baseOf(it, it.price))}
                               </p>
                             )}
                           </div>
                         )}
                       </div>
+                      <ItemPriceBreakdown
+                        base={baseOf(it, it.price)}
+                        finishLabel={
+                          it.finish === "Personalizado" ? it.custom_finish || it.finish : it.finish
+                        }
+                        finishExtra={Number(it.finish_extra) || 0}
+                        colorLabel={
+                          it.color === "Personalizado" ? it.custom_color || it.color : it.color
+                        }
+                        colorExtra={Number(it.color_extra) || 0}
+                        quantity={Number(it.quantity) || 0}
+                      />
                       <div className="mt-3 flex justify-end">
                         <Button
                           type="button"
