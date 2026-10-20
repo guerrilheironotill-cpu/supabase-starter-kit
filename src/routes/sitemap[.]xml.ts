@@ -57,6 +57,12 @@ export const Route = createFileRoute("/sitemap.xml")({
             priority: "0.8",
             images: ["/images/mobiliario-urbano/hero-praca-v1.webp"],
           },
+          {
+            path: "/projetos/ideias-para-tirar-do-papel",
+            changefreq: "monthly",
+            priority: "0.7",
+            images: ["/images/projetos/escultura-infinito.webp"],
+          },
           { path: "/politica-de-cookies", changefreq: "yearly", priority: "0.2" },
         ];
 

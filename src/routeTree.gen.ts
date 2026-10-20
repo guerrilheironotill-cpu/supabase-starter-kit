@@ -32,7 +32,9 @@ import { Route as BuscaRouteImport } from './routes/busca'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AcabamentosECoresRouteImport } from './routes/acabamentos-e-cores'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProjetosIndexRouteImport } from './routes/projetos.index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
+import { Route as ProjetosIdeiasParaTirarDoPapelRouteImport } from './routes/projetos.ideias-para-tirar-do-papel'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
 import { Route as FreteTokenRouteImport } from './routes/frete.$token'
 import { Route as FreteClienteTokenRouteImport } from './routes/frete-cliente.$token'
@@ -197,11 +199,22 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjetosIndexRoute = ProjetosIndexRouteImport.update({
+  id: '/projetos/',
+  path: '/projetos/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => DashboardRoute,
 } as any)
+const ProjetosIdeiasParaTirarDoPapelRoute =
+  ProjetosIdeiasParaTirarDoPapelRouteImport.update({
+    id: '/projetos/ideias-para-tirar-do-papel',
+    path: '/projetos/ideias-para-tirar-do-papel',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ProdutoSlugRoute = ProdutoSlugRouteImport.update({
   id: '/produto/$slug',
   path: '/produto/$slug',
@@ -508,7 +521,9 @@ export interface FileRoutesByFullPath {
   '/frete-cliente/$token': typeof FreteClienteTokenRoute
   '/frete/$token': typeof FreteTokenRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/projetos/ideias-para-tirar-do-papel': typeof ProjetosIdeiasParaTirarDoPapelRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/projetos/': typeof ProjetosIndexRoute
   '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
   '/api/freight-form/$token': typeof ApiFreightFormTokenRoute
   '/api/freight/$token': typeof ApiFreightTokenRoute
@@ -580,7 +595,9 @@ export interface FileRoutesByTo {
   '/frete-cliente/$token': typeof FreteClienteTokenRoute
   '/frete/$token': typeof FreteTokenRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/projetos/ideias-para-tirar-do-papel': typeof ProjetosIdeiasParaTirarDoPapelRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/projetos': typeof ProjetosIndexRoute
   '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
   '/api/freight-form/$token': typeof ApiFreightFormTokenRoute
   '/api/freight/$token': typeof ApiFreightTokenRoute
@@ -655,7 +672,9 @@ export interface FileRoutesById {
   '/frete-cliente/$token': typeof FreteClienteTokenRoute
   '/frete/$token': typeof FreteTokenRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/projetos/ideias-para-tirar-do-papel': typeof ProjetosIdeiasParaTirarDoPapelRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/projetos/': typeof ProjetosIndexRoute
   '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
   '/api/freight-form/$token': typeof ApiFreightFormTokenRoute
   '/api/freight/$token': typeof ApiFreightTokenRoute
@@ -731,7 +750,9 @@ export interface FileRouteTypes {
     | '/frete-cliente/$token'
     | '/frete/$token'
     | '/produto/$slug'
+    | '/projetos/ideias-para-tirar-do-papel'
     | '/dashboard/'
+    | '/projetos/'
     | '/api/analytics/overview'
     | '/api/freight-form/$token'
     | '/api/freight/$token'
@@ -803,7 +824,9 @@ export interface FileRouteTypes {
     | '/frete-cliente/$token'
     | '/frete/$token'
     | '/produto/$slug'
+    | '/projetos/ideias-para-tirar-do-papel'
     | '/dashboard'
+    | '/projetos'
     | '/api/analytics/overview'
     | '/api/freight-form/$token'
     | '/api/freight/$token'
@@ -877,7 +900,9 @@ export interface FileRouteTypes {
     | '/frete-cliente/$token'
     | '/frete/$token'
     | '/produto/$slug'
+    | '/projetos/ideias-para-tirar-do-papel'
     | '/dashboard/'
+    | '/projetos/'
     | '/api/analytics/overview'
     | '/api/freight-form/$token'
     | '/api/freight/$token'
@@ -933,6 +958,8 @@ export interface RootRouteChildren {
   FreteClienteTokenRoute: typeof FreteClienteTokenRoute
   FreteTokenRoute: typeof FreteTokenRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
+  ProjetosIdeiasParaTirarDoPapelRoute: typeof ProjetosIdeiasParaTirarDoPapelRoute
+  ProjetosIndexRoute: typeof ProjetosIndexRoute
   ApiAnalyticsOverviewRoute: typeof ApiAnalyticsOverviewRoute
   ApiFreightFormTokenRoute: typeof ApiFreightFormTokenRoute
   ApiFreightTokenRoute: typeof ApiFreightTokenRoute
@@ -1104,12 +1131,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projetos/': {
+      id: '/projetos/'
+      path: '/projetos'
+      fullPath: '/projetos/'
+      preLoaderRoute: typeof ProjetosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/': {
       id: '/dashboard/'
       path: '/'
       fullPath: '/dashboard/'
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRoute
+    }
+    '/projetos/ideias-para-tirar-do-papel': {
+      id: '/projetos/ideias-para-tirar-do-papel'
+      path: '/projetos/ideias-para-tirar-do-papel'
+      fullPath: '/projetos/ideias-para-tirar-do-papel'
+      preLoaderRoute: typeof ProjetosIdeiasParaTirarDoPapelRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/produto/$slug': {
       id: '/produto/$slug'
@@ -1572,6 +1613,8 @@ const rootRouteChildren: RootRouteChildren = {
   FreteClienteTokenRoute: FreteClienteTokenRoute,
   FreteTokenRoute: FreteTokenRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
+  ProjetosIdeiasParaTirarDoPapelRoute: ProjetosIdeiasParaTirarDoPapelRoute,
+  ProjetosIndexRoute: ProjetosIndexRoute,
   ApiAnalyticsOverviewRoute: ApiAnalyticsOverviewRoute,
   ApiFreightFormTokenRoute: ApiFreightFormTokenRoute,
   ApiFreightTokenRoute: ApiFreightTokenRoute,
