@@ -1726,6 +1726,20 @@ function AttributePicker({
   );
 }
 
+/** "G — 40x40x40cm" / "G | 40x40x40cm" -> "G". "Único" is not worth repeating in a title. */
+function sizeCodeOf(sizeName?: string | null) {
+  const code = String(sizeName ?? "")
+    .split(/\s[—-]\s|\|/)[0]
+    .trim();
+  return code && code !== "Único" ? code : "";
+}
+
+/** The measures part of a size label ("40x40x40cm"), or "" when there is none. */
+function sizeDimensionsOf(sizeName?: string | null) {
+  const parts = String(sizeName ?? "").split(/\s[—-]\s|\|/);
+  return parts.length > 1 ? parts.slice(1).join(" ").trim() : "";
+}
+
 /** Unit value split into base + extras, with the resulting unit total and subtotal. */
 function ItemPriceBreakdown({
   base,
@@ -2081,20 +2095,38 @@ function NewQuoteDialogImpl({
     );
   };
 
-  const moveItem = (idx: number, direction: -1 | 1) => {
-    const target = idx + direction;
-    if (target < 0 || target >= items.length) return;
-    setItems((prev) => {
-      const next = [...prev];
-      [next[idx], next[target]] = [next[target], next[idx]];
-      return next;
-    });
+  const [dragHandleIdx, setDragHandleIdx] = useState<number | null>(null);
+  const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ idx: number; after: boolean } | null>(null);
+
+  // Drag and drop: the dragged item lands before/after the one it is dropped on, and the
+  // expanded/collapsed state follows each item to its new position.
+  const moveItemTo = (from: number, target: number, after: boolean) => {
+    if (from === target) return;
+    const order = items.map((_, index) => index);
+    order.splice(from, 1);
+    const targetPosition = order.indexOf(target);
+    order.splice(after ? targetPosition + 1 : targetPosition, 0, from);
+    setItems((prev) => order.map((index) => prev[index]));
     setExpandedItems(
       (current) =>
-        new Set(
-          Array.from(current, (index) => (index === idx ? target : index === target ? idx : index)),
-        ),
+        new Set(order.flatMap((oldIndex, position) => (current.has(oldIndex) ? [position] : []))),
     );
+  };
+
+  const duplicateItem = (idx: number) => {
+    setItems((prev) => {
+      const next = [...prev];
+      next.splice(idx + 1, 0, structuredClone(prev[idx]));
+      return next;
+    });
+    setExpandedItems((current) => {
+      const next = new Set<number>();
+      for (const index of current) next.add(index > idx ? index + 1 : index);
+      next.add(idx + 1);
+      return next;
+    });
+    toast.success("Item duplicado");
   };
 
   const addItem = (kind: "catalog" | "custom") => {
@@ -2791,13 +2823,55 @@ function NewQuoteDialogImpl({
               {items.map((it, idx) => (
                 <div
                   key={idx}
-                  className={`rounded-lg border p-3 ${
+                  draggable={dragHandleIdx === idx}
+                  onDragStart={(event) => {
+                    event.dataTransfer.effectAllowed = "move";
+                    setDraggingIdx(idx);
+                  }}
+                  onDragOver={(event) => {
+                    if (draggingIdx === null || draggingIdx === idx) return;
+                    event.preventDefault();
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const after = event.clientY > rect.top + rect.height / 2;
+                    if (dropTarget?.idx !== idx || dropTarget.after !== after) {
+                      setDropTarget({ idx, after });
+                    }
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    if (draggingIdx !== null && dropTarget) {
+                      moveItemTo(draggingIdx, dropTarget.idx, dropTarget.after);
+                    }
+                    setDropTarget(null);
+                  }}
+                  onDragEnd={() => {
+                    setDraggingIdx(null);
+                    setDropTarget(null);
+                    setDragHandleIdx(null);
+                  }}
+                  className={`rounded-lg border p-3 transition-opacity ${
                     it.kind === "catalog"
                       ? "border-slate-200 bg-slate-50"
                       : "border-border bg-white"
+                  } ${draggingIdx === idx ? "opacity-40" : ""} ${
+                    dropTarget?.idx === idx
+                      ? dropTarget.after
+                        ? "shadow-[inset_0_-2px_0_0_var(--color-primary)]"
+                        : "shadow-[inset_0_2px_0_0_var(--color-primary)]"
+                      : ""
                   }`}
                 >
                   <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onMouseDown={() => setDragHandleIdx(idx)}
+                      onMouseUp={() => setDragHandleIdx(null)}
+                      className="shrink-0 cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
+                      aria-label={`Arraste para reordenar ${it.name || "item"}`}
+                      title="Arraste para reordenar"
+                    >
+                      <GripVertical className="h-4 w-4" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => toggleItem(idx)}
@@ -2805,13 +2879,16 @@ function NewQuoteDialogImpl({
                       aria-expanded={expandedItems.has(idx)}
                     >
                       <span className="truncate font-medium text-foreground">
-                        {it.name.trim() ||
-                          (it.kind === "catalog"
+                        {it.name.trim()
+                          ? `${it.name.trim()}${sizeCodeOf(it.size_name) ? ` ${sizeCodeOf(it.size_name)}` : ""}`
+                          : it.kind === "catalog"
                             ? "Novo produto do catálogo"
-                            : "Novo produto personalizado")}
+                            : "Novo produto personalizado"}
                       </span>
                       <span className="shrink-0 text-xs text-muted-foreground">
-                        {it.size_name ? `${it.size_name} · ` : ""}
+                        {sizeDimensionsOf(it.size_name)
+                          ? `${sizeDimensionsOf(it.size_name)} · `
+                          : ""}
                         Qtd: {Number(it.quantity) || 0}
                       </span>
                       <ChevronDown
@@ -2822,23 +2899,12 @@ function NewQuoteDialogImpl({
                     </button>
                     <button
                       type="button"
-                      onClick={() => moveItem(idx, -1)}
-                      disabled={idx === 0}
-                      className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
-                      aria-label={`Mover ${it.name || "item"} para cima`}
-                      title="Mover para cima"
+                      onClick={() => duplicateItem(idx)}
+                      className="shrink-0 text-muted-foreground hover:text-foreground"
+                      aria-label={`Duplicar ${it.name || "item"}`}
+                      title="Duplicar item"
                     >
-                      <ArrowUp className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveItem(idx, 1)}
-                      disabled={idx === items.length - 1}
-                      className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
-                      aria-label={`Mover ${it.name || "item"} para baixo`}
-                      title="Mover para baixo"
-                    >
-                      <ArrowDown className="h-4 w-4" />
+                      <Copy className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
