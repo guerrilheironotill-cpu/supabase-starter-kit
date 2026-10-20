@@ -20,6 +20,7 @@ import { maskCnpj, maskCpf, maskPhoneBR } from "@/lib/masks";
 import { absoluteUrl } from "@/lib/site-config";
 import { fetchProductBySlug } from "@/lib/products";
 import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
+import { colorsForFinish, fetchFinishColors, finishColorExtra } from "@/lib/finish-colors";
 import { getMarketingAttribution } from "@/lib/marketing-attribution";
 import {
   Dialog,
@@ -136,6 +137,12 @@ function useCepAutocomplete(cep: string, onFill: (data: Partial<Address>) => voi
   }, [cep]);
 }
 
+/** Colors the item can take for its current finish, with each color's extra price. */
+function colorOptionsFor(item: QuoteItem): Array<{ name: string; extraPrice: number }> {
+  const byFinish = item.finish ? item.availableFinishColors?.[item.finish] : undefined;
+  return byFinish ?? (item.availableColors ?? []).map((name) => ({ name, extraPrice: 0 }));
+}
+
 function itemSubtotal(it: QuoteItem) {
   return (it.unitPrice ?? 0) * it.quantity;
 }
@@ -230,6 +237,7 @@ function OrcamentoPage() {
     void (async () => {
       const finishCatalog = await fetchAttributeTerms("product_finishes", "finish_catalog");
       const colorCatalog = await fetchAttributeTerms("product_colors", "color_catalog");
+      const finishColors = await fetchFinishColors();
       const finishOrder = new Map(finishCatalog.map((entry, index) => [entry.name, index]));
       const colorOrder = new Map(colorCatalog.map((entry, index) => [entry.name, index]));
       await Promise.all(
@@ -246,6 +254,21 @@ function OrcamentoPage() {
               : regularPrice;
           const selectedFinishExtra =
             finishCatalog.find((entry) => entry.name === item.finish)?.extra_price ?? 0;
+          const productColorNames = [...product.product_colors]
+            .sort((a, b) => (colorOrder.get(a.name) ?? 9999) - (colorOrder.get(b.name) ?? 9999))
+            .map((color) => color.name);
+          const colorsByFinish = Object.fromEntries(
+            product.product_finishes.map((finish) => [
+              finish.name,
+              colorsForFinish(finish.name, productColorNames, finishColors),
+            ]),
+          );
+          // A saved cart may hold a color the finish no longer offers: drop it.
+          const colorStillValid = (colorsByFinish[item.finish ?? ""] ?? []).some(
+            (option) => option.name === item.color,
+          );
+          const selectedColor = colorStillValid ? item.color : undefined;
+          const selectedColorExtra = finishColorExtra(item.finish, selectedColor, finishColors);
           updateConfigurationOptions(item.id, {
             basePrice,
             availableFinishes: [...product.product_finishes]
@@ -256,14 +279,13 @@ function OrcamentoPage() {
                   finishCatalog.find((catalogItem) => catalogItem.name === finish.name)
                     ?.extra_price ?? 0,
               })),
-            availableColors: [...product.product_colors]
-              .sort((a, b) => (colorOrder.get(a.name) ?? 9999) - (colorOrder.get(b.name) ?? 9999))
-              .map((color) => color.name),
+            availableColors: productColorNames,
+            availableFinishColors: colorsByFinish,
           });
           updateConfiguration(item.id, {
             finish: item.finish,
-            color: item.color,
-            unitPrice: basePrice + selectedFinishExtra,
+            color: selectedColor,
+            unitPrice: basePrice + selectedFinishExtra + selectedColorExtra,
           });
         }),
       );
@@ -376,8 +398,7 @@ function OrcamentoPage() {
         : {}),
       cpf: usesCpf ? customer.cpf : null,
       cnpj: usesCpf ? null : customer.cnpj,
-      companyName:
-        customer.customerType !== "final" || !usesCpf ? customer.companyName : null,
+      companyName: customer.customerType !== "final" || !usesCpf ? customer.companyName : null,
       attribution: getMarketingAttribution(),
       conversionChannel: "site_form",
     };
@@ -818,11 +839,21 @@ function StepProducts({
                           const finish = item.availableFinishes?.find(
                             (option) => option.name === event.target.value,
                           );
+                          // The new finish may not offer the current color: keep it only if
+                          // it does, and pick the only option when there is just one.
+                          const nextColors = item.availableFinishColors?.[event.target.value];
+                          const nextColor = nextColors
+                            ? nextColors.length === 1
+                              ? nextColors[0]
+                              : nextColors.find((option) => option.name === item.color)
+                            : undefined;
                           updateConfiguration(item.id, {
                             finish: event.target.value,
-                            color: item.color,
+                            color: nextColors ? nextColor?.name : item.color,
                             unitPrice:
-                              (item.basePrice ?? item.unitPrice ?? 0) + (finish?.extraPrice ?? 0),
+                              (item.basePrice ?? item.unitPrice ?? 0) +
+                              (finish?.extraPrice ?? 0) +
+                              (nextColor?.extraPrice ?? 0),
                           });
                         }}
                         className="border border-border bg-background px-3 py-2 text-sm normal-case tracking-normal text-foreground"
@@ -848,21 +879,31 @@ function StepProducts({
                     {item.availableColors?.length ? (
                       <select
                         value={item.color ?? ""}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const option = colorOptionsFor(item).find(
+                            (entry) => entry.name === event.target.value,
+                          );
+                          const finishExtra =
+                            item.availableFinishes?.find((entry) => entry.name === item.finish)
+                              ?.extraPrice ?? 0;
                           updateConfiguration(item.id, {
                             finish: item.finish,
                             color: event.target.value,
-                            unitPrice: item.unitPrice,
-                          })
-                        }
+                            unitPrice:
+                              (item.basePrice ?? item.unitPrice ?? 0) +
+                              finishExtra +
+                              (option?.extraPrice ?? 0),
+                          });
+                        }}
                         className="border border-border bg-background px-3 py-2 text-sm normal-case tracking-normal text-foreground"
                       >
                         <option value="" disabled>
                           Selecione a cor
                         </option>
-                        {item.availableColors.map((color) => (
-                          <option key={color} value={color}>
-                            {color}
+                        {colorOptionsFor(item).map((color) => (
+                          <option key={color.name} value={color.name}>
+                            {color.name}
+                            {color.extraPrice > 0 ? ` (+ ${formatBRL(color.extraPrice)})` : ""}
                           </option>
                         ))}
                       </select>
@@ -1049,7 +1090,11 @@ function StepCustomer({
             >
               <CustomerProfileCard
                 title="Cliente final"
-                lines={["Cadastro via CPF ou CNPJ", "Sem compra mínima", "Preços e promoções do site"]}
+                lines={[
+                  "Cadastro via CPF ou CNPJ",
+                  "Sem compra mínima",
+                  "Preços e promoções do site",
+                ]}
                 icon={UserRound}
                 selected={customer.customerType === "final"}
                 onSelect={() =>

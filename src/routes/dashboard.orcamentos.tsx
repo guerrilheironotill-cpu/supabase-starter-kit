@@ -52,6 +52,7 @@ import { ensureCustomerForApprovedQuote } from "@/lib/customer-conversion";
 import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
 import { quoteDiscountAmount } from "@/lib/commercial-rules";
 import { currentPrice, sizeDisplayLabel, validSalePrice } from "@/lib/products";
+import { colorsForFinish, fetchFinishColors } from "@/lib/finish-colors";
 import { FreightQuoteActions } from "@/components/freight-quote-dialog";
 
 export const Route = createFileRoute("/dashboard/orcamentos")({
@@ -388,7 +389,10 @@ function DashboardQuotesPage() {
 
     const positions = new Map(remaining.map((order, position) => [order.id, position]));
     qc.setQueryData<OrderRow[]>(["orders"], (current = []) =>
-      current.map((order) => ({ ...order, sort_order: positions.get(order.id) ?? order.sort_order })),
+      current.map((order) => ({
+        ...order,
+        sort_order: positions.get(order.id) ?? order.sort_order,
+      })),
     );
     const results = await Promise.all(
       changed.map(({ order, position }) =>
@@ -1283,13 +1287,17 @@ function toFreightItems(items: FreightSourceItem[], products: ProductFull[]) {
     .map((i) => {
       const product = products.find((p) => p.id === i.product_id);
       const sizes = [...(product?.product_sizes ?? [])].sort((a, b) => a.sort_order - b.sort_order);
-      const wanted = String(i.size_name ?? "").trim().toLocaleLowerCase("pt-BR");
+      const wanted = String(i.size_name ?? "")
+        .trim()
+        .toLocaleLowerCase("pt-BR");
       const size =
         sizes.find((s) => s.id === i.size_id) ??
         sizes.find(
           (s, index) =>
             wanted &&
-            (String(s.name ?? "").trim().toLocaleLowerCase("pt-BR") === wanted ||
+            (String(s.name ?? "")
+              .trim()
+              .toLocaleLowerCase("pt-BR") === wanted ||
               sizeDisplayLabel(s, index, sizes.length).toLocaleLowerCase("pt-BR") === wanted),
         ) ??
         (sizes.length === 1 ? sizes[0] : undefined);
@@ -1379,9 +1387,7 @@ function ShareMenu({
   );
   const discount = calculateDiscount(items, meta.discountType, meta.discountValue);
   const discountLabel =
-    meta.discountType === "percentage"
-      ? `Desconto (${meta.discountValue}%)`
-      : "Desconto";
+    meta.discountType === "percentage" ? `Desconto (${meta.discountValue}%)` : "Desconto";
 
   const summary = () => {
     const lines = [
@@ -1430,7 +1436,9 @@ function ShareMenu({
       return;
     }
 
-    w.document.write("<!doctype html><html><body style='font-family:sans-serif;padding:24px'>Preparando PDF...</body></html>");
+    w.document.write(
+      "<!doctype html><html><body style='font-family:sans-serif;padding:24px'>Preparando PDF...</body></html>",
+    );
     w.document.close();
 
     let logoSrc = `${window.location.origin}/images/logo-arteno-header-site.svg`;
@@ -1455,9 +1463,7 @@ function ShareMenu({
         i.finish
           ? `Acabamento: ${i.finish === "Personalizado" ? i.custom_finish || i.finish : i.finish}`
           : "",
-        i.color
-          ? `Cor: ${i.color === "Personalizado" ? i.custom_color || i.color : i.color}`
-          : "",
+        i.color ? `Cor: ${i.color === "Personalizado" ? i.custom_color || i.color : i.color}` : "",
         i.height ? `Altura: ${i.height} cm` : "",
         i.width ? `Largura: ${i.width} cm` : "",
         i.length ? `Comprimento: ${i.length} cm` : "",
@@ -1583,37 +1589,37 @@ ${meta.note ? module("Observações", `<div style="font-size:13px;line-height:1.
 
   return (
     <>
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <Share2 className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={onEdit}>
-          <Pencil className="mr-2 h-4 w-4" /> Editar orçamento
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={onDuplicate}>
-          <Copy className="mr-2 h-4 w-4" /> Duplicar orçamento
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={copyLink}>
-          <LinkIcon className="mr-2 h-4 w-4" /> Copiar link
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={generatePdf}>
-          <FileDown className="mr-2 h-4 w-4" /> Gerar PDF
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={sendWhatsapp}>
-          <MessageCircle className="mr-2 h-4 w-4" /> Enviar por WhatsApp
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={sendEmail}>
-          <Mail className="mr-2 h-4 w-4" /> Enviar por e-mail
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => setFreightOpen(true)}>
-          <Truck className="mr-2 h-4 w-4" /> Cotação de frete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-    <FreightMenuDialog order={order} open={freightOpen} onOpenChange={setFreightOpen} />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Share2 className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={onEdit}>
+            <Pencil className="mr-2 h-4 w-4" /> Editar orçamento
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onDuplicate}>
+            <Copy className="mr-2 h-4 w-4" /> Duplicar orçamento
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={copyLink}>
+            <LinkIcon className="mr-2 h-4 w-4" /> Copiar link
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={generatePdf}>
+            <FileDown className="mr-2 h-4 w-4" /> Gerar PDF
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={sendWhatsapp}>
+            <MessageCircle className="mr-2 h-4 w-4" /> Enviar por WhatsApp
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={sendEmail}>
+            <Mail className="mr-2 h-4 w-4" /> Enviar por e-mail
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setFreightOpen(true)}>
+            <Truck className="mr-2 h-4 w-4" /> Cotação de frete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <FreightMenuDialog order={order} open={freightOpen} onOpenChange={setFreightOpen} />
     </>
   );
 }
@@ -1685,7 +1691,9 @@ function AttributePicker({
               placeholder="Adicional (R$)"
               aria-label={`Adicional de ${label.toLowerCase()} (R$)`}
               value={extra ?? 0}
-              onChange={(event) => onChange({ extra: Math.max(0, Number(event.target.value) || 0) })}
+              onChange={(event) =>
+                onChange({ extra: Math.max(0, Number(event.target.value) || 0) })
+              }
             />
             <p className="mt-1 text-[11px] text-muted-foreground">
               Adicional por unidade, somado ao valor unitário
@@ -1927,6 +1935,11 @@ function NewQuoteDialogImpl({
     queryKey: ["quote-color-catalog"],
     queryFn: () => fetchAttributeTerms("product_colors", "color_catalog"),
   });
+  const { data: finishColors = [] } = useQuery({
+    queryKey: ["finish-colors"],
+    queryFn: fetchFinishColors,
+    staleTime: 30_000,
+  });
   const finishExtraByName = useMemo(
     () => new Map(finishCatalog.map((term) => [term.name, term.extra_price])),
     [finishCatalog],
@@ -1954,7 +1967,7 @@ function NewQuoteDialogImpl({
         const previousExtra = Number(item[extraKey]) || 0;
         const nextExtra = patch.extra ?? previousExtra;
         const nextValue = patch.value ?? item[attribute];
-        return {
+        const updated = {
           ...item,
           [attribute]: nextValue,
           [nameKey]:
@@ -1965,6 +1978,34 @@ function NewQuoteDialogImpl({
             item.regular_price == null
               ? undefined
               : Math.max(0, item.regular_price - previousExtra + nextExtra),
+        };
+        // A new finish changes which colors exist and what they cost: keep the current
+        // color only if the finish still offers it, at that finish's extra for it.
+        if (
+          attribute !== "finish" ||
+          item.kind !== "catalog" ||
+          !item.color ||
+          item.color === "Personalizado"
+        ) {
+          return updated;
+        }
+        const productColors = (
+          products.find((x) => x.id === item.product_id)?.product_colors ?? []
+        ).map((color) => color.name);
+        const match = colorsForFinish(nextValue, productColors, finishColors).find(
+          (option) => option.name === item.color,
+        );
+        const oldColorExtra = Number(item.color_extra) || 0;
+        const newColorExtra = match?.extraPrice ?? 0;
+        return {
+          ...updated,
+          color: match ? item.color : undefined,
+          color_extra: newColorExtra,
+          price: Math.max(0, updated.price - oldColorExtra + newColorExtra),
+          regular_price:
+            updated.regular_price == null
+              ? undefined
+              : Math.max(0, updated.regular_price - oldColorExtra + newColorExtra),
         };
       }),
     );
@@ -1981,9 +2022,7 @@ function NewQuoteDialogImpl({
     setExpandedItems(
       (current) =>
         new Set(
-          Array.from(current, (index) =>
-            index === idx ? target : index === target ? idx : index,
-          ),
+          Array.from(current, (index) => (index === idx ? target : index === target ? idx : index)),
         ),
     );
   };
@@ -2054,10 +2093,7 @@ function NewQuoteDialogImpl({
     if (!catalog) return;
     const differs = (a: number | null, b: number | null) =>
       a === null || b === null ? a !== b : Math.abs(a - b) > 0.001;
-    if (
-      differs(itemRegular(it), catalog.regular) ||
-      differs(itemPromo(it), catalog.promo)
-    ) {
+    if (differs(itemRegular(it), catalog.regular) || differs(itemPromo(it), catalog.promo)) {
       setPriceConfirm(idx);
     }
   };
@@ -2153,8 +2189,7 @@ function NewQuoteDialogImpl({
     });
 
   // A quote that is closed without being saved is kept as a draft ("rascunho").
-  const sourceIsDraft =
-    editMode && normalizeQuoteStatus(duplicateSource?.status) === "rascunho";
+  const sourceIsDraft = editMode && normalizeQuoteStatus(duplicateSource?.status) === "rascunho";
   const finishedRef = useRef(false);
   const saveDraftRef = useRef<() => void>(() => {});
   saveDraftRef.current = () => {
@@ -2441,23 +2476,33 @@ function NewQuoteDialogImpl({
               Documento do cliente *
             </Label>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              <label className={`flex cursor-pointer items-center gap-2 rounded-md border p-3 ${personType === "fisica" ? "border-primary bg-primary/5" : "border-border"}`}>
+              <label
+                className={`flex cursor-pointer items-center gap-2 rounded-md border p-3 ${personType === "fisica" ? "border-primary bg-primary/5" : "border-border"}`}
+              >
                 <input
                   type="radio"
                   name="np-personType"
                   checked={personType === "fisica"}
                   onChange={() => setPersonType("fisica")}
                 />
-                <span><b className="block">Pessoa física</b><span className="text-xs text-muted-foreground">Usar CPF</span></span>
+                <span>
+                  <b className="block">Pessoa física</b>
+                  <span className="text-xs text-muted-foreground">Usar CPF</span>
+                </span>
               </label>
-              <label className={`flex cursor-pointer items-center gap-2 rounded-md border p-3 ${personType === "juridica" ? "border-primary bg-primary/5" : "border-border"}`}>
+              <label
+                className={`flex cursor-pointer items-center gap-2 rounded-md border p-3 ${personType === "juridica" ? "border-primary bg-primary/5" : "border-border"}`}
+              >
                 <input
                   type="radio"
                   name="np-personType"
                   checked={personType === "juridica"}
                   onChange={() => setPersonType("juridica")}
                 />
-                <span><b className="block">Pessoa jurídica</b><span className="text-xs text-muted-foreground">Usar CNPJ</span></span>
+                <span>
+                  <b className="block">Pessoa jurídica</b>
+                  <span className="text-xs text-muted-foreground">Usar CNPJ</span>
+                </span>
               </label>
             </div>
           </div>
@@ -2490,7 +2535,9 @@ function NewQuoteDialogImpl({
                     className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
                   >
                     {searchingCustomers && (
-                      <p className="px-3 py-2 text-sm text-muted-foreground">Buscando clientes...</p>
+                      <p className="px-3 py-2 text-sm text-muted-foreground">
+                        Buscando clientes...
+                      </p>
                     )}
                     {!searchingCustomers && customerSuggestions.length === 0 && (
                       <p className="px-3 py-2 text-sm text-muted-foreground">
@@ -2498,7 +2545,8 @@ function NewQuoteDialogImpl({
                       </p>
                     )}
                     {customerSuggestions.map((customer) => {
-                      const fullName = `${customer.first_name ?? ""} ${customer.last_name ?? ""}`.trim();
+                      const fullName =
+                        `${customer.first_name ?? ""} ${customer.last_name ?? ""}`.trim();
                       return (
                         <button
                           key={customer.id}
@@ -2920,7 +2968,11 @@ function NewQuoteDialogImpl({
                                   <AttributePicker
                                     label="Cor"
                                     required
-                                    options={colors.map((c) => ({ name: c.name, extra: 0 }))}
+                                    options={colorsForFinish(
+                                      it.finish,
+                                      colors.map((c) => c.name),
+                                      finishColors,
+                                    ).map((c) => ({ name: c.name, extra: c.extraPrice }))}
                                     value={it.color}
                                     customName={it.custom_color}
                                     extra={it.color_extra}
@@ -3014,27 +3066,28 @@ function NewQuoteDialogImpl({
                             </div>
                           </>
                         ) : (
-                        <div>
-                          <Label className="text-xs">Valor unitário (R$)</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            value={it.price}
-                            onChange={(e) =>
-                              // A manual price replaces the catalog price, so it becomes the discount base.
-                              updateItem(idx, {
-                                price: Number(e.target.value),
-                                regular_price: undefined,
-                              })
-                            }
-                          />
-                          {it.regular_price != null && it.regular_price > it.price && (
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              Regular {currency(it.regular_price)} · Promocional {currency(it.price)}
-                            </p>
-                          )}
-                        </div>
+                          <div>
+                            <Label className="text-xs">Valor unitário (R$)</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              value={it.price}
+                              onChange={(e) =>
+                                // A manual price replaces the catalog price, so it becomes the discount base.
+                                updateItem(idx, {
+                                  price: Number(e.target.value),
+                                  regular_price: undefined,
+                                })
+                              }
+                            />
+                            {it.regular_price != null && it.regular_price > it.price && (
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                Regular {currency(it.regular_price)} · Promocional{" "}
+                                {currency(it.price)}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
                       <div className="mt-3 flex justify-end">
@@ -3096,11 +3149,11 @@ function NewQuoteDialogImpl({
                   <Label>Tipo de desconto</Label>
                   <Select
                     value={discountType}
-                    onValueChange={(value) =>
-                      setDiscountType(value as "percentage" | "fixed")
-                    }
+                    onValueChange={(value) => setDiscountType(value as "percentage" | "fixed")}
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="percentage">Percentual (%)</SelectItem>
                       <SelectItem value="fixed">Valor fixo (R$)</SelectItem>
@@ -3152,9 +3205,7 @@ function NewQuoteDialogImpl({
           )}
           {discount > 0 && (
             <div className="flex items-center justify-between text-emerald-600">
-              <span>
-                Desconto{discountType === "percentage" ? ` (${discountValue}%)` : ""}
-              </span>
+              <span>Desconto{discountType === "percentage" ? ` (${discountValue}%)` : ""}</span>
               <span>-{currency(discount)}</span>
             </div>
           )}
@@ -3225,7 +3276,11 @@ function NewQuoteDialogImpl({
             >
               Só neste orçamento
             </Button>
-            <Button type="button" onClick={() => void applyPriceToProduct()} disabled={savingProductPrice}>
+            <Button
+              type="button"
+              onClick={() => void applyPriceToProduct()}
+              disabled={savingProductPrice}
+            >
               {savingProductPrice ? "Salvando…" : "Alterar no produto também"}
             </Button>
           </DialogFooter>

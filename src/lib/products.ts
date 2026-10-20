@@ -13,7 +13,15 @@ export type Product = {
   product_sizes?: ProductSize[];
   /** Optional override photo used instead of `images` on this product's page in the catalog PDF. */
   pdf_image_url?: string | null;
+  /** A kit sold at one price: a single product_sizes row, no per-size pricing. */
+  is_set?: boolean;
+  /** Free-text contents of the kit, e.g. "1 vaso G + 2 vasos M". */
+  set_items?: string | null;
 };
+
+/** Label and stored name of the single size row of a set. */
+export const SET_SIZE_LABEL = "Kit";
+export const SET_SIZE_NAME = `${SET_SIZE_LABEL} | Conjunto`;
 
 export function validSalePrice(size: Pick<ProductSize, "base_price" | "sale_price">) {
   const regular = Number(size.base_price);
@@ -34,9 +42,12 @@ export function sizeDisplayLabel(
   total: number,
 ) {
   const value = size.name ?? size.size ?? "";
+  if (value === SET_SIZE_NAME) return SET_SIZE_LABEL;
   const separator = value.indexOf("|");
-  if (separator >= 0) return `${value.slice(0, separator).trim()} — ${value.slice(separator + 1).trim()}`;
-  const code = total === 1 ? "Único" : total <= SIZE_CODES.length ? SIZE_CODES[index] : String(index + 1);
+  if (separator >= 0)
+    return `${value.slice(0, separator).trim()} — ${value.slice(separator + 1).trim()}`;
+  const code =
+    total === 1 ? "Único" : total <= SIZE_CODES.length ? SIZE_CODES[index] : String(index + 1);
   return value ? `${code} — ${value}` : code;
 }
 
@@ -117,7 +128,7 @@ export async function fetchProductsByCategory(category: string, limit = 8): Prom
   const { data, error } = await supabase
     .from("products")
     .select(
-      "id, slug, name, category, images, product_sizes(id, product_id, name, size, base_price, sale_price, sort_order)",
+      "id, slug, name, category, images, is_set, product_sizes(id, product_id, name, size, base_price, sale_price, sort_order)",
     )
     .eq("category", category)
     .eq("active", true)
@@ -172,6 +183,7 @@ export async function fetchCategoryCover(category: string): Promise<string | nul
 export type ProductWithSizes = Product & {
   product_sizes: ProductSize[];
   product_finishes?: ProductOption[];
+  product_colors?: ProductOption[];
 };
 
 async function resolveCategoryBySlug(slugOrName: string): Promise<string | null> {
@@ -194,7 +206,7 @@ export async function fetchProductsWithSizes(params: {
   let q = supabase
     .from("products")
     .select(
-      "id, slug, name, category, images, description, product_sizes(id, product_id, name, size, base_price, sale_price, sort_order), product_finishes(id, name, sort_order)",
+      "id, slug, name, category, images, description, is_set, set_items, product_sizes(id, product_id, name, size, base_price, sale_price, sort_order), product_finishes(id, name, sort_order), product_colors(id, name, sort_order)",
     )
     .eq("active", true);
 
@@ -250,7 +262,7 @@ export async function fetchProductBySlug(slug: string): Promise<ProductDetail | 
   const withSeo = await supabase
     .from("products")
     .select(
-      "id, slug, name, category, images, description, meta_title, meta_description, seo_keywords, product_sizes(id, product_id, name, size, base_price, sale_price, sort_order), product_finishes(id, name, sort_order), product_colors(id, name, sort_order)",
+      "id, slug, name, category, images, description, is_set, set_items, meta_title, meta_description, seo_keywords, product_sizes(id, product_id, name, size, base_price, sale_price, sort_order), product_finishes(id, name, sort_order), product_colors(id, name, sort_order)",
     )
     .eq("slug", slug)
     .eq("active", true)
@@ -260,7 +272,9 @@ export async function fetchProductBySlug(slug: string): Promise<ProductDetail | 
   if (
     !message.includes("meta_title") &&
     !message.includes("meta_description") &&
-    !message.includes("seo_keywords")
+    !message.includes("seo_keywords") &&
+    !message.includes("is_set") &&
+    !message.includes("set_items")
   ) {
     throw withSeo.error;
   }

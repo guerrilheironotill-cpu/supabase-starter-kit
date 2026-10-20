@@ -17,6 +17,8 @@ export type QuoteItem = {
   basePrice?: number;
   availableFinishes?: Array<{ name: string; extraPrice: number }>;
   availableColors?: string[];
+  /** Colors per finish, each with the extra price it adds on top of the finish's own. */
+  availableFinishColors?: Record<string, Array<{ name: string; extraPrice: number }>>;
 };
 
 type QuoteState = {
@@ -30,7 +32,10 @@ type QuoteState = {
   ) => void;
   updateConfigurationOptions: (
     id: string,
-    options: Pick<QuoteItem, "availableFinishes" | "availableColors" | "basePrice">,
+    options: Pick<
+      QuoteItem,
+      "availableFinishes" | "availableColors" | "availableFinishColors" | "basePrice"
+    >,
   ) => void;
   clear: () => void;
   count: () => number;

@@ -29,6 +29,7 @@ import {
 } from "@/components/available-finishes-section";
 import { absoluteUrl } from "@/lib/site-config";
 import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
+import { colorsForFinish, fetchFinishColors, finishColorExtra } from "@/lib/finish-colors";
 import { ConcreteCharacteristicsCallout } from "@/components/concrete-characteristics-callout";
 import { isConcreteProduct } from "@/lib/concrete-characteristics";
 import {
@@ -350,6 +351,11 @@ function ProductPage() {
     queryFn: () => fetchAttributeTerms("product_colors", "color_catalog"),
     staleTime: 60_000,
   });
+  const { data: finishColors = [] } = useQuery({
+    queryKey: ["finish-colors"],
+    queryFn: fetchFinishColors,
+    staleTime: 60_000,
+  });
   const finishOrder = new Map(finishCatalog.map((term, index) => [term.name, index]));
   const colorOrder = new Map(colorCatalog.map((term, index) => [term.name, index]));
   const finishes = [...(p.product_finishes ?? [])]
@@ -382,9 +388,28 @@ function ProductPage() {
   const selectedFinishExtra =
     finishes.find((finish) => finish.name === selectedFinish)?.extra_price ?? 0;
   const selectedSize = sizes.find((size) => size.id === selectedSizeId);
-  const selectedRegularPrice = Number(selectedSize?.base_price ?? 0) + selectedFinishExtra;
+  const colorOptions = colorsForFinish(
+    selectedFinish,
+    colors.map((color) => color.name),
+    finishColors,
+  );
+  const selectedColorExtra = finishColorExtra(selectedFinish, selectedColor, finishColors);
+  const selectedExtras = selectedFinishExtra + selectedColorExtra;
+  const selectedRegularPrice = Number(selectedSize?.base_price ?? 0) + selectedExtras;
   const selectedSale = selectedSize ? validSalePrice(selectedSize) : null;
-  const selectedUnitPrice = (selectedSize ? currentPrice(selectedSize) : 0) + selectedFinishExtra;
+  const selectedUnitPrice = (selectedSize ? currentPrice(selectedSize) : 0) + selectedExtras;
+
+  /** Changing the finish changes which colors exist: drop a color that no longer applies. */
+  function changeFinish(finish: string) {
+    setSelectedFinish(finish);
+    const options = colorsForFinish(
+      finish,
+      colors.map((color) => color.name),
+      finishColors,
+    );
+    if (options.length === 1) setSelectedColor(options[0].name);
+    else if (!options.some((option) => option.name === selectedColor)) setSelectedColor("");
+  }
 
   useEffect(() => {
     if (!selectedSize || selectedUnitPrice <= 0) return;
@@ -411,6 +436,7 @@ function ProductPage() {
     if (!s) return;
     if (!selectedFinish || !selectedColor) return;
     const basePrice = currentPrice(s);
+    const colorExtra = finishColorExtra(selectedFinish, selectedColor, finishColors);
     addItem({
       id: `${p.id}:${s.id}:${selectedFinish}:${selectedColor}`,
       productId: p.id,
@@ -421,27 +447,37 @@ function ProductPage() {
       quantity: qty,
       sizeLabel: storedSizeCode(s, idx, sizes.length),
       // Use the canonical name if present; otherwise fall back to the raw size value.
-      dimensions: storedDimensions(s),
+      dimensions: p.is_set ? undefined : storedDimensions(s),
       finish: selectedFinish || undefined,
       color: selectedColor || undefined,
-      unitPrice: basePrice + selectedFinishExtra,
+      unitPrice: basePrice + selectedFinishExtra + colorExtra,
       basePrice,
       availableFinishes: finishes.map((finish) => ({
         name: finish.name,
         extraPrice: finish.extra_price,
       })),
       availableColors: colors.map((color) => color.name),
+      availableFinishColors: Object.fromEntries(
+        finishes.map((finish) => [
+          finish.name,
+          colorsForFinish(
+            finish.name,
+            colors.map((color) => color.name),
+            finishColors,
+          ),
+        ]),
+      ),
     });
     trackMetaEvent("AddToCart", {
       content_ids: [s.id],
       content_type: "product",
       content_name: p.name,
-      value: (basePrice + selectedFinishExtra) * qty,
+      value: (basePrice + selectedFinishExtra + colorExtra) * qty,
       currency: "BRL",
       num_items: qty,
     });
     setAddedDescription(
-      `${p.name}, tamanho ${storedSizeCode(s, idx, sizes.length)}${selectedFinish ? `, acabamento ${selectedFinish}` : ""}`,
+      `${p.name}, ${p.is_set ? "kit" : `tamanho ${storedSizeCode(s, idx, sizes.length)}`}${selectedFinish ? `, acabamento ${selectedFinish}` : ""}`,
     );
     setOpen(false);
     setAddedOpen(true);
@@ -520,7 +556,46 @@ function ProductPage() {
               </section>
             )}
 
-            {sizes.length > 0 && (
+            {p.is_set && sizes[0] && (
+              <div className="mt-8">
+                <h2 className="mb-3 font-display text-lg font-semibold text-primary">Conjunto</h2>
+                <div className="bg-white p-4 ring-1 ring-primary/10">
+                  {p.set_items?.trim() && (
+                    <p className="whitespace-pre-line text-sm leading-relaxed text-primary/80">
+                      {p.set_items.trim()}
+                    </p>
+                  )}
+                  <div className="mt-4 flex items-center justify-between gap-4">
+                    <div className="font-semibold text-primary">
+                      {validSalePrice(sizes[0]) ? (
+                        <span className="flex flex-col">
+                          <span className="text-xs font-normal text-primary/50 line-through">
+                            {formatBRL(Number(sizes[0].base_price))}
+                          </span>
+                          <span className="text-lg">{formatBRL(currentPrice(sizes[0]))}</span>
+                        </span>
+                      ) : (
+                        <span className="text-lg">{formatBRL(currentPrice(sizes[0]))}</span>
+                      )}
+                      <span className="block text-xs font-normal text-primary/60">
+                        Preço do kit · Sob encomenda
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openProductConfiguration(sizes[0].id)}
+                      className="inline-flex items-center gap-2 bg-[#2a2f2c] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[#3a403c]"
+                      aria-label={`Adicionar ${p.name} ao orçamento`}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Adicionar ao orçamento
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!p.is_set && sizes.length > 0 && (
               <div className="mt-8">
                 <h2 className="mb-3 font-display text-lg font-semibold text-primary">
                   Tabela de tamanhos
@@ -789,7 +864,7 @@ function ProductPage() {
                 Acabamento
                 <select
                   value={selectedFinish}
-                  onChange={(e) => setSelectedFinish(e.target.value)}
+                  onChange={(e) => changeFinish(e.target.value)}
                   className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 >
                   <option value="" disabled>
@@ -810,14 +885,18 @@ function ProductPage() {
                 <select
                   value={selectedColor}
                   onChange={(e) => setSelectedColor(e.target.value)}
-                  className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  disabled={finishes.length > 0 && !selectedFinish}
+                  className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
                 >
                   <option value="" disabled>
-                    Selecione uma cor
+                    {finishes.length > 0 && !selectedFinish
+                      ? "Escolha o acabamento primeiro"
+                      : "Selecione uma cor"}
                   </option>
-                  {colors.map((c) => (
-                    <option key={c.id} value={c.name}>
+                  {colorOptions.map((c) => (
+                    <option key={c.name} value={c.name}>
                       {c.name}
+                      {c.extraPrice > 0 ? ` (+ ${formatBRL(c.extraPrice)})` : ""}
                     </option>
                   ))}
                 </select>
@@ -862,6 +941,11 @@ function ProductPage() {
               {selectedFinishExtra > 0 && (
                 <p className="mt-1 text-xs text-primary/60">
                   Inclui {formatBRL(selectedFinishExtra)} do acabamento selecionado.
+                </p>
+              )}
+              {selectedColorExtra > 0 && (
+                <p className="mt-1 text-xs text-primary/60">
+                  Inclui {formatBRL(selectedColorExtra)} da cor selecionada.
                 </p>
               )}
               <div className="mt-2 flex items-center justify-between border-t border-primary/10 pt-2 font-semibold">

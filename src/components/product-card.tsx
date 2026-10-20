@@ -149,6 +149,7 @@ export function ProductCard({ product, index = 0, variant = "default" }: Props) 
         </h3>
         {priceRange && (
           <p className="mt-1 text-sm font-semibold text-primary">
+            {product.is_set && "Kit · "}
             {priceRange.min === priceRange.max
               ? formatBRL(priceRange.min)
               : `A partir de ${formatBRL(priceRange.min)}`}

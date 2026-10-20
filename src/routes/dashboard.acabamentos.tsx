@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardSection } from "@/components/dashboard-layout";
 import { DashboardGalleryEditor } from "@/components/dashboard-gallery-editor";
 import { fetchAttributeTerms, type AttributeTerm } from "@/lib/dashboard-taxonomies";
+import { fetchFinishColors, type FinishColor } from "@/lib/finish-colors";
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, GripVertical, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,16 @@ function DashboardFinishesPage() {
   const { data = [], isLoading } = useQuery({
     queryKey: ["dashboard", "acabamentos"],
     queryFn: fetchFinishes,
+    staleTime: 30_000,
+  });
+  const { data: colorTerms = [] } = useQuery({
+    queryKey: ["dashboard", "cores-catalogo"],
+    queryFn: () => fetchAttributeTerms("product_colors", "color_catalog"),
+    staleTime: 30_000,
+  });
+  const { data: finishColors = [] } = useQuery({
+    queryKey: ["finish-colors"],
+    queryFn: fetchFinishColors,
     staleTime: 30_000,
   });
 
@@ -142,6 +153,11 @@ function DashboardFinishesPage() {
         .delete()
         .eq("name", finish.name);
       if (relationError) throw relationError;
+      const { error: finishColorsError } = await supabase
+        .from("finish_colors" as never)
+        .delete()
+        .eq("finish_name", finish.name);
+      if (finishColorsError) throw finishColorsError;
       const { error: legacyRelationError } = await supabase
         .from("product_finishes")
         .delete()
@@ -366,6 +382,10 @@ function DashboardFinishesPage() {
                         await supabase.from("finish_catalog").delete().eq("name", name);
                         throw relationError;
                       }
+                      await supabase
+                        .from("finish_colors" as never)
+                        .update({ finish_name: name } as never)
+                        .eq("finish_name", f.name);
 
                       const { error: deleteError } = await supabase
                         .from("finish_catalog")
@@ -389,8 +409,18 @@ function DashboardFinishesPage() {
                       qc.invalidateQueries({ queryKey: ["dashboard", "acabamentos"] }),
                       qc.invalidateQueries({ queryKey: ["attribute-terms", "product_finishes"] }),
                     ]);
+                    await qc.invalidateQueries({ queryKey: ["finish-colors"] });
                     markPdfPending();
                     toast.success(`Acabamento "${name}" salvo!`);
+                  }}
+                />
+                <FinishColorsEditor
+                  finishName={f.name}
+                  colorNames={colorTerms.map((term) => term.name)}
+                  saved={finishColors.filter((row) => row.finish_name === f.name)}
+                  onSaved={() => {
+                    void qc.invalidateQueries({ queryKey: ["finish-colors"] });
+                    markPdfPending();
                   }}
                 />
               </div>
@@ -484,6 +514,139 @@ function CreateAttributeForm({
         Criar
       </button>
       {error && <span className="text-xs text-destructive">{error}</span>}
+    </div>
+  );
+}
+
+/**
+ * Colors offered inside one finish. Each color can carry an extra price that is added on
+ * top of the finish's own extra. A finish with no color selected offers every product
+ * color at no extra cost.
+ */
+function FinishColorsEditor({
+  finishName,
+  colorNames,
+  saved,
+  onSaved,
+}: {
+  finishName: string;
+  colorNames: string[];
+  saved: FinishColor[];
+  onSaved: () => void;
+}) {
+  const savedKey = JSON.stringify(saved.map((row) => [row.color_name, row.extra_price]));
+  const [selected, setSelected] = useState<Map<string, number>>(
+    () => new Map(saved.map((row) => [row.color_name, row.extra_price])),
+  );
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setSelected(new Map(saved.map((row) => [row.color_name, row.extra_price])));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedKey]);
+
+  const dirty =
+    JSON.stringify(
+      colorNames.filter((name) => selected.has(name)).map((name) => [name, selected.get(name)]),
+    ) !== savedKey;
+
+  async function save() {
+    setBusy(true);
+    try {
+      const rows = colorNames
+        .filter((name) => selected.has(name))
+        .map((name, index) => ({
+          finish_name: finishName,
+          color_name: name,
+          extra_price: Math.max(0, Number(selected.get(name)) || 0),
+          sort_order: index,
+        }));
+      const { error: deleteError } = await supabase
+        .from("finish_colors" as never)
+        .delete()
+        .eq("finish_name", finishName);
+      if (deleteError) throw deleteError;
+      if (rows.length > 0) {
+        const { error: insertError } = await supabase
+          .from("finish_colors" as never)
+          .insert(rows as never);
+        if (insertError) throw insertError;
+      }
+      toast.success(`Cores de "${finishName}" salvas!`);
+      onSaved();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao salvar as cores.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="-mt-1 mb-2 rounded-b-2xl border border-t-0 border-border bg-card/60 px-4 pb-4 pt-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-medium text-foreground">Cores deste acabamento</p>
+          <p className="text-xs text-muted-foreground">
+            O acréscimo da cor soma ao acréscimo do acabamento. Sem nenhuma cor marcada, todas as
+            cores do produto ficam disponíveis sem acréscimo.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={busy || !dirty}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          Salvar cores
+        </button>
+      </div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        {colorNames.map((name) => {
+          const checked = selected.has(name);
+          return (
+            <div
+              key={name}
+              className={cn(
+                "flex items-center gap-3 rounded-lg border px-3 py-2",
+                checked ? "border-primary/30 bg-primary/5" : "border-border bg-muted/30",
+              )}
+            >
+              <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(event) => {
+                    const next = new Map(selected);
+                    if (event.target.checked) next.set(name, 0);
+                    else next.delete(name);
+                    setSelected(next);
+                  }}
+                  className="h-4 w-4 accent-primary"
+                />
+                <span className="truncate">{name}</span>
+              </label>
+              {checked && (
+                <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                  + R$
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={selected.get(name) ?? 0}
+                    onChange={(event) => {
+                      const next = new Map(selected);
+                      next.set(name, Number(event.target.value));
+                      setSelected(next);
+                    }}
+                    className="w-20 rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+                  />
+                </label>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

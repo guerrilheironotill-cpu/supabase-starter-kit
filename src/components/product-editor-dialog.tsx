@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { uploadOptimizedImage } from "@/lib/vps-media";
 import { cn } from "@/lib/utils";
 import { fetchProductCategoryOptions } from "@/lib/dashboard-taxonomies";
-import { slugify } from "@/lib/products";
+import { SET_SIZE_LABEL, SET_SIZE_NAME, slugify } from "@/lib/products";
 import { toast } from "sonner";
 
 type Category = { id: string; name: string; slug: string };
@@ -39,6 +39,10 @@ type ProductData = {
   seo_keywords: string[];
   /** Overrides `images` in the catalog PDF's product column when set. */
   pdf_image_url: string | null;
+  /** Kit sold at a single price: one size row holds the kit price and total weight. */
+  is_set: boolean;
+  /** Free-text contents of the kit. */
+  set_items: string | null;
 };
 
 type Props = {
@@ -154,6 +158,8 @@ function normalizeProduct(row: Partial<ProductData> & { images?: string[] | null
     meta_description: row.meta_description ?? null,
     seo_keywords: row.seo_keywords ?? [],
     pdf_image_url: row.pdf_image_url ?? null,
+    is_set: row.is_set ?? false,
+    set_items: row.set_items ?? null,
   };
 }
 
@@ -230,7 +236,7 @@ async function fetchEditableProduct(productId: string): Promise<ProductData> {
   const withSeo = await supabase
     .from("products")
     .select(
-      "id, slug, name, created_at, description, category, images, active, meta_title, meta_description, seo_keywords, pdf_image_url",
+      "id, slug, name, created_at, description, category, images, active, meta_title, meta_description, seo_keywords, pdf_image_url, is_set, set_items",
     )
     .eq("id", productId)
     .maybeSingle();
@@ -388,6 +394,31 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
     setDraftSavedAt(updatedAt);
   }, [productId, editorSignature, product, sizes, finishes, colors]);
 
+  /** Turning a product into a kit collapses its sizes into the single kit-price row. */
+  function changeIsSet(isSet: boolean) {
+    if (!product || product.is_set === isSet) return;
+    if (isSet) {
+      const first = sizes[0];
+      setSizes([
+        {
+          id: first?.id,
+          label: SET_SIZE_LABEL,
+          name: SET_SIZE_NAME,
+          height: "",
+          width: "",
+          length: "",
+          base_price: first?.base_price ?? 0,
+          sale_price: first?.sale_price ?? null,
+          weight_kg: first?.weight_kg ?? null,
+          sort_order: 0,
+        },
+      ]);
+    } else if (sizes[0]) {
+      setSizes([{ ...sizes[0], label: "", name: "" }]);
+    }
+    setProduct({ ...product, is_set: isSet });
+  }
+
   function discardDraft() {
     if (!window.confirm("Descartar todo o rascunho deste produto?")) return;
     window.localStorage.removeItem(NEW_PRODUCT_DRAFT_KEY);
@@ -429,6 +460,9 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
       if (sizeWithoutLabel) {
         throw new Error("Preencha o campo Tamanho de todos os tamanhos, por exemplo P, M ou G.");
       }
+      if (product.is_set && sizes.length !== 1) {
+        throw new Error("Um conjunto tem um único preço: informe só o preço do kit.");
+      }
       if (product.active && sizes.length === 0) {
         throw new Error("Cadastre pelo menos um tamanho com preço antes de publicar o produto.");
       }
@@ -467,6 +501,8 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
         meta_description: product.meta_description,
         seo_keywords: product.seo_keywords,
         pdf_image_url: product.pdf_image_url,
+        is_set: product.is_set,
+        set_items: product.is_set ? product.set_items : null,
       };
       let savedProductId = product.id;
       const productWrite = product.id
@@ -636,7 +672,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
               [
                 ["basic", "Básico"],
                 ["images", `Imagens (${product.images.length})`],
-                ["sizes", `Tamanhos (${sizes.length})`],
+                ["sizes", product.is_set ? "Preço do kit" : `Tamanhos (${sizes.length})`],
                 ["finishes", `Acabamentos (${finishes.length})`],
                 ["colors", `Cores (${colors.length})`],
                 ["seo", "SEO"],
@@ -662,7 +698,12 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
             className={cn("px-6 py-4 text-sm", mode === "dialog" && "max-h-[60vh] overflow-y-auto")}
           >
             {tab === "basic" && (
-              <BasicTab product={product} setProduct={setProduct} categories={categories} />
+              <BasicTab
+                product={product}
+                setProduct={setProduct}
+                categories={categories}
+                setIsSet={changeIsSet}
+              />
             )}
             {tab === "images" && (
               <ImagesTab
@@ -673,7 +714,17 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
                 uploadImage={uploadImage}
               />
             )}
-            {tab === "sizes" && <SizesTab rows={sizes} setRows={setSizes} />}
+            {tab === "sizes" &&
+              (product.is_set ? (
+                <KitTab
+                  row={sizes[0]}
+                  setRow={(row) => setSizes([row])}
+                  items={product.set_items ?? ""}
+                  setItems={(set_items) => setProduct({ ...product, set_items })}
+                />
+              ) : (
+                <SizesTab rows={sizes} setRows={setSizes} />
+              ))}
             {tab === "finishes" && (
               <AttrTab
                 label="Acabamento"
@@ -786,10 +837,12 @@ function BasicTab({
   product,
   setProduct,
   categories,
+  setIsSet,
 }: {
   product: ProductData;
   setProduct: (p: ProductData) => void;
   categories: Category[];
+  setIsSet: (isSet: boolean) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -851,6 +904,20 @@ function BasicTab({
           onChange={(e) => setProduct({ ...product, description: e.target.value })}
         />
       </Field>
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="mt-1"
+          checked={product.is_set}
+          onChange={(e) => setIsSet(e.target.checked)}
+        />
+        <span>
+          Este produto é um conjunto (kit)
+          <span className="block text-xs text-muted-foreground">
+            Vendido por um preço único, sem preço por tamanho.
+          </span>
+        </span>
+      </label>
       <label className="inline-flex items-center gap-2 text-sm">
         <input
           type="checkbox"
@@ -1122,6 +1189,81 @@ function ImagesTab({
             />
           </label>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function KitTab({
+  row,
+  setRow,
+  items,
+  setItems,
+}: {
+  row: SizeRow | undefined;
+  setRow: (r: SizeRow) => void;
+  items: string;
+  setItems: (value: string) => void;
+}) {
+  const current: SizeRow = row ?? {
+    label: SET_SIZE_LABEL,
+    name: SET_SIZE_NAME,
+    height: "",
+    width: "",
+    length: "",
+    base_price: 0,
+    sale_price: null,
+    weight_kg: null,
+    sort_order: 0,
+  };
+  const update = (patch: Partial<SizeRow>) => setRow({ ...current, ...patch });
+  return (
+    <div className="space-y-3">
+      <Field label="Composição do kit">
+        <textarea
+          rows={4}
+          className={cn(inputCls, "resize-none")}
+          value={items}
+          placeholder="Ex.: 1 vaso G (40x40x40cm) + 2 vasos M (30x30x30cm)"
+          onChange={(e) => setItems(e.target.value)}
+        />
+      </Field>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field label="Preço do kit (R$) *">
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            className={inputCls}
+            value={current.base_price}
+            onChange={(e) => update({ base_price: Number(e.target.value) })}
+          />
+        </Field>
+        <Field label="Preço promocional (R$)">
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            className={inputCls}
+            value={current.sale_price ?? ""}
+            onChange={(e) =>
+              update({ sale_price: e.target.value === "" ? null : Number(e.target.value) })
+            }
+          />
+        </Field>
+        <Field label="Peso total do kit (kg)">
+          <input
+            type="number"
+            min="0"
+            step="0.1"
+            className={inputCls}
+            placeholder="Usado no frete"
+            value={current.weight_kg ?? ""}
+            onChange={(e) =>
+              update({ weight_kg: e.target.value === "" ? null : Number(e.target.value) })
+            }
+          />
+        </Field>
       </div>
     </div>
   );

@@ -82,11 +82,13 @@ const kindCopy: Record<ProductKind, { introduction: string; selection: string; p
 export function buildProductEditorialContent(product: ProductDetail): ProductEditorialContent {
   const kind = productKind(product);
   const copy = kindCopy[kind];
-  const dimensions = unique(
-    [...(product.product_sizes ?? [])]
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map((size) => cleanSize(size.name || size.size)),
-  );
+  const dimensions = product.is_set
+    ? []
+    : unique(
+        [...(product.product_sizes ?? [])]
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map((size) => cleanSize(size.name || size.size)),
+      );
   const finishes = unique(
     [...(product.product_finishes ?? [])]
       .sort((a, b) => a.sort_order - b.sort_order)
@@ -97,9 +99,11 @@ export function buildProductEditorialContent(product: ProductDetail): ProductEdi
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((item) => item.name),
   );
-  const sizeAnswer = dimensions.length
-    ? `Sim. ${product.name} possui ${dimensions.length === 1 ? "a medida cadastrada" : `${dimensions.length} medidas cadastradas`}: ${dimensions.join(", ")}. Consulte a tabela de tamanhos para comparar preços e selecionar a opção desejada.`
-    : `As medidas de ${product.name} devem ser confirmadas no atendimento antes da finalização do orçamento.`;
+  const sizeAnswer = product.is_set
+    ? `${product.name} é um conjunto vendido por preço único${product.set_items?.trim() ? `, composto por: ${product.set_items.trim()}` : ""}.`
+    : dimensions.length
+      ? `Sim. ${product.name} possui ${dimensions.length === 1 ? "a medida cadastrada" : `${dimensions.length} medidas cadastradas`}: ${dimensions.join(", ")}. Consulte a tabela de tamanhos para comparar preços e selecionar a opção desejada.`
+      : `As medidas de ${product.name} devem ser confirmadas no atendimento antes da finalização do orçamento.`;
   const availableOptions = [
     finishes.length
       ? `${finishes.length} ${finishes.length === 1 ? "opção de acabamento" : "opções de acabamento"}`
