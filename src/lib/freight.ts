@@ -328,9 +328,8 @@ export function freightPostText(quote: PublicFreightQuote, link: string) {
   ].filter(Boolean) as string[];
   const separator = "━━━━━━━━━━━━━━━";
   return [
-    "🚚 *PRECISO DE FRETE* 🚚",
-    `Transporte de ${loadSummary(quote.items)} de concreto`,
-    `📍 ${quote.origin.district ?? quote.origin.city} ➡️ ${quote.destination.district ?? quote.destination.city}`,
+    `🚚 PRECISO DE FRETE ${routeLabel(quote.origin)} ➡️ ${routeLabel(quote.destination)} 🚚`,
+    `Carga: ${loadSummary(quote.items)} de concreto`,
     "",
     place("Retirada", "📦", quote.origin),
     "",
@@ -343,7 +342,15 @@ export function freightPostText(quote: PublicFreightQuote, link: string) {
     separator,
     "",
     `👉 Para ver os detalhes e enviar sua cotação: ${link}`,
-  ].join("\n");
+  ]
+    .join("\n")
+    .split("*")
+    .join("");
+}
+
+/** "FLORIANÓPOLIS/SC": city and state of a place, uppercase, for the post headline. */
+function routeLabel(place: Pick<FreightPlace, "city" | "state">) {
+  return `${place.city}/${place.state}`.toLocaleUpperCase("pt-BR");
 }
 
 /** Message for the chosen carrier only: the one place the full addresses are shared. */
