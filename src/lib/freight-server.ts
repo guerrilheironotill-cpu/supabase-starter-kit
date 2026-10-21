@@ -1,6 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
-import { rowToPublic, type FreightQuoteRow, type PublicFreightQuote } from "@/lib/freight";
+import {
+  cargoValueFromOrder,
+  rowToPublic,
+  type FreightQuoteRow,
+  type PublicFreightQuote,
+} from "@/lib/freight";
 import { absoluteUrl } from "@/lib/site-config";
 
 function adminClient() {
@@ -29,13 +34,26 @@ export async function loadPublicFreight(
   const quote = rowToPublic(row);
   const items = Array.isArray(row.items) ? row.items : [];
 
+  // No value typed on the quote: use the one of the order it was created from.
+  if (quote.cargoValue === null && row.order_id) {
+    const { data: order } = await admin
+      .from("orders")
+      .select("total, notes")
+      .eq("id", row.order_id)
+      .maybeSingle();
+    if (order) quote.cargoValue = cargoValueFromOrder(order.total, order.notes);
+  }
+
   // Quotes created before product ids were stored: find the product through its size, then by name.
   const sizeIds = [
     ...new Set(items.filter((i) => !i.product_id && i.size_id).map((i) => i.size_id as string)),
   ];
   const productBySize = new Map<string, string>();
   if (sizeIds.length > 0) {
-    const { data: sizes } = await admin.from("product_sizes").select("id, product_id").in("id", sizeIds);
+    const { data: sizes } = await admin
+      .from("product_sizes")
+      .select("id, product_id")
+      .in("id", sizeIds);
     for (const size of (sizes ?? []) as Array<{ id: string; product_id: string }>) {
       productBySize.set(size.id, size.product_id);
     }
@@ -49,7 +67,10 @@ export async function loadPublicFreight(
   ];
   const productByName = new Map<string, string>();
   if (unresolvedNames.length > 0) {
-    const { data: named } = await admin.from("products").select("id, name").in("name", unresolvedNames);
+    const { data: named } = await admin
+      .from("products")
+      .select("id, name")
+      .in("name", unresolvedNames);
     for (const product of (named ?? []) as Array<{ id: string; name: string }>) {
       productByName.set(product.name.trim().toLowerCase(), product.id);
     }
@@ -57,12 +78,19 @@ export async function loadPublicFreight(
   const productIdOf = (item: (typeof items)[number]) =>
     item.product_id ??
     (item.size_id ? productBySize.get(item.size_id) : undefined) ??
-    productByName.get(String(item.name ?? "").trim().toLowerCase()) ??
+    productByName.get(
+      String(item.name ?? "")
+        .trim()
+        .toLowerCase(),
+    ) ??
     null;
 
   const productIds = [...new Set(items.map(productIdOf).filter((id): id is string => Boolean(id)))];
   if (productIds.length > 0) {
-    const { data: products } = await admin.from("products").select("id, images").in("id", productIds);
+    const { data: products } = await admin
+      .from("products")
+      .select("id, images")
+      .in("id", productIds);
     const firstImage = new Map(
       ((products ?? []) as Array<{ id: string; images: string[] | null }>).map((product) => {
         const image = (product.images ?? []).find(Boolean);

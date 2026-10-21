@@ -253,6 +253,22 @@ export function loadSummary(items: FreightItem[]) {
   return `${parts.slice(0, -1).join(", ")} e ${parts[parts.length - 1]}`;
 }
 
+/**
+ * Value of the goods of an order: its total without the freight (the quote keeps the freight
+ * in its notes metadata). Null when it cannot be worked out.
+ */
+export function cargoValueFromOrder(total: unknown, notes: string | null | undefined) {
+  let freight = 0;
+  try {
+    const meta = JSON.parse(notes ?? "");
+    if (meta && typeof meta === "object") freight = Number(meta.freight) || 0;
+  } catch {
+    /* plain-text notes carry no freight */
+  }
+  const value = Math.round(((Number(total) || 0) - freight) * 100) / 100;
+  return value > 0 ? value : null;
+}
+
 export function formatCargoValue(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }

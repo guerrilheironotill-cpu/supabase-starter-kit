@@ -8,6 +8,7 @@ import { DashboardSection } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { customerFormMessage, FreightQuoteEditor } from "@/components/freight-quote-dialog";
 import {
+  cargoValueFromOrder,
   chosenCarrierMessage,
   customerWhatsappUrl,
   FREIGHT_STATUS_LABEL,
@@ -84,8 +85,33 @@ function FreightQuotesPage() {
       ]);
       if (quotes.error) throw new Error(quotes.error.message);
       if (proposals.error) throw new Error(proposals.error.message);
+      const quoteRows = (quotes.data ?? []) as unknown as FreightQuoteRow[];
+      // Quotes with no cargo value yet take it from the order they came from.
+      const orderIds = [
+        ...new Set(
+          quoteRows
+            .filter((row) => row.cargo_value == null && row.order_id)
+            .map((row) => row.order_id as string),
+        ),
+      ];
+      if (orderIds.length > 0) {
+        const { data: orders } = await supabase
+          .from("orders")
+          .select("id, total, notes")
+          .in("id", orderIds);
+        const valueByOrder = new Map(
+          ((orders ?? []) as Array<{ id: string; total: number; notes: string | null }>).map(
+            (order) => [order.id, cargoValueFromOrder(order.total, order.notes)] as const,
+          ),
+        );
+        for (const row of quoteRows) {
+          if (row.cargo_value == null && row.order_id) {
+            row.cargo_value = valueByOrder.get(row.order_id) ?? null;
+          }
+        }
+      }
       return {
-        quotes: (quotes.data ?? []) as unknown as FreightQuoteRow[],
+        quotes: quoteRows,
         proposals: (proposals.data ?? []) as unknown as Proposal[],
       };
     },
