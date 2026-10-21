@@ -1482,7 +1482,8 @@ function ShareMenu({
         i.width ? `Largura: ${i.width} cm` : "",
         i.length ? `Comprimento: ${i.length} cm` : "",
       ].filter(Boolean);
-      return parts.length ? `<div class="muted">${parts.join(" · ")}</div>` : "";
+      // One attribute per line: size, finish and color each get their own row.
+      return parts.map((part) => `<div class="muted">${part}</div>`).join("");
     };
     const rows = items
       .map((i) => {
