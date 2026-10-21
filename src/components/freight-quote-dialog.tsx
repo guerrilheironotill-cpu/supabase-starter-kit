@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Copy, MessageCircle, Send, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,9 +15,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   customerWhatsappUrl,
+  FREIGHT_VEHICLES,
   freightFormUrl,
   freightPostText,
   freightUrl,
+  loadSummary,
   lookupCep,
   maskCep,
   newFreightToken,
@@ -135,7 +137,10 @@ function PlaceFields({
       <div className="grid gap-2 sm:grid-cols-[1fr_80px]">
         <div>
           <Label className="text-xs">Cidade</Label>
-          <Input value={value.city} onChange={(e) => onChange({ ...value, city: e.target.value })} />
+          <Input
+            value={value.city}
+            onChange={(e) => onChange({ ...value, city: e.target.value })}
+          />
         </div>
         <div>
           <Label className="text-xs">UF</Label>
@@ -155,25 +160,25 @@ function PlaceFields({
         />
       </div>
       {showAccess && (
-      <div className="flex flex-wrap items-center gap-4 pt-1">
-        <select
-          value={value.floor}
-          onChange={(e) => onChange({ ...value, floor: e.target.value as PlaceForm["floor"] })}
-          className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-          aria-label={`${title}: térreo ou superior`}
-        >
-          <option value="terreo">Térreo</option>
-          <option value="superior">Andar superior</option>
-        </select>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={value.stairs}
-            onChange={(e) => onChange({ ...value, stairs: e.target.checked })}
-          />
-          Tem escada
-        </label>
-      </div>
+        <div className="flex flex-wrap items-center gap-4 pt-1">
+          <select
+            value={value.floor}
+            onChange={(e) => onChange({ ...value, floor: e.target.value as PlaceForm["floor"] })}
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+            aria-label={`${title}: térreo ou superior`}
+          >
+            <option value="terreo">Térreo</option>
+            <option value="superior">Andar superior</option>
+          </select>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={value.stairs}
+              onChange={(e) => onChange({ ...value, stairs: e.target.checked })}
+            />
+            Tem escada
+          </label>
+        </div>
       )}
     </fieldset>
   );
@@ -207,6 +212,8 @@ export function FreightQuoteEditor({
   customerLabel,
   existing,
   deadlineText,
+  deliveryAddress,
+  cargoValueDefault,
   onSaved,
 }: {
   open: boolean;
@@ -217,6 +224,10 @@ export function FreightQuoteEditor({
   existing?: FreightQuoteRow;
   /** Production deadline of the quote, used to suggest the pickup date. */
   deadlineText?: string;
+  /** Delivery address typed in the quote, used to pre-fill the destination. */
+  deliveryAddress?: string;
+  /** Value of the goods in the quote (invoice), suggested as the cargo value. */
+  cargoValueDefault?: number | null;
   onSaved?: () => void;
 }) {
   const [saving, setSaving] = useState(false);
@@ -231,15 +242,56 @@ export function FreightQuoteEditor({
   const [pickupFlexible, setPickupFlexible] = useState(true);
   const [notes, setNotes] = useState("");
   const [weights, setWeights] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [cargoValue, setCargoValue] = useState("");
+  const [vehicleTypes, setVehicleTypes] = useState<string[]>([]);
   const [saveWeights, setSaveWeights] = useState(true);
   const [created, setCreated] = useState<{ link: string; post: string } | null>(null);
+  // Set when the admin edits anything: only then is closing the dialog kept as a draft.
+  const touched = useRef(false);
+  const isDraftable = !existing || existing.status === "rascunho";
 
   useEffect(() => {
     if (!open) return;
     setCreated(null);
+    touched.current = false;
     const savedOrigin = rowToPlace(existing, "origin");
     setOrigin(savedOrigin && savedOrigin.city ? savedOrigin : loadSavedOrigin());
-    setDestination(rowToPlace(existing, "dest") ?? emptyPlace);
+    const savedDestination = rowToPlace(existing, "dest");
+    if (savedDestination && (savedDestination.city || savedDestination.address)) {
+      setDestination(savedDestination);
+    } else if (deliveryAddress?.trim()) {
+      // Use the address already typed in the quote instead of asking for it again.
+      const address = deliveryAddress
+        .replace(/^\s*Frete\s*[—-]\s*/i, "")
+        .replace(/\s*\n\s*/g, ", ")
+        .trim();
+      const cep = address.match(/\d{5}-?\d{3}/)?.[0];
+      const prefilled = { ...emptyPlace, address, cep: cep ? maskCep(cep) : "" };
+      setDestination(prefilled);
+      if (cep) {
+        void lookupCep(cep).then((found) => {
+          if (found) {
+            setDestination((current) =>
+              current.address === address
+                ? { ...current, city: found.city, state: found.state, district: found.district }
+                : current,
+            );
+          }
+        });
+      }
+    } else {
+      setDestination(savedDestination ?? emptyPlace);
+    }
+    setCargoValue(
+      existing?.cargo_value != null
+        ? String(existing.cargo_value)
+        : cargoValueDefault
+          ? String(cargoValueDefault)
+          : "",
+    );
+    setCategories((existing ? existing.items : items).map((item) => item.category ?? ""));
+    setVehicleTypes(existing?.vehicle_types ?? []);
     setLoadDetails(existing?.load_details ?? "");
     setLoadingIncluded(existing?.loading_included ?? false);
     setEmptyLoad(existing?.empty_load ?? true);
@@ -249,7 +301,9 @@ export function FreightQuoteEditor({
     setPickupFlexible(existing?.pickup_flexible ?? true);
     setNotes(existing?.notes ?? "");
     setWeights(
-      (existing ? existing.items : items).map((item) => (item.weight_kg ? String(item.weight_kg) : "")),
+      (existing ? existing.items : items).map((item) =>
+        item.weight_kg ? String(item.weight_kg) : "",
+      ),
     );
     // Reset only when the dialog opens for a different quote.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -258,10 +312,83 @@ export function FreightQuoteEditor({
   const baseItems = existing ? existing.items : items;
   const quoteItems = baseItems.map((item, index) => ({
     ...item,
+    category: categories[index]?.trim() || null,
     weight_kg: Number(weights[index]?.replace(",", ".")) || null,
   }));
-  const units = totalUnits(quoteItems);
   const totalWeight = totalWeightKg(quoteItems);
+
+  /** Every form field as stored, shared by publishing and by saving a draft. */
+  function formFields() {
+    return {
+      origin_cep: origin.cep || null,
+      origin_district: origin.district.trim() || null,
+      origin_city: origin.city.trim() || null,
+      origin_state: origin.state.trim().toUpperCase() || null,
+      origin_floor: origin.floor,
+      origin_stairs: origin.stairs,
+      origin_address: origin.address.trim() || null,
+      dest_address: destination.address.trim() || null,
+      dest_cep: destination.cep || null,
+      dest_district: destination.district.trim() || null,
+      dest_city: destination.city.trim() || null,
+      dest_state: destination.state.trim().toUpperCase() || null,
+      dest_floor: destination.floor,
+      dest_stairs: destination.stairs,
+      load_details: loadDetails.trim() || null,
+      loading_included: loadingIncluded,
+      photo_note: photoNote.trim() || null,
+      empty_load: emptyLoad,
+      shared_load: sharedLoad,
+      pickup_date: pickupDate || null,
+      pickup_flexible: pickupFlexible,
+      notes: notes.trim() || null,
+      cargo_value: Number(cargoValue.replace(",", ".")) || null,
+      vehicle_types: vehicleTypes,
+      items: quoteItems,
+    };
+  }
+
+  /** Closing the dialog without publishing keeps what was typed as a draft. */
+  async function saveDraft() {
+    const fields = formFields();
+    const query = supabase.from("freight_quotes" as never);
+    const { error } = existing
+      ? await query.update({ ...fields, status: "rascunho" } as never).eq("id", existing.id)
+      : await query.insert({
+          ...fields,
+          token: newFreightToken(),
+          status: "rascunho",
+          order_id: orderId ?? null,
+          customer_label: customerLabel?.trim() || null,
+        } as never);
+    if (error) {
+      toast.error(`Não foi possível salvar o rascunho: ${error.message}`);
+      return;
+    }
+    toast.success("Rascunho da cotação salvo. Continue de onde parou quando quiser.");
+    onSaved?.();
+  }
+
+  function handleOpenChange(next: boolean) {
+    if (!next && !created && isDraftable && touched.current && !saving) {
+      touched.current = false;
+      void saveDraft();
+    }
+    onOpenChange(next);
+  }
+
+  async function discardDraft() {
+    if (!existing || !window.confirm("Descartar este rascunho de cotação?")) return;
+    touched.current = false;
+    const { error } = await supabase
+      .from("freight_quotes" as never)
+      .delete()
+      .eq("id", existing.id);
+    if (error) return toast.error(`Não foi possível descartar: ${error.message}`);
+    toast.success("Rascunho descartado");
+    onSaved?.();
+    onOpenChange(false);
+  }
 
   async function save() {
     if (quoteItems.length === 0) {
@@ -279,35 +406,18 @@ export function FreightQuoteEditor({
       return toast.error("Informe o peso unitário de todos os itens");
     }
     setSaving(true);
-    const fields = {
-      origin_cep: origin.cep || null,
-      origin_district: origin.district.trim() || null,
-      origin_city: origin.city.trim(),
-      origin_state: origin.state.trim().toUpperCase(),
-      origin_floor: origin.floor,
-      origin_stairs: origin.stairs,
-      origin_address: origin.address.trim() || null,
-      dest_address: destination.address.trim() || null,
-      dest_cep: destination.cep || null,
-      dest_district: destination.district.trim() || null,
-      dest_city: destination.city.trim(),
-      dest_state: destination.state.trim().toUpperCase(),
-      dest_floor: destination.floor,
-      dest_stairs: destination.stairs,
-      load_details: loadDetails.trim() || null,
-      loading_included: loadingIncluded,
-      photo_note: photoNote.trim() || null,
-      empty_load: emptyLoad,
-      shared_load: sharedLoad,
-      pickup_date: pickupDate || null,
-      pickup_flexible: pickupFlexible,
-      notes: notes.trim() || null,
-    };
+    touched.current = false;
+    // Items are part of the stored fields, so weights and categories are saved on edit too.
+    const fields = formFields();
     const token = existing?.token ?? newFreightToken();
     const status = existing?.status === "fechada" ? "fechada" : "aberta";
     const query = supabase.from("freight_quotes" as never);
     const { data, error } = existing
-      ? await query.update({ ...fields, status } as never).eq("id", existing.id).select("*").single()
+      ? await query
+          .update({ ...fields, status } as never)
+          .eq("id", existing.id)
+          .select("*")
+          .single()
       : await query
           .insert({
             ...fields,
@@ -315,7 +425,6 @@ export function FreightQuoteEditor({
             status,
             order_id: orderId ?? null,
             customer_label: customerLabel?.trim() || null,
-            items: quoteItems,
           } as never)
           .select("*")
           .single();
@@ -345,15 +454,29 @@ export function FreightQuoteEditor({
       else if (changed.length) toast.success("Peso salvo no cadastro dos tamanhos");
     }
     const link = freightUrl(token);
-    setCreated({ link, post: freightPostText(rowToPublic(data as unknown as FreightQuoteRow), link) });
+    setCreated({
+      link,
+      post: freightPostText(rowToPublic(data as unknown as FreightQuoteRow), link),
+    });
     onSaved?.();
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent
+        className="max-h-[90vh] max-w-2xl overflow-y-auto"
+        onChangeCapture={() => {
+          touched.current = true;
+        }}
+      >
         <DialogHeader>
-          <DialogTitle>{created ? "Cotação de frete publicada" : "Cotação de frete"}</DialogTitle>
+          <DialogTitle>
+            {created
+              ? "Cotação de frete publicada"
+              : existing?.status === "rascunho"
+                ? "Cotação de frete (rascunho)"
+                : "Cotação de frete"}
+          </DialogTitle>
         </DialogHeader>
 
         {created ? (
@@ -362,7 +485,11 @@ export function FreightQuoteEditor({
               <Label className="text-xs">Link para os grupos</Label>
               <div className="mt-1 flex gap-2">
                 <Input readOnly value={created.link} onFocus={(e) => e.currentTarget.select()} />
-                <Button type="button" variant="outline" onClick={() => void copyText(created.link, "Link")}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void copyText(created.link, "Link")}
+                >
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
@@ -386,15 +513,23 @@ export function FreightQuoteEditor({
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              {units} vaso{units === 1 ? "" : "s"} no frete. O freteiro vê somente cidade, bairro e
-              CEP, sem o endereço completo nem o nome do cliente.
+              {loadSummary(quoteItems)} no frete. O freteiro vê somente cidade, bairro e CEP, sem o
+              endereço completo nem o nome do cliente.
+              {isDraftable
+                ? " Se fechar antes de publicar, a cotação fica salva como rascunho."
+                : ""}
             </p>
             {existing?.status === "respondida" && (
               <div className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
                 <p className="font-medium">O cliente já preencheu os dados de entrega:</p>
                 <ul className="mt-1 list-disc pl-5">
                   <li>
-                    {[existing.dest_address, existing.dest_district, existing.dest_city && `${existing.dest_city}/${existing.dest_state}`, existing.dest_cep && `CEP ${existing.dest_cep}`]
+                    {[
+                      existing.dest_address,
+                      existing.dest_district,
+                      existing.dest_city && `${existing.dest_city}/${existing.dest_state}`,
+                      existing.dest_cep && `CEP ${existing.dest_cep}`,
+                    ]
                       .filter(Boolean)
                       .join(", ")}
                   </li>
@@ -422,25 +557,56 @@ export function FreightQuoteEditor({
             />
 
             <fieldset className="space-y-2 rounded-lg border p-3">
-              <legend className="px-1 text-sm font-medium">Peso por item (kg, unitário)</legend>
+              <legend className="px-1 text-sm font-medium">Itens: tipo e peso unitário (kg)</legend>
+              <datalist id="freight-categories">
+                {[
+                  "Vasos",
+                  "Pratos",
+                  "Jardineiras",
+                  "Mesas",
+                  "Bancos",
+                  "Cubas e pias",
+                  "Esculturas",
+                ].map((option) => (
+                  <option key={option} value={option} />
+                ))}
+              </datalist>
               {baseItems.map((item, index) => (
-                <div key={index} className="grid items-center gap-2 sm:grid-cols-[1fr_130px]">
+                <div key={index} className="grid items-center gap-2 sm:grid-cols-[1fr_130px_130px]">
                   <span className="text-sm">
                     {item.quantity}× {item.name}
-                    {item.size ? <span className="text-muted-foreground"> · {item.size}</span> : null}
+                    {item.size ? (
+                      <span className="text-muted-foreground"> · {item.size}</span>
+                    ) : null}
                   </span>
+                  <Input
+                    list="freight-categories"
+                    placeholder="Tipo (vasos…)"
+                    aria-label={`Tipo de ${item.name}`}
+                    value={categories[index] ?? ""}
+                    onChange={(e) =>
+                      setCategories((current) =>
+                        current.map((c, i) => (i === index ? e.target.value : c)),
+                      )
+                    }
+                  />
                   <Input
                     inputMode="decimal"
                     placeholder="kg"
                     value={weights[index] ?? ""}
                     onChange={(e) =>
-                      setWeights((current) => current.map((w, i) => (i === index ? e.target.value : w)))
+                      setWeights((current) =>
+                        current.map((w, i) => (i === index ? e.target.value : w)),
+                      )
                     }
                   />
                 </div>
               ))}
               <p className="text-xs text-muted-foreground">
-                Peso total: {totalWeight === null ? "preencha todos os itens" : `± ${totalWeight.toLocaleString("pt-BR")} kg`}
+                Peso total:{" "}
+                {totalWeight === null
+                  ? "preencha todos os itens"
+                  : `± ${totalWeight.toLocaleString("pt-BR")} kg`}
               </p>
               <label className="flex items-center gap-2 text-xs">
                 <input
@@ -451,6 +617,17 @@ export function FreightQuoteEditor({
                 Salvar os pesos preenchidos no cadastro dos tamanhos dos produtos
               </label>
             </fieldset>
+            <div>
+              <Label className="text-xs">
+                Valor da carga: nota ou pedido (R$). O freteiro vê para dimensionar o seguro
+              </Label>
+              <Input
+                inputMode="decimal"
+                placeholder="Ex: 18500,00"
+                value={cargoValue}
+                onChange={(e) => setCargoValue(e.target.value)}
+              />
+            </div>
             <div>
               <Label className="text-xs">Outras informações da carga (opcional)</Label>
               <Textarea
@@ -475,7 +652,11 @@ export function FreightQuoteEditor({
                 <Label className="text-xs">
                   Data de coleta{deadlineText ? ` (prazo: ${deadlineText})` : ""}
                 </Label>
-                <Input type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} />
+                <Input
+                  type="date"
+                  value={pickupDate}
+                  onChange={(e) => setPickupDate(e.target.value)}
+                />
               </div>
               <label className="flex items-center gap-2 pb-2 text-sm">
                 <input
@@ -486,6 +667,30 @@ export function FreightQuoteEditor({
                 Aceita data próxima
               </label>
             </div>
+            <fieldset className="space-y-2 rounded-lg border p-3">
+              <legend className="px-1 text-sm font-medium">Veículos possíveis</legend>
+              <div className="flex flex-wrap gap-x-5 gap-y-2">
+                {FREIGHT_VEHICLES.map((vehicle) => (
+                  <label key={vehicle} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={vehicleTypes.includes(vehicle)}
+                      onChange={(e) =>
+                        setVehicleTypes((current) =>
+                          e.target.checked
+                            ? [...current, vehicle]
+                            : current.filter((value) => value !== vehicle),
+                        )
+                      }
+                    />
+                    {vehicle}
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O freteiro vê estes tipos e escolhe qual vai usar ao enviar a cotação.
+              </p>
+            </fieldset>
             <div className="flex flex-wrap gap-x-6 gap-y-2">
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -517,8 +722,24 @@ export function FreightQuoteEditor({
               <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
-                Cancelar
+              {existing?.status === "rascunho" && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-destructive"
+                  onClick={() => void discardDraft()}
+                  disabled={saving}
+                >
+                  Descartar rascunho
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => handleOpenChange(false)}
+                disabled={saving}
+              >
+                {isDraftable ? "Fechar e guardar rascunho" : "Cancelar"}
               </Button>
               <Button type="button" onClick={() => void save()} disabled={saving}>
                 {saving ? "Salvando…" : existing ? "Salvar e publicar" : "Gerar link e texto"}
@@ -551,19 +772,41 @@ export function FreightQuoteActions({
   customerLabel,
   customerPhone,
   deadlineText,
+  deliveryAddress,
+  cargoValueDefault,
 }: {
   items: FreightItem[];
   orderId?: string | null;
   customerLabel?: string;
   customerPhone?: string;
   deadlineText?: string;
+  deliveryAddress?: string;
+  cargoValueDefault?: number | null;
 }) {
   const [editorOpen, setEditorOpen] = useState(false);
+  const [draft, setDraft] = useState<FreightQuoteRow | undefined>();
+
+  // A quote closed before publishing is kept as a draft of this order: offer to continue it.
+  const loadDraft = useCallback(async () => {
+    if (!orderId) return setDraft(undefined);
+    const { data } = await supabase
+      .from("freight_quotes" as never)
+      .select("*")
+      .eq("order_id", orderId)
+      .eq("status", "rascunho")
+      .order("created_at", { ascending: false })
+      .limit(1);
+    setDraft(((data ?? []) as unknown as FreightQuoteRow[])[0]);
+  }, [orderId]);
+  useEffect(() => {
+    void loadDraft();
+  }, [loadDraft]);
   const [requesting, setRequesting] = useState(false);
   const [request, setRequest] = useState<{ link: string; message: string } | null>(null);
 
   async function askCustomer() {
-    if (items.length === 0) return toast.error("Adicione itens ao orçamento antes de gerar o frete");
+    if (items.length === 0)
+      return toast.error("Adicione itens ao orçamento antes de gerar o frete");
     setRequesting(true);
     const origin = loadSavedOrigin();
     const formToken = newFreightToken();
@@ -594,12 +837,19 @@ export function FreightQuoteActions({
   return (
     <>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" variant="outline" onClick={() => void askCustomer()} disabled={requesting}>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => void askCustomer()}
+          disabled={requesting}
+        >
           <Send className="mr-2 h-4 w-4" />
           {requesting ? "Criando…" : "Pedir dados ao cliente"}
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={() => setEditorOpen(true)}>
-          <Truck className="mr-2 h-4 w-4" /> Gerar cotação de frete
+          <Truck className="mr-2 h-4 w-4" />{" "}
+          {draft ? "Continuar rascunho da cotação" : "Gerar cotação de frete"}
         </Button>
       </div>
 
@@ -610,6 +860,10 @@ export function FreightQuoteActions({
         orderId={orderId}
         customerLabel={customerLabel}
         deadlineText={deadlineText}
+        deliveryAddress={deliveryAddress}
+        cargoValueDefault={cargoValueDefault}
+        existing={draft}
+        onSaved={() => void loadDraft()}
       />
 
       <Dialog open={request !== null} onOpenChange={(next) => !next && setRequest(null)}>
@@ -626,7 +880,11 @@ export function FreightQuoteActions({
               </p>
               <Textarea readOnly rows={5} value={request.message} className="text-sm" />
               <DialogFooter className="gap-2 sm:gap-2">
-                <Button type="button" variant="outline" onClick={() => void copyText(request.message, "Mensagem")}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void copyText(request.message, "Mensagem")}
+                >
                   <Copy className="mr-2 h-4 w-4" /> Copiar mensagem
                 </Button>
                 {customerPhone?.replace(/\D/g, "") ? (

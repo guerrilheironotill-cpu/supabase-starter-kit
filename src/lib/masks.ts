@@ -30,3 +30,13 @@ export function maskCnpj(input: string): string {
 export function maskCpfCnpj(input: string): string {
   return input.replace(/\D/g, "").length <= 11 ? maskCpf(input) : maskCnpj(input);
 }
+
+/** Money while typing: digits become cents, shown as 1.234,56 (no currency symbol). */
+export function maskMoneyBR(input: string): string {
+  const digits = input.replace(/\D/g, "").replace(/^0+/, "").slice(0, 10);
+  if (!digits) return "";
+  const padded = digits.padStart(3, "0");
+  const cents = padded.slice(-2);
+  const whole = padded.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${whole},${cents}`;
+}

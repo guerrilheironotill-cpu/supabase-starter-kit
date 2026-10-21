@@ -1,12 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, MessageCircle, PackageCheck } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { getPublicFreight } from "@/lib/freight-server";
 import { absoluteUrl } from "@/lib/site-config";
+import { maskMoneyBR, maskPhoneBR } from "@/lib/masks";
 import {
   floorLabel,
+  formatCargoValue,
   formatPickupDate,
   itemDimensions,
+  loadSummary,
   mapsUrl,
   placeShort,
   totalUnits,
@@ -19,10 +30,9 @@ export const Route = createFileRoute("/frete/$token")({
   loader: async ({ params }) => getPublicFreight({ data: params.token }),
   head: ({ loaderData, params }) => {
     const quote = loaderData?.quote ?? null;
-    const units = quote ? totalUnits(quote.items) : 0;
     const weight = quote ? totalWeightKg(quote.items) : null;
     const title = quote
-      ? `Frete: ${units} vaso${units === 1 ? "" : "s"} de concreto · ${quote.origin.district ?? quote.origin.city} → ${quote.destination.district ?? quote.destination.city}`
+      ? `Frete: ${loadSummary(quote.items)} de concreto · ${quote.origin.district ?? quote.origin.city} → ${quote.destination.district ?? quote.destination.city}`
       : "Cotação de frete — Arteno";
     const description = quote
       ? [
@@ -34,7 +44,8 @@ export const Route = createFileRoute("/frete/$token")({
           .join(" ")
       : "Detalhes do frete e envio de cotação.";
     const image =
-      quote?.items.find((item) => item.image_url)?.image_url ?? absoluteUrl("/images/og-arteno.jpg");
+      quote?.items.find((item) => item.image_url)?.image_url ??
+      absoluteUrl("/images/og-arteno.jpg");
     return {
       meta: [
         { title },
@@ -92,16 +103,39 @@ function FreightQuotePage() {
   const { quote, error: loadError } = Route.useLoaderData();
   const state = loadError ? "error" : quote ? "ready" : "notfound";
   const [formOpen, setFormOpen] = useState(false);
+  const [introOpen, setIntroOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sentUrl, setSentUrl] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     phone: "",
+    vehicle: "",
     price: "",
     notes: "",
     website: "",
   });
+
+  // Carriers often have questions: tell them up front to quote anyway, we clear it up on WhatsApp.
+  const isOpenQuote = quote?.status === "aberta";
+  useEffect(() => {
+    if (!isOpenQuote) return;
+    try {
+      if (sessionStorage.getItem(`freight-intro-${token}`)) return;
+    } catch {
+      /* storage unavailable: show the notice anyway */
+    }
+    setIntroOpen(true);
+  }, [isOpenQuote, token]);
+
+  function closeIntro() {
+    setIntroOpen(false);
+    try {
+      sessionStorage.setItem(`freight-intro-${token}`, "1");
+    } catch {
+      /* storage unavailable */
+    }
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -112,9 +146,20 @@ function FreightQuotePage() {
       const response = await fetch(`/api/freight/${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...form, price: Number(form.price.replace(",", ".")) }),
+        body: JSON.stringify({
+          ...form,
+          price: Number(form.price.replace(/\./g, "").replace(",", ".")),
+          // The chosen vehicle travels in the notes the admin already sees with the proposal.
+          notes: [form.vehicle ? `Veículo: ${form.vehicle}` : "", form.notes]
+            .filter(Boolean)
+            .join(". "),
+        }),
       });
-      const data = (await response.json()) as { ok?: boolean; error?: string; whatsappUrl?: string };
+      const data = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        whatsappUrl?: string;
+      };
       if (!response.ok || !data.ok) {
         setError(data.error ?? "Não foi possível enviar sua cotação.");
         return;
@@ -157,14 +202,36 @@ function FreightQuotePage() {
   const pickup = formatPickupDate(quote.pickupDate);
   const units = totalUnits(quote.items);
   const weight = totalWeightKg(quote.items);
+  const summary = loadSummary(quote.items);
 
   return wrapper(
     <div className="border border-border bg-card p-6 sm:p-9">
+      <Dialog open={introOpen} onOpenChange={(next) => !next && closeIntro()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Antes de começar</DialogTitle>
+            <DialogDescription className="pt-2 text-base leading-relaxed text-foreground">
+              Se ficar com qualquer dúvida sobre a carga,{" "}
+              <strong>envie sua cotação mesmo assim</strong>. As dúvidas a gente tira com você pelo
+              WhatsApp, depois que sua proposta chegar.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={closeIntro}
+              className="w-full bg-[#1f8f4e] px-6 py-3 font-medium text-white transition hover:bg-[#197a42]"
+            >
+              Entendi
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
         Cotação de frete · Ref. {quote.token}
       </p>
       <h1 className="mt-3 font-display text-3xl text-primary sm:text-4xl">
-        Transporte de {units} vaso{units === 1 ? "" : "s"} de concreto
+        Transporte de {summary} de concreto
       </h1>
       <p className="mt-4 max-w-2xl leading-relaxed text-muted-foreground">
         A Arteno procura transportador para esta carga. Confira os detalhes e, se tiver interesse,
@@ -180,11 +247,7 @@ function FreightQuotePage() {
       <section className="mt-8 grid items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
         <PlaceBlock title="Coleta" place={quote.origin} showAccess={quote.loadingIncluded} />
         <ArrowRight className="mx-auto hidden h-5 w-5 text-muted-foreground sm:block" />
-        <PlaceBlock
-          title="Entrega"
-          place={quote.destination}
-          showAccess={quote.loadingIncluded}
-        />
+        <PlaceBlock title="Entrega" place={quote.destination} showAccess={quote.loadingIncluded} />
       </section>
 
       <section className="mt-8 border-y border-border py-5">
@@ -194,9 +257,7 @@ function FreightQuotePage() {
         <div className="mt-3 grid grid-cols-2 gap-3">
           <div className="border border-border bg-white p-3">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">Quantidade</p>
-            <p className="mt-1 font-display text-2xl text-primary">
-              {units} vaso{units === 1 ? "" : "s"}
-            </p>
+            <p className="mt-1 font-display text-2xl capitalize text-primary">{summary}</p>
           </div>
           <div className="border border-border bg-white p-3">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">Peso total</p>
@@ -204,6 +265,16 @@ function FreightQuotePage() {
               {weight !== null ? `± ${weight.toLocaleString("pt-BR")} kg` : "—"}
             </p>
           </div>
+          {quote.cargoValue !== null && (
+            <div className="col-span-2 border border-border bg-white p-3">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                Valor da carga (nota/pedido)
+              </p>
+              <p className="mt-1 font-display text-2xl text-primary">
+                {formatCargoValue(quote.cargoValue)}
+              </p>
+            </div>
+          )}
         </div>
         <ul className="mt-3 divide-y divide-border">
           {quote.items.map((item, index) => {
@@ -211,20 +282,24 @@ function FreightQuotePage() {
             const code = (item.size ?? "").split("—")[0].trim();
             return (
               <li key={`${item.name}-${index}`} className="flex items-center gap-4 py-4">
-                {item.image_url && (
+                {item.image_url ? (
                   <img
                     src={item.image_url}
                     alt={item.name}
                     loading="lazy"
                     className="h-24 w-24 shrink-0 border border-border object-cover"
                   />
+                ) : (
+                  <div className="flex h-24 w-24 shrink-0 items-center justify-center border border-dashed border-border bg-muted/40 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Sem foto
+                  </div>
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="font-display text-lg text-foreground">
                     {item.name}
                     {code && <span className="ml-2 text-sm text-muted-foreground">{code}</span>}
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-2 text-sm font-semibold text-foreground">
+                  <div className="mt-2 flex flex-col items-start gap-2 text-sm font-semibold text-foreground">
                     {measures && (
                       <span className="border border-primary/30 bg-primary/5 px-2.5 py-1">
                         📏 {measures}
@@ -252,15 +327,29 @@ function FreightQuotePage() {
           <li>
             🚛{" "}
             {quote.loadingIncluded ? (
-              <>Frete <strong>com carga/descarga</strong></>
+              <>
+                Frete <strong>com carga/descarga</strong>
+              </>
             ) : (
-              <>Somente o frete, <strong>sem carga/descarga</strong></>
+              <>
+                Somente o frete, <strong>sem carga/descarga</strong>
+              </>
             )}
           </li>
           {quote.photoNote && <li>📷 {quote.photoNote}</li>}
           {weight !== null && (
             <li>
               ⚖️ Peso total: <strong>± {weight.toLocaleString("pt-BR")} kg</strong>
+            </li>
+          )}
+          {quote.cargoValue !== null && (
+            <li>
+              💰 Valor da carga (nota): <strong>{formatCargoValue(quote.cargoValue)}</strong>
+            </li>
+          )}
+          {quote.vehicleTypes.length > 0 && (
+            <li>
+              🚐 Veículos aceitos: <strong>{quote.vehicleTypes.join(", ")}</strong>
             </li>
           )}
           {quote.loadDetails && <li className="whitespace-pre-line">📐 {quote.loadDetails}</li>}
@@ -272,9 +361,13 @@ function FreightQuotePage() {
           )}
           <li>
             {quote.sharedLoad ? (
-              <>🤝 <strong>Pode ser carga compartilhada</strong></>
+              <>
+                🤝 <strong>Pode ser carga compartilhada</strong>
+              </>
             ) : (
-              <>🚫 <strong>Carga exclusiva</strong>, sem compartilhar</>
+              <>
+                🚫 <strong>Carga exclusiva</strong>, sem compartilhar
+              </>
             )}
           </li>
           {quote.emptyLoad && <li>🌿 Os vasos vão vazios, sem plantas</li>}
@@ -317,10 +410,12 @@ function FreightQuotePage() {
                 required
                 type="tel"
                 inputMode="tel"
-                maxLength={30}
+                maxLength={16}
+                placeholder="(48) 99999-9999"
+                autoComplete="tel-national"
                 className={inputClass}
                 value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                onChange={(e) => setForm({ ...form, phone: maskPhoneBR(e.target.value) })}
               />
             </label>
             <label className="block text-sm">
@@ -331,12 +426,34 @@ function FreightQuotePage() {
                 required
                 inputMode="decimal"
                 className={inputClass}
-                placeholder="Ex: 2500,00"
+                placeholder="Ex: 2.500,00"
                 value={form.price}
-                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                onChange={(e) => setForm({ ...form, price: maskMoneyBR(e.target.value) })}
               />
             </label>
           </div>
+          {quote.vehicleTypes.length > 0 && (
+            <label className="block text-sm">
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Veículo que você vai usar
+              </span>
+              <select
+                required
+                className={inputClass}
+                value={form.vehicle}
+                onChange={(e) => setForm({ ...form, vehicle: e.target.value })}
+              >
+                <option value="" disabled>
+                  Selecione
+                </option>
+                {quote.vehicleTypes.map((vehicle) => (
+                  <option key={vehicle} value={vehicle}>
+                    {vehicle}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="block text-sm">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Observações (opcional)

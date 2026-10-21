@@ -1,3 +1,12 @@
+/** Vehicles the admin can allow for a freight quote. */
+export const FREIGHT_VEHICLES = [
+  "Pickup",
+  "Caminhão aberto",
+  "Caminhão fechado",
+  "Carro com carretinha",
+  "Carro utilitário",
+] as const;
+
 export type FreightItem = {
   /** Catalog product, used to pull its photo into the public page. */
   product_id?: string | null;
@@ -5,6 +14,8 @@ export type FreightItem = {
   image_url?: string | null;
   name: string;
   quantity: number;
+  /** What the piece is (Vasos, Pratos, Mesas…), so the load reads "15 vasos e 15 pratos". */
+  category?: string | null;
   size?: string | null;
   height?: number | null;
   width?: number | null;
@@ -45,11 +56,16 @@ export type PublicFreightQuote = {
   pickupDate: string | null;
   pickupFlexible: boolean;
   notes: string | null;
+  /** Value of the goods (invoice / order), for the carrier's insurance. */
+  cargoValue: number | null;
+  /** Vehicle types the carrier may use. */
+  vehicleTypes: string[];
 };
 
-export type FreightStatus = "aguardando_cliente" | "respondida" | "aberta" | "fechada";
+export type FreightStatus = "rascunho" | "aguardando_cliente" | "respondida" | "aberta" | "fechada";
 
 export const FREIGHT_STATUS_LABEL: Record<FreightStatus, string> = {
+  rascunho: "Rascunho",
   aguardando_cliente: "Aguardando cliente",
   respondida: "Cliente respondeu",
   aberta: "Aberta para cotações",
@@ -86,6 +102,8 @@ export type FreightQuoteRow = {
   photo_note: string | null;
   empty_load: boolean;
   shared_load: boolean;
+  cargo_value: number | null;
+  vehicle_types: string[] | null;
   pickup_date: string | null;
   pickup_flexible: boolean;
   notes: string | null;
@@ -144,6 +162,7 @@ export function rowToPublic(row: FreightQuoteRow): PublicFreightQuote {
     items: (Array.isArray(row.items) ? row.items : []).map((item) => ({
       name: item.name,
       quantity: item.quantity,
+      category: item.category ?? null,
       size: item.size ?? null,
       height: item.height ?? null,
       width: item.width ?? null,
@@ -162,6 +181,9 @@ export function rowToPublic(row: FreightQuoteRow): PublicFreightQuote {
     pickupFlexible: row.pickup_flexible,
     // access_notes and the street addresses stay private (chosen carrier only).
     notes: row.notes,
+    vehicleTypes: Array.isArray(row.vehicle_types) ? row.vehicle_types : [],
+    cargoValue:
+      row.cargo_value != null && Number(row.cargo_value) > 0 ? Number(row.cargo_value) : null,
   };
 }
 
@@ -202,13 +224,46 @@ export function totalUnits(items: FreightItem[]) {
   return items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
 }
 
+const DEFAULT_CATEGORY = "Vasos";
+
+/** "Vasos" -> "vaso" for a single unit; "Cubas e pias" -> "cuba e pia". */
+function singularize(plural: string) {
+  return plural
+    .split(" ")
+    .map((word) => (word.length > 3 && word.endsWith("s") ? word.slice(0, -1) : word))
+    .join(" ");
+}
+
+export function itemCategory(item: Pick<FreightItem, "category">) {
+  return item.category?.trim() || DEFAULT_CATEGORY;
+}
+
+/** "15 vasos e 15 pratos" — the load grouped by what each piece is. */
+export function loadSummary(items: FreightItem[]) {
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    const key = itemCategory(item).toLocaleLowerCase("pt-BR");
+    counts.set(key, (counts.get(key) ?? 0) + (Number(item.quantity) || 0));
+  }
+  const parts = Array.from(
+    counts,
+    ([category, quantity]) => `${quantity} ${quantity === 1 ? singularize(category) : category}`,
+  );
+  if (parts.length <= 1) return parts[0] ?? "0 vasos";
+  return `${parts.slice(0, -1).join(", ")} e ${parts[parts.length - 1]}`;
+}
+
+export function formatCargoValue(value: number) {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 export function itemDimensions(item: FreightItem) {
   if (item.height && item.width && item.length) {
     return `${item.height} × ${item.width} × ${item.length} cm`;
   }
   // Older items only carry the measures inside the size label, e.g. "M — 30x30x80cm".
   const match = (item.size ?? "").match(
-    /(d+(?:[.,]d+)?)s*(?:cm)?s*[x×]s*(d+(?:[.,]d+)?)s*(?:cm)?s*[x×]s*(d+(?:[.,]d+)?)/i,
+    /(\d+(?:[.,]\d+)?)\s*(?:cm)?\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(?:cm)?\s*[x×]\s*(\d+(?:[.,]\d+)?)/i,
   );
   return match ? `${match[1]} × ${match[2]} × ${match[3]} cm` : null;
 }
@@ -259,18 +314,22 @@ export function freightPostText(quote: PublicFreightQuote, link: string) {
       ? `📷 ${quote.photoNote ?? "Fotos dos vasos na página do link"}`
       : null,
     weight !== null ? `⚖️ Peso total: *± ${weight.toLocaleString("pt-BR")} kg*` : null,
+    quote.cargoValue !== null
+      ? `💰 Valor da carga (nota): *${formatCargoValue(quote.cargoValue)}*`
+      : null,
+    quote.vehicleTypes.length > 0
+      ? `🚐 Veículos aceitos: *${quote.vehicleTypes.join(", ")}*`
+      : null,
     quote.loadDetails ? `📐 ${quote.loadDetails}` : null,
     date ? `📅 Data: *${date}*${quote.pickupFlexible ? " ou próxima" : ""}` : null,
-    quote.sharedLoad
-      ? "🤝 Pode ser carga compartilhada"
-      : "🚫 Carga exclusiva, sem compartilhar",
+    quote.sharedLoad ? "🤝 Pode ser carga compartilhada" : "🚫 Carga exclusiva, sem compartilhar",
     quote.emptyLoad ? "🪴 Os vasos vão vazios, sem plantas" : null,
     quote.notes ? `📝 ${quote.notes}` : null,
   ].filter(Boolean) as string[];
   const separator = "━━━━━━━━━━━━━━━";
   return [
     "🚚 *PRECISO DE FRETE* 🚚",
-    `Transporte de ${units} vaso${units === 1 ? "" : "s"} de concreto`,
+    `Transporte de ${loadSummary(quote.items)} de concreto`,
     `📍 ${quote.origin.district ?? quote.origin.city} ➡️ ${quote.destination.district ?? quote.destination.city}`,
     "",
     place("Retirada", "📦", quote.origin),
@@ -290,7 +349,13 @@ export function freightPostText(quote: PublicFreightQuote, link: string) {
 /** Message for the chosen carrier only: the one place the full addresses are shared. */
 export function chosenCarrierMessage(row: FreightQuoteRow, carrierName: string) {
   const date = formatPickupDate(row.pickup_date);
-  const addressLine = (cep: string | null, address: string | null, district: string | null, city: string | null, state: string | null) =>
+  const addressLine = (
+    cep: string | null,
+    address: string | null,
+    district: string | null,
+    city: string | null,
+    state: string | null,
+  ) =>
     [address, district, [city, state].filter(Boolean).join("/"), cep ? `CEP ${cep}` : null]
       .filter(Boolean)
       .join(", ");

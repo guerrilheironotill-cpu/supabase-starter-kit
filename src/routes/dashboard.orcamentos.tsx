@@ -189,6 +189,8 @@ type ItemDraft = {
   price: number;
   /** Regular unit price (extras included); the percentage discount is based on it. */
   regular_price?: number;
+  /** What the piece is (Vasos, Pratos…), shown to carriers in the freight quote. */
+  category?: string;
   size_id?: string;
   size_name?: string;
   finish?: string;
@@ -1234,6 +1236,7 @@ function StatusSelect({ order }: { order: OrderRow }) {
 type ProductFull = {
   id: string;
   name: string;
+  category?: string | null;
   product_sizes: Array<{
     id: string;
     name: string;
@@ -1252,7 +1255,7 @@ async function fetchProductsForQuote() {
     supabase
       .from("products")
       .select(
-        `id, name, product_sizes(${sizeColumns}), product_finishes(id, name, sort_order), product_colors(id, name, sort_order)`,
+        `id, name, category, product_sizes(${sizeColumns}), product_finishes(id, name, sort_order), product_colors(id, name, sort_order)`,
       )
       .eq("active", true)
       .order("name")
@@ -1268,6 +1271,7 @@ async function fetchProductsForQuote() {
 type FreightSourceItem = {
   name: string;
   quantity: number;
+  category?: string | null;
   product_id?: string | null;
   size_id?: string | null;
   size_name?: string | null;
@@ -1305,6 +1309,8 @@ function toFreightItems(items: FreightSourceItem[], products: ProductFull[]) {
       return {
         product_id: i.product_id ?? null,
         name: i.name,
+        // Custom items carry the type chosen in the quote; catalog items use the product's.
+        category: i.category?.trim() || product?.category || null,
         quantity: Number(i.quantity) || 1,
         size: i.size_name ?? null,
         height: Number(i.height) || null,
@@ -1351,6 +1357,10 @@ function FreightMenuDialog({
           customerLabel={order.customer_name}
           customerPhone={order.customer_phone ?? ""}
           deadlineText={parseMeta(order.notes).deadline}
+          deliveryAddress={parseMeta(order.notes).address}
+          cargoValueDefault={
+            Math.max(0, (Number(order.total) || 0) - (parseMeta(order.notes).freight || 0)) || null
+          }
         />
       </DialogContent>
     </Dialog>
@@ -1897,6 +1907,7 @@ function NewQuoteDialogImpl({
         quantity: Number(item.quantity) || 1,
         price: Number(item.price) || 0,
         regular_price: Number(item.regular_price) > 0 ? Number(item.regular_price) : undefined,
+        category: typeof item.category === "string" ? item.category : undefined,
         size_id: typeof item.size_id === "string" ? item.size_id : undefined,
         size_name: typeof item.size_name === "string" ? item.size_name : undefined,
         finish: typeof item.finish === "string" ? item.finish : undefined,
@@ -2262,6 +2273,7 @@ function NewQuoteDialogImpl({
         quantity: Number(i.quantity) || 1,
         price: Number(i.price) || 0,
         regular_price: i.regular_price && i.regular_price > 0 ? i.regular_price : null,
+        category: i.category?.trim() || null,
         size_id: i.size_id ?? null,
         size_name: i.size_name ?? null,
         finish: i.finish ?? null,
@@ -2792,6 +2804,8 @@ function NewQuoteDialogImpl({
                       customerLabel={name}
                       customerPhone={phone}
                       deadlineText={deadline}
+                      deliveryAddress={address}
+                      cargoValueDefault={Math.max(0, total - (Number(freight) || 0)) || null}
                     />
                   </div>
                 </div>
@@ -3145,6 +3159,30 @@ function NewQuoteDialogImpl({
                             value={it.description ?? ""}
                             onChange={(e) => updateItem(idx, { description: e.target.value })}
                           />
+                          <div className="mt-2">
+                            <Label className="text-xs">
+                              Tipo da peça (aparece na cotação de frete)
+                            </Label>
+                            <Input
+                              list="item-categories"
+                              placeholder="Ex.: Pratos, Vasos, Mesas"
+                              value={it.category ?? ""}
+                              onChange={(e) => updateItem(idx, { category: e.target.value })}
+                            />
+                            <datalist id="item-categories">
+                              {[
+                                "Vasos",
+                                "Pratos",
+                                "Jardineiras",
+                                "Mesas",
+                                "Bancos",
+                                "Cubas e pias",
+                                "Esculturas",
+                              ].map((option) => (
+                                <option key={option} value={option} />
+                              ))}
+                            </datalist>
+                          </div>
                           <div className="mt-2 grid gap-2 sm:grid-cols-2">
                             <AttributePicker
                               label="Acabamento"

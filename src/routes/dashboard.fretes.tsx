@@ -14,6 +14,7 @@ import {
   freightFormUrl,
   freightPostText,
   freightUrl,
+  loadSummary,
   placeShort,
   rowToPublic,
   totalUnits,
@@ -41,6 +42,7 @@ type Proposal = {
 };
 
 const STATUS_STYLE: Record<FreightStatus, string> = {
+  rascunho: "bg-violet-500/15 text-violet-400",
   aguardando_cliente: "bg-amber-500/15 text-amber-500",
   respondida: "bg-sky-500/15 text-sky-500",
   aberta: "bg-emerald-500/15 text-emerald-500",
@@ -104,7 +106,10 @@ function FreightQuotesPage() {
   async function setStatus(row: FreightQuoteRow, status: "aberta" | "fechada") {
     const { error: updateError } = await supabase
       .from("freight_quotes" as never)
-      .update({ status, closed_at: status === "fechada" ? new Date().toISOString() : null } as never)
+      .update({
+        status,
+        closed_at: status === "fechada" ? new Date().toISOString() : null,
+      } as never)
       .eq("id", row.id);
     if (updateError) return toast.error(updateError.message);
     toast.success(status === "fechada" ? "Frete encerrado" : "Frete reaberto");
@@ -113,7 +118,9 @@ function FreightQuotesPage() {
 
   async function chooseCarrier(row: FreightQuoteRow, proposal: Proposal) {
     if (!row.dest_address) {
-      toast.error("Falta o endereço completo de entrega. Edite a cotação e preencha antes de enviar.");
+      toast.error(
+        "Falta o endereço completo de entrega. Edite a cotação e preencha antes de enviar.",
+      );
       return;
     }
     if (!proposal.chosen_at) {
@@ -157,8 +164,8 @@ function FreightQuotesPage() {
         {error && <p className="text-sm text-destructive">{(error as Error).message}</p>}
         {data && data.quotes.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            Nenhuma cotação ainda. Abra um orçamento, escolha entrega com frete e use "Pedir dados ao
-            cliente" ou "Gerar cotação de frete".
+            Nenhuma cotação ainda. Abra um orçamento, escolha entrega com frete e use "Pedir dados
+            ao cliente" ou "Gerar cotação de frete".
           </p>
         )}
         <div className="space-y-4">
@@ -178,7 +185,8 @@ function FreightQuotesPage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h3 className="font-medium text-foreground">
-                      {row.customer_label || "Sem nome"} · {units} vaso{units === 1 ? "" : "s"}
+                      {row.customer_label || "Sem nome"} ·{" "}
+                      {loadSummary(Array.isArray(row.items) ? row.items : [])}
                     </h3>
                     <p className="mt-1 text-sm text-muted-foreground">{route}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
@@ -213,7 +221,9 @@ function FreightQuotesPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => void copyText(freightFormUrl(row.form_token!), "Link do formulário")}
+                        onClick={() =>
+                          void copyText(freightFormUrl(row.form_token!), "Link do formulário")
+                        }
                       >
                         <Copy className="mr-2 h-4 w-4" /> Link do formulário
                       </Button>
@@ -222,7 +232,10 @@ function FreightQuotesPage() {
                           <a
                             href={customerWhatsappUrl(
                               row.customer_phone,
-                              customerFormMessage(row.customer_label ?? undefined, freightFormUrl(row.form_token)),
+                              customerFormMessage(
+                                row.customer_label ?? undefined,
+                                freightFormUrl(row.form_token),
+                              ),
                             )}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -235,7 +248,7 @@ function FreightQuotesPage() {
                   )}
                   {!published && (
                     <Button size="sm" onClick={() => setEditing(row)}>
-                      Completar e publicar
+                      {row.status === "rascunho" ? "Continuar rascunho" : "Completar e publicar"}
                     </Button>
                   )}
                   {published && (
@@ -251,7 +264,10 @@ function FreightQuotesPage() {
                         size="sm"
                         variant="outline"
                         onClick={() =>
-                          void copyText(freightPostText(publicQuote, freightUrl(row.token)), "Texto do post")
+                          void copyText(
+                            freightPostText(publicQuote, freightUrl(row.token)),
+                            "Texto do post",
+                          )
                         }
                       >
                         <Copy className="mr-2 h-4 w-4" /> Texto do post
@@ -260,11 +276,19 @@ function FreightQuotesPage() {
                         Editar
                       </Button>
                       {row.status === "aberta" ? (
-                        <Button size="sm" variant="outline" onClick={() => void setStatus(row, "fechada")}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void setStatus(row, "fechada")}
+                        >
                           Encerrar
                         </Button>
                       ) : (
-                        <Button size="sm" variant="outline" onClick={() => void setStatus(row, "aberta")}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void setStatus(row, "aberta")}
+                        >
                           Reabrir
                         </Button>
                       )}
@@ -324,7 +348,9 @@ function FreightQuotesPage() {
                                   </a>
                                 </Button>
                                 <Button size="sm" onClick={() => void chooseCarrier(row, proposal)}>
-                                  {proposal.chosen_at ? "Reenviar endereços" : "Escolher e enviar endereços"}
+                                  {proposal.chosen_at
+                                    ? "Reenviar endereços"
+                                    : "Escolher e enviar endereços"}
                                 </Button>
                               </div>
                             </li>
