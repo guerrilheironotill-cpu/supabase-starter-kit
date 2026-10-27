@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { SITE_URL } from "@/lib/site-config";
-import { PROJECTS_PUBLIC } from "@/lib/feature-flags";
+import { BLOG_PUBLIC, PROJECTS_PUBLIC } from "@/lib/feature-flags";
+import { BLOG_POSTS } from "@/lib/blog";
 
 type Entry = {
   path: string;
@@ -66,6 +67,18 @@ export const Route = createFileRoute("/sitemap.xml")({
                   priority: "0.7",
                   images: ["/images/projetos/escultura-infinito.webp"],
                 },
+              ]
+            : []),
+          ...(BLOG_PUBLIC
+            ? [
+                { path: "/blog", changefreq: "weekly", priority: "0.7" },
+                ...BLOG_POSTS.map((post) => ({
+                  path: `/blog/${post.slug}`,
+                  changefreq: "monthly",
+                  priority: "0.7",
+                  lastmod: post.updatedAt ?? post.publishedAt,
+                  images: [post.cover.src],
+                })),
               ]
             : []),
           { path: "/politica-de-cookies", changefreq: "yearly", priority: "0.2" },

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown, FileText, Lock, Menu, Search, X } from "lucide-react";
 import { PROJECTS_PUBLIC } from "@/lib/feature-flags";
 import { useIsAdmin } from "@/lib/use-is-admin";
+import { useBlogAccess } from "@/lib/use-blog-access";
 import { useQuoteStore } from "@/lib/quote-store";
 import { cn } from "@/lib/utils";
 import { WhatsAppQuoteDrawer } from "./whatsapp-quote-drawer";
@@ -19,6 +20,7 @@ export function SiteHeader() {
   const [mobileProductsOpen, setMobileProductsOpen] = useState(true);
   const isAdmin = useIsAdmin();
   const showProjects = PROJECTS_PUBLIC || isAdmin === true;
+  const { visible: showBlog, adminOnly: blogAdminOnly } = useBlogAccess();
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [mobileProjectsOpen, setMobileProjectsOpen] = useState(false);
   const [scrolledRaw, setScrolled] = useState(false);
@@ -232,6 +234,31 @@ export function SiteHeader() {
                   </div>
                 </div>
               </div>
+            )}
+            {showBlog && (
+              <Link
+                to="/blog"
+                className={cn(
+                  "group/nav relative inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-semibold uppercase tracking-[0.14em] transition-all duration-300 hover:-translate-y-0.5",
+                  scrolled
+                    ? "text-white/85 hover:text-white"
+                    : "text-primary/80 hover:text-primary",
+                )}
+              >
+                <span className="relative">
+                  Blog
+                  <span className="pointer-events-none absolute -bottom-1 left-0 h-[2px] w-0 bg-secondary transition-all duration-300 group-hover/nav:w-full" />
+                </span>
+                {blogAdminOnly && (
+                  <span
+                    title="Visível só para administradores até ser publicado"
+                    className="inline-flex items-center gap-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-amber-950"
+                  >
+                    <Lock className="h-2.5 w-2.5" />
+                    SÓ ADMIN
+                  </span>
+                )}
+              </Link>
             )}
           </nav>
           <div className="flex items-center gap-3">
@@ -518,6 +545,23 @@ export function SiteHeader() {
                         </li>
                       </ul>
                     )}
+                  </li>
+                )}
+                {showBlog && (
+                  <li>
+                    <Link
+                      to="/blog"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2 rounded-lg px-3 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition-colors hover:bg-secondary/20 hover:text-primary"
+                    >
+                      Blog
+                      {blogAdminOnly && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-amber-950">
+                          <Lock className="h-2.5 w-2.5" />
+                          SÓ ADMIN
+                        </span>
+                      )}
+                    </Link>
                   </li>
                 )}
               </ul>

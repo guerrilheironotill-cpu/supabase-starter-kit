@@ -34,6 +34,7 @@ import { Route as AcabamentosECoresRouteImport } from './routes/acabamentos-e-co
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjetosIndexRouteImport } from './routes/projetos.index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
+import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as ProjetosIdeiasParaTirarDoPapelRouteImport } from './routes/projetos.ideias-para-tirar-do-papel'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
 import { Route as FreteTokenRouteImport } from './routes/frete.$token'
@@ -59,6 +60,7 @@ import { Route as DashboardCadastrarProdutoRouteImport } from './routes/dashboar
 import { Route as DashboardAcabamentosRouteImport } from './routes/dashboard.acabamentos'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 import { Route as CatalogoVariantRouteImport } from './routes/catalogo_.$variant'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as ApiWhatsappQuoteRouteImport } from './routes/api/whatsapp-quote'
 import { Route as ApiUploadMediaRouteImport } from './routes/api/upload-media'
 import { Route as ApiStorageUsageRouteImport } from './routes/api/storage-usage'
@@ -209,6 +211,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRoute,
 } as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjetosIdeiasParaTirarDoPapelRoute =
   ProjetosIdeiasParaTirarDoPapelRouteImport.update({
     id: '/projetos/ideias-para-tirar-do-papel',
@@ -334,6 +341,11 @@ const CategoriaSlugRoute = CategoriaSlugRouteImport.update({
 const CatalogoVariantRoute = CatalogoVariantRouteImport.update({
   id: '/catalogo_/$variant',
   path: '/catalogo/$variant',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiWhatsappQuoteRoute = ApiWhatsappQuoteRouteImport.update({
@@ -497,6 +509,7 @@ export interface FileRoutesByFullPath {
   '/api/storage-usage': typeof ApiStorageUsageRoute
   '/api/upload-media': typeof ApiUploadMediaRoute
   '/api/whatsapp-quote': typeof ApiWhatsappQuoteRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/catalogo/$variant': typeof CatalogoVariantRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
@@ -522,6 +535,7 @@ export interface FileRoutesByFullPath {
   '/frete/$token': typeof FreteTokenRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/projetos/ideias-para-tirar-do-papel': typeof ProjetosIdeiasParaTirarDoPapelRoute
+  '/blog/': typeof BlogIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/projetos/': typeof ProjetosIndexRoute
   '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
@@ -572,6 +586,7 @@ export interface FileRoutesByTo {
   '/api/storage-usage': typeof ApiStorageUsageRoute
   '/api/upload-media': typeof ApiUploadMediaRoute
   '/api/whatsapp-quote': typeof ApiWhatsappQuoteRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/catalogo/$variant': typeof CatalogoVariantRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
@@ -596,6 +611,7 @@ export interface FileRoutesByTo {
   '/frete/$token': typeof FreteTokenRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/projetos/ideias-para-tirar-do-papel': typeof ProjetosIdeiasParaTirarDoPapelRoute
+  '/blog': typeof BlogIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/projetos': typeof ProjetosIndexRoute
   '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
@@ -648,6 +664,7 @@ export interface FileRoutesById {
   '/api/storage-usage': typeof ApiStorageUsageRoute
   '/api/upload-media': typeof ApiUploadMediaRoute
   '/api/whatsapp-quote': typeof ApiWhatsappQuoteRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/catalogo_/$variant': typeof CatalogoVariantRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/dashboard/acabamentos': typeof DashboardAcabamentosRoute
@@ -673,6 +690,7 @@ export interface FileRoutesById {
   '/frete/$token': typeof FreteTokenRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/projetos/ideias-para-tirar-do-papel': typeof ProjetosIdeiasParaTirarDoPapelRoute
+  '/blog/': typeof BlogIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/projetos/': typeof ProjetosIndexRoute
   '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
@@ -726,6 +744,7 @@ export interface FileRouteTypes {
     | '/api/storage-usage'
     | '/api/upload-media'
     | '/api/whatsapp-quote'
+    | '/blog/$slug'
     | '/catalogo/$variant'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
@@ -751,6 +770,7 @@ export interface FileRouteTypes {
     | '/frete/$token'
     | '/produto/$slug'
     | '/projetos/ideias-para-tirar-do-papel'
+    | '/blog/'
     | '/dashboard/'
     | '/projetos/'
     | '/api/analytics/overview'
@@ -801,6 +821,7 @@ export interface FileRouteTypes {
     | '/api/storage-usage'
     | '/api/upload-media'
     | '/api/whatsapp-quote'
+    | '/blog/$slug'
     | '/catalogo/$variant'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
@@ -825,6 +846,7 @@ export interface FileRouteTypes {
     | '/frete/$token'
     | '/produto/$slug'
     | '/projetos/ideias-para-tirar-do-papel'
+    | '/blog'
     | '/dashboard'
     | '/projetos'
     | '/api/analytics/overview'
@@ -876,6 +898,7 @@ export interface FileRouteTypes {
     | '/api/storage-usage'
     | '/api/upload-media'
     | '/api/whatsapp-quote'
+    | '/blog/$slug'
     | '/catalogo_/$variant'
     | '/categoria/$slug'
     | '/dashboard/acabamentos'
@@ -901,6 +924,7 @@ export interface FileRouteTypes {
     | '/frete/$token'
     | '/produto/$slug'
     | '/projetos/ideias-para-tirar-do-papel'
+    | '/blog/'
     | '/dashboard/'
     | '/projetos/'
     | '/api/analytics/overview'
@@ -953,12 +977,14 @@ export interface RootRouteChildren {
   ApiStorageUsageRoute: typeof ApiStorageUsageRoute
   ApiUploadMediaRoute: typeof ApiUploadMediaRoute
   ApiWhatsappQuoteRoute: typeof ApiWhatsappQuoteRoute
+  BlogSlugRoute: typeof BlogSlugRoute
   CatalogoVariantRoute: typeof CatalogoVariantRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
   FreteClienteTokenRoute: typeof FreteClienteTokenRoute
   FreteTokenRoute: typeof FreteTokenRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
   ProjetosIdeiasParaTirarDoPapelRoute: typeof ProjetosIdeiasParaTirarDoPapelRoute
+  BlogIndexRoute: typeof BlogIndexRoute
   ProjetosIndexRoute: typeof ProjetosIndexRoute
   ApiAnalyticsOverviewRoute: typeof ApiAnalyticsOverviewRoute
   ApiFreightFormTokenRoute: typeof ApiFreightFormTokenRoute
@@ -1145,6 +1171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projetos/ideias-para-tirar-do-papel': {
       id: '/projetos/ideias-para-tirar-do-papel'
       path: '/projetos/ideias-para-tirar-do-papel'
@@ -1318,6 +1351,13 @@ declare module '@tanstack/react-router' {
       path: '/catalogo/$variant'
       fullPath: '/catalogo/$variant'
       preLoaderRoute: typeof CatalogoVariantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/whatsapp-quote': {
@@ -1608,12 +1648,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiStorageUsageRoute: ApiStorageUsageRoute,
   ApiUploadMediaRoute: ApiUploadMediaRoute,
   ApiWhatsappQuoteRoute: ApiWhatsappQuoteRoute,
+  BlogSlugRoute: BlogSlugRoute,
   CatalogoVariantRoute: CatalogoVariantRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
   FreteClienteTokenRoute: FreteClienteTokenRoute,
   FreteTokenRoute: FreteTokenRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
   ProjetosIdeiasParaTirarDoPapelRoute: ProjetosIdeiasParaTirarDoPapelRoute,
+  BlogIndexRoute: BlogIndexRoute,
   ProjetosIndexRoute: ProjetosIndexRoute,
   ApiAnalyticsOverviewRoute: ApiAnalyticsOverviewRoute,
   ApiFreightFormTokenRoute: ApiFreightFormTokenRoute,

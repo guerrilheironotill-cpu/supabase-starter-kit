@@ -9,6 +9,7 @@ import { fetchHeroSlides } from "@/lib/hero-slides";
 import { absoluteUrl } from "@/lib/site-config";
 import { fetchHomeProjects } from "@/lib/home-projects";
 import { HomeProjectsGallery } from "@/components/home-projects-gallery";
+import { HomeLatestPosts } from "@/components/blog/home-latest-posts";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
@@ -43,6 +44,7 @@ function Index() {
       <ProductGrid title="Jardineiras" category="Jardineiras" limit={12} carousel />
       <CategoryShowcase />
       <HomeProjectsGallery projects={projects} />
+      <HomeLatestPosts />
       <HomeFaq />
     </>
   );
