@@ -47,6 +47,25 @@ IDEA_PROJECTS.push({
   ],
 });
 
+IDEA_PROJECTS.push({
+  slug: "fonte-de-parede-com-cortina-de-agua",
+  name: "Fonte de parede com cortina de água",
+  image: "/images/projetos/fonte-parede-circular.webp",
+  imageAlt:
+    "Painel de concreto claro com abertura circular por onde cai uma cortina de fios de água, em um jardim com vasos e plantas",
+  description: [
+    "Um painel de concreto claro, com textura que lembra pedra travertino, e uma abertura circular por onde cai uma cortina de fios de água. A peça une escultura e o som da água, e funciona como divisória de jardim, fundo de varanda ou ponto focal na entrada.",
+    "A água circula em circuito fechado: ela cai pela abertura, é recolhida por um reservatório escondido na base da peça e volta ao topo por uma bomba, através de uma tubulação embutida. Assim, a fonte praticamente não desperdiça água, e é preciso apenas repor o que evapora.",
+    "É um projeto novo para nós: desenvolvemos o molde, o sistema hidráulico e o protótipo junto com você, e a manutenção se resume a limpar o filtro e o reservatório e repor a água de tempos em tempos.",
+  ],
+  highlights: [
+    "Sistema: reservatório na base, bomba e tubulação embutida, em circuito fechado",
+    "Material: concreto em tom areia, com textura que lembra travertino",
+    "Altura e abertura: a combinar, conforme o espaço",
+    "Prazo: definido após o projeto e o orçamento",
+  ],
+});
+
 export const IDEA_STEPS = [
   {
     title: "Escolha o projeto",

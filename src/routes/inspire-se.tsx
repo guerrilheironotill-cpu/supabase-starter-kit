@@ -18,9 +18,55 @@ import { absoluteUrl } from "@/lib/site-config";
 import { trackGaEvent, trackIdeaInterest } from "@/lib/track-event";
 import { useWhatsAppNumber, whatsappLinkFrom } from "@/lib/site-settings";
 
-const TITLE = "Inspire-se — Ideias de peças em concreto | Arteno";
+const TITLE = "Ideias de projetos em concreto | Esculturas e fontes — Arteno";
 const DESCRIPTION =
-  "Referências de esculturas e peças especiais em concreto que queremos criar com você, desenvolvidas sob encomenda. Inspire-se, escolha uma ideia e fale com a gente.";
+  "Ideias de projetos em concreto para jardins e áreas externas: esculturas, fontes e peças especiais feitas sob encomenda. Inspire-se e peça seu orçamento.";
+
+function structuredData() {
+  const url = absoluteUrl("/inspire-se");
+  const faqs = IDEA_FAQS.filter((item) => typeof item.answer === "string");
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "CollectionPage",
+        "@id": `${url}#page`,
+        name: "Ideias de projetos em concreto",
+        description: DESCRIPTION,
+        url,
+        inLanguage: "pt-BR",
+        mainEntity: {
+          "@type": "ItemList",
+          itemListElement: IDEA_PROJECTS.map((project, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            item: {
+              "@type": "CreativeWork",
+              name: project.name,
+              description: project.description[0],
+              image: absoluteUrl(project.image),
+            },
+          })),
+        },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Início", item: absoluteUrl("/") },
+          { "@type": "ListItem", position: 2, name: "Inspire-se", item: url },
+        ],
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: faqs.map((item) => ({
+          "@type": "Question",
+          name: item.question,
+          acceptedAnswer: { "@type": "Answer", text: String(item.answer) },
+        })),
+      },
+    ],
+  };
+}
 
 export const Route = createFileRoute("/inspire-se")({
   head: () => ({
@@ -28,12 +74,22 @@ export const Route = createFileRoute("/inspire-se")({
       { title: TITLE },
       ...(PROJECTS_PUBLIC ? [] : [{ name: "robots", content: "noindex, nofollow" }]),
       { name: "description", content: DESCRIPTION },
+      {
+        name: "keywords",
+        content:
+          "ideias de projetos em concreto, escultura de concreto, fonte de concreto, peças especiais em concreto, projetos sob encomenda",
+      },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
+      { property: "og:type", content: "website" },
       { property: "og:image", content: absoluteUrl(IDEA_PROJECTS[0].image) },
       { property: "og:url", content: absoluteUrl("/inspire-se") },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: TITLE },
+      { name: "twitter:description", content: DESCRIPTION },
     ],
     links: [{ rel: "canonical", href: absoluteUrl("/inspire-se") }],
+    scripts: [{ type: "application/ld+json", children: JSON.stringify(structuredData()) }],
   }),
   component: IdeasPage,
 });
@@ -75,8 +131,8 @@ function IdeasPage() {
   return (
     <main className="bg-background text-primary">
       <PageHero
-        eyebrow="Ideias para tirar do papel"
-        title="Inspire-se"
+        eyebrow="Inspire-se"
+        title="Ideias de projetos em concreto"
         crumbs={[{ label: "Home", to: "/" }, { label: "Inspire-se" }]}
       />
 

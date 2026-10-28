@@ -68,6 +68,7 @@ export const Route = createFileRoute("/sitemap.xml")({
                   images: [
                     "/images/projetos/escultura-infinito.webp",
                     "/images/projetos/escultura-rosto.webp",
+                    "/images/projetos/fonte-parede-circular.webp",
                   ],
                 },
               ]
