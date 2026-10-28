@@ -144,7 +144,12 @@ export function ProductCard({ product, index = 0, variant = "default" }: Props) 
           </span>
         )}
       </div>
-      <Link to="/produto/$slug" params={{ slug: product.slug }} className="block">
+      <Link
+        to="/produto/$slug"
+        params={{ slug: product.slug }}
+        search={{ tamanho: undefined }}
+        className="block"
+      >
         <h3 className="mt-4 font-display text-lg font-semibold text-primary sm:text-xl">
           {product.name}
         </h3>
