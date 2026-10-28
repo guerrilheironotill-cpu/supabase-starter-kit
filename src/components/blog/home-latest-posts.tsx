@@ -34,6 +34,7 @@ export function HomeLatestPosts() {
           </div>
           <Link
             to="/blog"
+            search={{ categoria: undefined }}
             className="inline-flex w-fit items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:-translate-y-0.5 hover:shadow-lg"
           >
             Ver todos os posts

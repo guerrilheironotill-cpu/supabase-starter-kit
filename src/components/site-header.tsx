@@ -238,6 +238,7 @@ export function SiteHeader() {
             {showBlog && (
               <Link
                 to="/blog"
+                search={{ categoria: undefined }}
                 className={cn(
                   "group/nav relative inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-semibold uppercase tracking-[0.14em] transition-all duration-300 hover:-translate-y-0.5",
                   scrolled
@@ -551,6 +552,7 @@ export function SiteHeader() {
                   <li>
                     <Link
                       to="/blog"
+                      search={{ categoria: undefined }}
                       onClick={() => setMobileOpen(false)}
                       className="flex items-center gap-2 rounded-lg px-3 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition-colors hover:bg-secondary/20 hover:text-primary"
                     >

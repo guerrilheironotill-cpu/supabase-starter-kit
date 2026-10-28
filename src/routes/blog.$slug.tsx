@@ -101,7 +101,11 @@ export const Route = createFileRoute("/blog/$slug")({
   notFoundComponent: () => (
     <div className="mx-auto max-w-3xl px-4 py-24 text-center text-primary">
       <h1 className="font-display text-3xl">Post não encontrado</h1>
-      <Link to="/blog" className="mt-6 inline-block font-semibold underline underline-offset-4">
+      <Link
+        to="/blog"
+        search={{ categoria: undefined }}
+        className="mt-6 inline-block font-semibold underline underline-offset-4"
+      >
         Ver todos os posts
       </Link>
     </div>
@@ -127,7 +131,7 @@ function BlogPostPage() {
               </li>
               <ChevronRight className="h-3 w-3 opacity-60" />
               <li>
-                <Link to="/blog" className="hover:text-primary">
+                <Link to="/blog" search={{ categoria: undefined }} className="hover:text-primary">
                   Blog
                 </Link>
               </li>

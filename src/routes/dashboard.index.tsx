@@ -30,6 +30,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSection } from "@/components/dashboard-layout";
 import { cn } from "@/lib/utils";
+import { InfoTip } from "@/components/info-tip";
 
 export const Route = createFileRoute("/dashboard/")({
   head: () => ({
@@ -339,19 +340,23 @@ function Kpi({
   value,
   delta,
   icon: Icon,
+  info,
 }: {
   label: string;
   value: string | number;
   delta?: string;
   icon: typeof Eye;
+  /** Explains how the number is calculated (shown on hover). */
+  info?: string;
 }) {
   const isNegative = typeof delta === "string" && delta.trim().startsWith("-");
   const isNeutral = !delta || delta === "—";
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+        <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest text-muted-foreground">
           {label}
+          {info && <InfoTip text={info} />}
         </span>
         <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Icon className="h-4 w-4" />
@@ -779,19 +784,36 @@ function DashboardOverview() {
       </div>
 
       <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <Kpi label="Orçamentos (12m)" value={fmt(business?.quotes12m)} icon={FileText} />
-        <Kpi label="Pedidos em aberto" value={fmt(business?.openOrders)} icon={Clock} />
+        <Kpi
+          label="Orçamentos (12m)"
+          value={fmt(business?.quotes12m)}
+          icon={FileText}
+          info="Total de orçamentos criados nos últimos 12 meses, de qualquer origem (site, WhatsApp ou painel) e em qualquer status, inclusive rascunhos e cancelados."
+        />
+        <Kpi
+          label="Pedidos em aberto"
+          value={fmt(business?.openOrders)}
+          icon={Clock}
+          info="Pedidos ainda em andamento: todos, menos os concluídos, cancelados, reembolsados ou com falha."
+        />
         <Kpi
           label="Taxa de conversão"
           value={business?.conversionRate != null ? `${business.conversionRate.toFixed(0)}%` : "—"}
           icon={TrendingUp}
+          info="Orçamentos aprovados divididos pelos orçamentos já decididos (aprovados + cancelados). Os que ainda estão em aberto não entram na conta."
         />
         <Kpi
           label="Ticket médio"
           value={business?.avgTicket != null ? fmtBRL(business.avgTicket) : "—"}
           icon={Wallet}
+          info="Valor médio dos orçamentos aprovados: a soma dos totais aprovados dividida pela quantidade deles."
         />
-        <Kpi label="Produtos ativos" value={fmt(stats?.products)} icon={Package} />
+        <Kpi
+          label="Produtos ativos"
+          value={fmt(stats?.products)}
+          icon={Package}
+          info="Produtos publicados no catálogo e visíveis no site."
+        />
       </div>
 
       <DashboardSection
@@ -805,18 +827,23 @@ function DashboardOverview() {
               value={ga4?.configured ? fmt(ga4.users30d) : "—"}
               delta={ga4?.configured ? fmtDelta(ga4.deltaUsers30d) : undefined}
               icon={Users}
+              info={
+                "Usuários ativos do Google Analytics, somando cada dia dos últimos 30 dias. Não é por IP nem por clique: o Analytics reconhece o navegador/aparelho (por cookie). Quem volta em dias diferentes conta uma vez por dia, e uma mesma pessoa em dois aparelhos conta duas vezes. Só entram visitantes que aceitaram os cookies de análise, então o movimento real é maior. A variação compara com os 30 dias anteriores."
+              }
             />
             <Kpi
               label="Cliques no Google (30d)"
               value={gsc?.configured ? fmt(gsc.clicks) : "—"}
               delta={gsc?.configured ? fmtDelta(gsc.deltaClicks) : undefined}
               icon={MousePointerClick}
+              info="Vezes que alguém clicou no seu site a partir de uma busca no Google (dados do Search Console), nos últimos 30 dias. Não inclui acessos diretos, de redes sociais ou de anúncios. Os dados do Google têm cerca de 2 dias de atraso. A variação compara com os 30 dias anteriores."
             />
             <Kpi
               label="Impressões no Google (30d)"
               value={gsc?.configured ? fmt(gsc.impressions) : "—"}
               delta={gsc?.configured ? fmtDelta(gsc.deltaImpressions) : undefined}
               icon={Search}
+              info="Vezes que o site apareceu nos resultados de busca do Google, com ou sem clique. Mostra o alcance nas buscas. Quando as impressões crescem e os cliques não, vale melhorar títulos e descrições das páginas."
             />
           </div>
 
@@ -828,8 +855,9 @@ function DashboardOverview() {
 
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
-              <p className="mb-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">
+              <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest text-muted-foreground">
                 Visitas ao site
+                <InfoTip text="Usuários ativos do Google Analytics em cada dia, mês ou ano (o botão acima troca a visão). Mês e ano são a soma dos usuários de cada dia, então quem volta em dias diferentes conta mais de uma vez. Não é por IP: o Analytics reconhece o navegador/aparelho, e só conta quem aceitou os cookies de análise." />
               </p>
               <TrendChart
                 data={visitsSeries}
@@ -840,8 +868,9 @@ function DashboardOverview() {
               />
             </div>
             <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
-              <p className="mb-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">
+              <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest text-muted-foreground">
                 Orçamentos recebidos
+                <InfoTip text="Quantidade de orçamentos criados em cada dia, mês ou ano, de qualquer origem (site, WhatsApp ou painel) e em qualquer status. Ajuda a comparar com as visitas e ver quanto do tráfego vira pedido de orçamento." />
               </p>
               <TrendChart
                 data={quotesSeries}

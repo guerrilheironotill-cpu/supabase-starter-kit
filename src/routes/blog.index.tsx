@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { BlogCard } from "@/components/blog/blog-card";
 import { BlogGate } from "@/components/blog/blog-gate";
 import { PageHero } from "@/components/page-hero";
-import { BLOG_POSTS } from "@/lib/blog";
+import { BLOG_POSTS, blogCategories } from "@/lib/blog";
 import { BLOG_PUBLIC } from "@/lib/feature-flags";
 import { absoluteUrl } from "@/lib/site-config";
 
@@ -11,6 +11,9 @@ const DESCRIPTION =
   "Guias e dicas sobre vasos, jardineiras, mesas, bancos e peças em concreto: materiais, cuidados, tamanhos e ideias para o seu projeto.";
 
 export const Route = createFileRoute("/blog/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    categoria: typeof search.categoria === "string" ? search.categoria : undefined,
+  }),
   head: () => ({
     meta: [
       { title: TITLE },
@@ -31,6 +34,16 @@ export const Route = createFileRoute("/blog/")({
 });
 
 function BlogIndexPage() {
+  const { categoria } = Route.useSearch();
+  const categories = blogCategories();
+  const active = categories.find((category) => category.slug === categoria);
+  const posts = active ? BLOG_POSTS.filter((post) => post.category === active.name) : BLOG_POSTS;
+  const chip = (isActive: boolean) =>
+    `rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition ${
+      isActive
+        ? "border-primary bg-primary text-primary-foreground"
+        : "border-primary/20 text-primary hover:border-primary/50"
+    }`;
   return (
     <BlogGate>
       <main className="bg-background text-primary">
@@ -44,11 +57,28 @@ function BlogIndexPage() {
             Guias práticos sobre materiais, tamanhos, cuidados e ideias para usar peças de concreto
             no seu espaço.
           </p>
-          {BLOG_POSTS.length === 0 ? (
+          {categories.length > 1 && (
+            <div className="mt-8 flex flex-wrap justify-center gap-2" aria-label="Categorias">
+              <Link to="/blog" search={{ categoria: undefined }} className={chip(!active)}>
+                Todos
+              </Link>
+              {categories.map((category) => (
+                <Link
+                  key={category.slug}
+                  to="/blog"
+                  search={{ categoria: category.slug }}
+                  className={chip(active?.slug === category.slug)}
+                >
+                  {category.name} ({category.count})
+                </Link>
+              ))}
+            </div>
+          )}
+          {posts.length === 0 ? (
             <p className="mt-12 text-center text-primary/60">Em breve, novos posts por aqui.</p>
           ) : (
             <div className="mt-12 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
-              {BLOG_POSTS.map((post, index) => (
+              {posts.map((post, index) => (
                 <BlogCard key={post.slug} post={post} priority={index < 3} />
               ))}
             </div>

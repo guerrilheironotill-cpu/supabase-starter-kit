@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
+import { ProductSpotlight } from "@/components/blog/product-spotlight";
 import { headingId, type BlogBlock } from "@/lib/blog";
 
 const INLINE = /(\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\))/g;
@@ -96,6 +97,17 @@ export function BlogContent({ blocks }: { blocks: BlogBlock[] }) {
                 <p className="font-display text-lg text-primary">{block.title}</p>
                 <p className="mt-2 text-[0.95rem] leading-relaxed">{renderInline(block.text)}</p>
               </aside>
+            );
+          case "product":
+            return (
+              <ProductSpotlight
+                key={index}
+                search={block.search}
+                title={block.title}
+                text={block.text}
+                fallbackHref={block.fallbackHref}
+                fallbackLabel={block.fallbackLabel}
+              />
             );
           case "image":
             return (

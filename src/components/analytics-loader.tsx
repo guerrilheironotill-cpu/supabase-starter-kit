@@ -39,8 +39,14 @@ function loadAnalytics() {
   gaConfigured = true;
   const trackerWindow = window as TrackerWindow;
   trackerWindow.dataLayer = trackerWindow.dataLayer ?? [];
+  // gtag.js only understands the `arguments` object in the dataLayer, never a plain array:
+  // pushing an array (as this used to) makes every call silently ignored, so no data arrived.
   trackerWindow.gtag =
-    trackerWindow.gtag ?? ((...args: unknown[]) => trackerWindow.dataLayer?.push(args));
+    trackerWindow.gtag ??
+    function gtag() {
+      // eslint-disable-next-line prefer-rest-params
+      trackerWindow.dataLayer?.push(arguments);
+    };
   trackerWindow.gtag("js", new Date());
   trackerWindow.gtag("config", GA_ID, { anonymize_ip: true, send_page_view: false });
   loadScript(

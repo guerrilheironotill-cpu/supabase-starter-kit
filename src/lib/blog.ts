@@ -1,6 +1,8 @@
 import { gfrcVsConcretoComum } from "@/content/blog/gfrc-x-concreto-comum";
 import { mobiliarioEmConcretoGfrc } from "@/content/blog/mobiliario-em-concreto-gfrc";
 import { comoEscolherOTamanhoDoVaso } from "@/content/blog/como-escolher-o-tamanho-do-vaso";
+import { piasECubasDeConcreto } from "@/content/blog/pias-e-cubas-de-concreto";
+import { concretoEAco } from "@/content/blog/concreto-e-aco";
 
 /**
  * Text of a block. Inline markup: **bold** and [link text](/internal-path).
@@ -12,7 +14,16 @@ export type BlogBlock =
   | { type: "ul"; items: string[] }
   | { type: "ol"; items: string[] }
   | { type: "callout"; title: string; text: string }
-  | { type: "image"; src: string; alt: string; caption?: string };
+  | { type: "image"; src: string; alt: string; caption?: string }
+  /** A catalog product featured in the post, found by (part of) its name. */
+  | {
+      type: "product";
+      search: string;
+      title: string;
+      text: string;
+      fallbackHref: string;
+      fallbackLabel: string;
+    };
 
 export type BlogPost = {
   slug: string;
@@ -33,6 +44,8 @@ export type BlogPost = {
 
 // Newest first; posts of the same day keep the order they are listed in here.
 const ALL_POSTS: BlogPost[] = [
+  concretoEAco,
+  piasECubasDeConcreto,
   gfrcVsConcretoComum,
   mobiliarioEmConcretoGfrc,
   comoEscolherOTamanhoDoVaso,
@@ -44,6 +57,13 @@ export const BLOG_POSTS: BlogPost[] = [...ALL_POSTS].sort((a, b) =>
 
 export function getBlogPost(slug: string): BlogPost | undefined {
   return BLOG_POSTS.find((post) => post.slug === slug);
+}
+
+/** Categories in use, with their URL slug and post count. */
+export function blogCategories() {
+  const counts = new Map<string, number>();
+  for (const post of BLOG_POSTS) counts.set(post.category, (counts.get(post.category) ?? 0) + 1);
+  return Array.from(counts, ([name, count]) => ({ name, slug: headingId(name), count }));
 }
 
 export function latestBlogPosts(limit = 3): BlogPost[] {
@@ -72,6 +92,7 @@ export function readingMinutes(post: BlogPost) {
       if (block.type === "ul" || block.type === "ol") return block.items;
       if (block.type === "callout") return [block.title, block.text];
       if (block.type === "image") return [];
+      if (block.type === "product") return [block.title, block.text];
       return [block.text];
     }),
     ...post.faq.flatMap((item) => [item.question, item.answer]),
