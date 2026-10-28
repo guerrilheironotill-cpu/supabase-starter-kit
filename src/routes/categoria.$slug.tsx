@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { PageHero } from "@/components/page-hero";
@@ -15,6 +15,7 @@ import {
   fetchCategoryCover,
   fetchProductsWithSizes,
   categorySlug,
+  slugify,
 } from "@/lib/products";
 import { absoluteUrl } from "@/lib/site-config";
 
@@ -22,7 +23,18 @@ export const Route = createFileRoute("/categoria/$slug")({
   loader: async ({ params }) => {
     const categories = await fetchCategories();
     const category = categories.find((c) => categorySlug(c) === params.slug);
-    if (!category) throw notFound();
+    if (!category) {
+      // Old links use the plain name (/categoria/vasos): send them to the canonical address.
+      const legacy = categories.find((c) => slugify(c) === params.slug);
+      if (legacy) {
+        throw redirect({
+          to: "/categoria/$slug",
+          params: { slug: categorySlug(legacy) },
+          statusCode: 301,
+        });
+      }
+      throw notFound();
+    }
     const [coverImage, products] = await Promise.all([
       fetchCategoryCover(category),
       fetchProductsWithSizes({ category }),

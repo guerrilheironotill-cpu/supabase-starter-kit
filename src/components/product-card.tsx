@@ -89,7 +89,7 @@ export function ProductCard({ product, index = 0, variant = "default" }: Props) 
             <img
               key={`${imageIndex}-${imageTransition}`}
               src={img}
-              alt={product.name}
+              alt={`${product.name} de concreto`}
               width={800}
               height={800}
               loading="lazy"
@@ -103,6 +103,7 @@ export function ProductCard({ product, index = 0, variant = "default" }: Props) 
         <Link
           to="/produto/$slug"
           params={{ slug: product.slug }}
+          search={{ tamanho: undefined }}
           aria-label={`Ver produto ${product.name}`}
           className="absolute inset-0 z-10"
         />

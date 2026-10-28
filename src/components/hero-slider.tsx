@@ -64,9 +64,15 @@ export function HeroSlider({ initialSlides }: { initialSlides: HeroSlide[] }) {
                 <span className="inline-block text-[10px] font-semibold uppercase tracking-[0.35em] text-white/80">
                   {s.eyebrow}
                 </span>
-                <h1 className="mt-4 font-display text-4xl leading-[1.05] text-white sm:text-5xl lg:text-6xl">
-                  {s.title}
-                </h1>
+                {i === index ? (
+                  <h1 className="mt-4 font-display text-4xl leading-[1.05] text-white sm:text-5xl lg:text-6xl">
+                    {s.title}
+                  </h1>
+                ) : (
+                  <p className="mt-4 font-display text-4xl leading-[1.05] text-white sm:text-5xl lg:text-6xl">
+                    {s.title}
+                  </p>
+                )}
                 <p className="mx-auto mt-4 max-w-2xl text-sm text-white/85 sm:text-base">
                   {s.description}
                 </p>
@@ -82,22 +88,26 @@ export function HeroSlider({ initialSlides }: { initialSlides: HeroSlide[] }) {
           </div>
         ))}
 
-        {SLIDES.length > 1 && <button
-          type="button"
-          onClick={() => go(-1)}
-          aria-label="Slide anterior"
-          className="absolute left-4 top-1/2 z-20 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all duration-300 hover:bg-secondary hover:text-primary sm:left-6"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>}
-        {SLIDES.length > 1 && <button
-          type="button"
-          onClick={() => go(1)}
-          aria-label="Próximo slide"
-          className="absolute right-4 top-1/2 z-20 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all duration-300 hover:bg-secondary hover:text-primary sm:right-6"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>}
+        {SLIDES.length > 1 && (
+          <button
+            type="button"
+            onClick={() => go(-1)}
+            aria-label="Slide anterior"
+            className="absolute left-4 top-1/2 z-20 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all duration-300 hover:bg-secondary hover:text-primary sm:left-6"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+        )}
+        {SLIDES.length > 1 && (
+          <button
+            type="button"
+            onClick={() => go(1)}
+            aria-label="Próximo slide"
+            className="absolute right-4 top-1/2 z-20 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all duration-300 hover:bg-secondary hover:text-primary sm:right-6"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        )}
 
         {/* Marquee sits over the slider bottom, inside rounded clip */}
         <div className="pointer-events-none absolute inset-x-0 bottom-4 z-30">

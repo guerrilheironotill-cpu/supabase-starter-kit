@@ -16,6 +16,9 @@ const LINKS: {
   { label: "Mesas", to: "/categoria/$slug", params: { slug: "mesas" } },
   { label: "Cubas e Pias", to: "/pias-e-cubas-de-concreto" },
   { label: "Mobiliário Urbano", to: "/mobiliario-urbano" },
+  { label: "Vasos para Empresas", to: "/vasos-para-empresas" },
+  { label: "Inspire-se", to: "/inspire-se" },
+  { label: "Blog", to: "/blog" },
 ];
 
 export function SiteFooter() {
