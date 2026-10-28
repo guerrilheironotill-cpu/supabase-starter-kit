@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import {
   cargoValueFromOrder,
+  parseProposalNotes,
   rowToPublic,
   type FreightQuoteRow,
   type PublicFreightQuote,
@@ -33,6 +34,26 @@ export async function loadPublicFreight(
 
   const quote = rowToPublic(row);
   const items = Array.isArray(row.items) ? row.items : [];
+
+  // Closed with a hired carrier: everyone opening the link sees who got the job.
+  if (row.status === "fechada") {
+    const { data: hired } = await admin
+      .from("freight_proposals")
+      .select("carrier_name, notes")
+      .eq("freight_quote_id", row.id)
+      .not("chosen_at", "is", null)
+      .order("chosen_at", { ascending: false })
+      .limit(1);
+    const proposal = (hired ?? [])[0] as { carrier_name: string; notes: string | null } | undefined;
+    if (proposal) {
+      const details = parseProposalNotes(proposal.notes);
+      quote.contracted = {
+        company: proposal.carrier_name,
+        vehicle: details.vehicle,
+        mode: details.mode,
+      };
+    }
+  }
 
   // No value typed on the quote: use the one of the order it was created from.
   if (quote.cargoValue === null && row.order_id) {

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
-import type { FreightQuoteRow } from "@/lib/freight";
+import { buildProposalNotes, FREIGHT_MODES, type FreightQuoteRow } from "@/lib/freight";
 import { loadPublicFreight } from "@/lib/freight-server";
 
 const FALLBACK_WHATSAPP = "5548988486279";
@@ -12,7 +12,10 @@ function adminClient() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-const text = (value: unknown, max: number) => String(value ?? "").trim().slice(0, max);
+const text = (value: unknown, max: number) =>
+  String(value ?? "")
+    .trim()
+    .slice(0, max);
 
 // Quotes still being prepared (waiting on the customer or on the admin) are not public.
 const isPublished = (row: FreightQuoteRow) => row.status === "aberta" || row.status === "fechada";
@@ -22,14 +25,17 @@ export const Route = createFileRoute("/api/freight/$token")({
     handlers: {
       GET: async ({ params }) => {
         const { quote, error } = await loadPublicFreight(params.token);
-        if (error) return Response.json({ ok: false, error: "Serviço indisponível." }, { status: 500 });
-        if (!quote) return Response.json({ ok: false, error: "Cotação não encontrada." }, { status: 404 });
+        if (error)
+          return Response.json({ ok: false, error: "Serviço indisponível." }, { status: 500 });
+        if (!quote)
+          return Response.json({ ok: false, error: "Cotação não encontrada." }, { status: 404 });
         return Response.json({ ok: true, quote });
       },
 
       POST: async ({ request, params }) => {
         const admin = adminClient();
-        if (!admin) return Response.json({ ok: false, error: "Serviço indisponível." }, { status: 500 });
+        if (!admin)
+          return Response.json({ ok: false, error: "Serviço indisponível." }, { status: 500 });
 
         let body: Record<string, unknown>;
         try {
@@ -44,14 +50,26 @@ export const Route = createFileRoute("/api/freight/$token")({
         const phone = text(body.phone, 30).replace(/[^\d+()\-\s]/g, "");
         const phoneDigits = phone.replace(/\D/g, "");
         const price = Number(body.price);
-        const notes = text(body.notes, 1000);
+        const mode = FREIGHT_MODES.find((option) => option === text(body.mode, 30)) ?? "";
+        const vehicle = text(body.vehicle, 80);
+        const freeNotes = text(body.notes, 1000);
+        const notes = buildProposalNotes({ vehicle, mode, schedule: "", notes: freeNotes });
 
         if (!name) return Response.json({ ok: false, error: "Informe seu nome." }, { status: 400 });
         if (phoneDigits.length < 10 || phoneDigits.length > 13) {
-          return Response.json({ ok: false, error: "Informe um WhatsApp válido com DDD." }, { status: 400 });
+          return Response.json(
+            { ok: false, error: "Informe um WhatsApp válido com DDD." },
+            { status: 400 },
+          );
+        }
+        if (!mode) {
+          return Response.json({ ok: false, error: "Escolha o tipo de frete." }, { status: 400 });
         }
         if (!Number.isFinite(price) || price <= 0 || price > 1_000_000) {
-          return Response.json({ ok: false, error: "Informe o valor da cotação." }, { status: 400 });
+          return Response.json(
+            { ok: false, error: "Informe o valor da cotação." },
+            { status: 400 },
+          );
         }
 
         const { data: quote } = await admin
@@ -64,7 +82,10 @@ export const Route = createFileRoute("/api/freight/$token")({
         }
         const row = quote as FreightQuoteRow;
         if (row.status !== "aberta") {
-          return Response.json({ ok: false, error: "Este frete já foi encerrado." }, { status: 409 });
+          return Response.json(
+            { ok: false, error: "Este frete já foi encerrado." },
+            { status: 409 },
+          );
         }
 
         // Basic abuse guard: the same phone cannot flood a single quote.
@@ -74,7 +95,10 @@ export const Route = createFileRoute("/api/freight/$token")({
           .eq("freight_quote_id", row.id)
           .eq("carrier_phone", phone);
         if ((count ?? 0) >= 5) {
-          return Response.json({ ok: false, error: "Você já enviou propostas demais para este frete." }, { status: 429 });
+          return Response.json(
+            { ok: false, error: "Você já enviou propostas demais para este frete." },
+            { status: 429 },
+          );
         }
 
         const { error: insertError } = await admin.from("freight_proposals").insert({
@@ -86,17 +110,30 @@ export const Route = createFileRoute("/api/freight/$token")({
         });
         if (insertError) {
           console.error("[freight proposal]", insertError.message);
-          return Response.json({ ok: false, error: "Não foi possível enviar sua cotação." }, { status: 500 });
+          return Response.json(
+            { ok: false, error: "Não foi possível enviar sua cotação." },
+            { status: 500 },
+          );
         }
 
-        const { data: settings } = await admin.from("site_settings").select("whatsapp_number").limit(1).maybeSingle();
-        const number = String((settings as { whatsapp_number?: string } | null)?.whatsapp_number ?? "").replace(/\D/g, "") || FALLBACK_WHATSAPP;
+        const { data: settings } = await admin
+          .from("site_settings")
+          .select("whatsapp_number")
+          .limit(1)
+          .maybeSingle();
+        const number =
+          String((settings as { whatsapp_number?: string } | null)?.whatsapp_number ?? "").replace(
+            /\D/g,
+            "",
+          ) || FALLBACK_WHATSAPP;
         const money = price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
         const message = [
           `Olá! Envio minha cotação de frete ${row.origin_district ?? row.origin_city} → ${row.dest_district ?? row.dest_city} (ref. ${row.token}).`,
           `Nome: ${name}`,
           `Valor: ${money}`,
-          notes ? `Obs.: ${notes}` : null,
+          vehicle ? `Veículo: ${vehicle}` : null,
+          `Tipo de frete: ${mode}`,
+          freeNotes ? `Obs.: ${freeNotes}` : null,
         ]
           .filter(Boolean)
           .join("\n");

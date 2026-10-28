@@ -60,7 +60,11 @@ export type PublicFreightQuote = {
   cargoValue: number | null;
   /** Vehicle types the carrier may use. */
   vehicleTypes: string[];
+  /** Filled once the admin hires a carrier: shown to everyone who opens the link. */
+  contracted: ContractedCarrier | null;
 };
+
+export type ContractedCarrier = { company: string; vehicle: string; mode: string };
 
 export type FreightStatus = "rascunho" | "aguardando_cliente" | "respondida" | "aberta" | "fechada";
 
@@ -182,6 +186,7 @@ export function rowToPublic(row: FreightQuoteRow): PublicFreightQuote {
     // access_notes and the street addresses stay private (chosen carrier only).
     notes: row.notes,
     vehicleTypes: Array.isArray(row.vehicle_types) ? row.vehicle_types : [],
+    contracted: null,
     cargoValue:
       row.cargo_value != null && Number(row.cargo_value) > 0 ? Number(row.cargo_value) : null,
   };
@@ -424,4 +429,47 @@ export function pickupDateFromDeadline(text: string | null | undefined, from = n
   }
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** How the carrier moves the load: sharing the truck with other cargo or only this one. */
+export const FREIGHT_MODES = ["Compartilhado", "Dedicado"] as const;
+
+export type ProposalDetails = {
+  vehicle: string;
+  mode: string;
+  schedule: string;
+  notes: string;
+};
+
+/**
+ * Vehicle, freight type and schedule travel inside the proposal notes, one per line
+ * ("Veículo: Caminhão baú"), followed by the free text. Older proposals wrote
+ * "Veículo: X. free text" on one line; that form is still understood.
+ */
+export function parseProposalNotes(raw: string | null | undefined): ProposalDetails {
+  const details: ProposalDetails = { vehicle: "", mode: "", schedule: "", notes: "" };
+  const text = String(raw ?? "").replace(/^(Veículo: [^.\n]+)\. /, "$1\n");
+  const rest: string[] = [];
+  for (const line of text.split("\n")) {
+    const vehicle = line.match(/^Veículo:\s*(.*)$/);
+    const mode = line.match(/^Tipo de frete:\s*(.*)$/);
+    const schedule = line.match(/^Horário:\s*(.*)$/);
+    if (vehicle) details.vehicle = vehicle[1].trim();
+    else if (mode) details.mode = mode[1].trim();
+    else if (schedule) details.schedule = schedule[1].trim();
+    else rest.push(line);
+  }
+  details.notes = rest.join("\n").trim();
+  return details;
+}
+
+export function buildProposalNotes(details: ProposalDetails): string {
+  return [
+    details.vehicle.trim() ? `Veículo: ${details.vehicle.trim()}` : "",
+    details.mode.trim() ? `Tipo de frete: ${details.mode.trim()}` : "",
+    details.schedule.trim() ? `Horário: ${details.schedule.trim()}` : "",
+    details.notes.trim(),
+  ]
+    .filter(Boolean)
+    .join("\n");
 }

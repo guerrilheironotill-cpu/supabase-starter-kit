@@ -14,6 +14,7 @@ import { absoluteUrl } from "@/lib/site-config";
 import { maskMoneyBR, maskPhoneBR } from "@/lib/masks";
 import {
   floorLabel,
+  FREIGHT_MODES,
   formatCargoValue,
   formatPickupDate,
   itemDimensions,
@@ -38,7 +39,11 @@ export const Route = createFileRoute("/frete/$token")({
       ? [
           `Retirada em ${placeShort(quote.origin)}, entrega em ${placeShort(quote.destination)}.`,
           weight !== null ? `Peso total ± ${weight.toLocaleString("pt-BR")} kg.` : null,
-          quote.status === "fechada" ? "Frete encerrado." : "Veja os detalhes e envie sua cotação.",
+          quote.contracted
+            ? "Este frete já foi contratado."
+            : quote.status === "fechada"
+              ? "Frete encerrado."
+              : "Veja os detalhes e envie sua cotação.",
         ]
           .filter(Boolean)
           .join(" ")
@@ -111,6 +116,7 @@ function FreightQuotePage() {
     name: "",
     phone: "",
     vehicle: "",
+    mode: "",
     price: "",
     notes: "",
     website: "",
@@ -149,10 +155,9 @@ function FreightQuotePage() {
         body: JSON.stringify({
           ...form,
           price: Number(form.price.replace(/\./g, "").replace(",", ".")),
-          // The chosen vehicle travels in the notes the admin already sees with the proposal.
-          notes: [form.vehicle ? `Veículo: ${form.vehicle}` : "", form.notes]
-            .filter(Boolean)
-            .join(". "),
+          vehicle: form.vehicle,
+          mode: form.mode,
+          notes: form.notes,
         }),
       });
       const data = (await response.json()) as {
@@ -238,7 +243,31 @@ function FreightQuotePage() {
         envie sua cotação.
       </p>
 
-      {closed && (
+      {closed && quote.contracted && (
+        <div className="mt-6 border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-900">
+          <p className="font-display text-xl">Este frete já foi contratado.</p>
+          <dl className="mt-3 space-y-1 text-sm">
+            <div>
+              <dt className="inline font-semibold">Empresa: </dt>
+              <dd className="inline">{quote.contracted.company}</dd>
+            </div>
+            {quote.contracted.vehicle && (
+              <div>
+                <dt className="inline font-semibold">Veículo: </dt>
+                <dd className="inline">{quote.contracted.vehicle}</dd>
+              </div>
+            )}
+            {quote.contracted.mode && (
+              <div>
+                <dt className="inline font-semibold">Tipo de frete: </dt>
+                <dd className="inline">{quote.contracted.mode}</dd>
+              </div>
+            )}
+          </dl>
+          <p className="mt-3 text-sm">Não estamos mais recebendo cotações.</p>
+        </div>
+      )}
+      {closed && !quote.contracted && (
         <div className="mt-6 border border-border bg-muted px-4 py-3 text-sm font-medium text-foreground">
           Este frete já foi encerrado e não recebe mais cotações.
         </div>
@@ -454,6 +483,28 @@ function FreightQuotePage() {
               </select>
             </label>
           )}
+          <label className="block text-sm">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Tipo de frete
+            </span>
+            <select
+              required
+              className={inputClass}
+              value={form.mode}
+              onChange={(e) => setForm({ ...form, mode: e.target.value })}
+            >
+              <option value="" disabled>
+                Selecione
+              </option>
+              {FREIGHT_MODES.map((mode) => (
+                <option key={mode} value={mode}>
+                  {mode === "Compartilhado"
+                    ? "Compartilhado (divide o veículo com outras cargas)"
+                    : "Dedicado (veículo só para esta carga)"}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="block text-sm">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Observações (opcional)
