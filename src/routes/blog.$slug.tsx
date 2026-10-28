@@ -121,7 +121,7 @@ function BlogPostPage() {
   return (
     <BlogGate>
       <main className="bg-background text-primary">
-        <article className="mx-auto max-w-3xl px-4 pb-16 pt-8 sm:px-8 sm:pt-12">
+        <article className="mx-auto max-w-3xl px-4 pb-16 pt-8 sm:px-8 sm:pt-12 lg:max-w-5xl xl:max-w-6xl">
           <nav aria-label="Breadcrumb" className="text-xs text-primary/70">
             <ol className="flex flex-wrap items-center gap-1">
               <li>
@@ -162,7 +162,7 @@ function BlogPostPage() {
             <p className="mt-2 text-right text-xs text-primary/50">{post.cover.credit}</p>
           )}
 
-          <p className="mt-8 text-lg leading-relaxed text-primary/85">{post.excerpt}</p>
+          <p className="mt-8 text-lg leading-relaxed text-primary/85 lg:text-xl">{post.excerpt}</p>
 
           {toc.length > 2 && (
             <nav aria-label="Neste artigo" className="mt-8 border border-primary/10 bg-white p-5">
@@ -241,7 +241,7 @@ function BlogPostPage() {
 
         {related.length > 0 && (
           <section className="border-t border-primary/10 bg-[#f5f6f2] py-14 sm:py-20">
-            <div className="mx-auto max-w-7xl px-4 sm:px-8">
+            <div className="mx-auto max-w-7xl px-4 sm:px-8 2xl:max-w-[96rem]">
               <h2 className="font-display text-2xl sm:text-3xl">Continue lendo</h2>
               <div className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
                 {related.map((item) => (

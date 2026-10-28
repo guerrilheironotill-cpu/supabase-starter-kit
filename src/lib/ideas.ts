@@ -30,10 +30,27 @@ export const IDEA_PROJECTS: IdeaProject[] = [
   },
 ];
 
+IDEA_PROJECTS.push({
+  slug: "escultura-rosto-em-blocos",
+  name: "Escultura Rosto em Blocos",
+  image: "/images/projetos/escultura-rosto.webp",
+  imageAlt:
+    "Escultura de um rosto monumental montado em blocos escuros, com olho, nariz e boca, em meio a plantas de folhas grandes",
+  description: [
+    "Um rosto monumental montado em blocos que se encaixam: o olho, o nariz e a boca viram volumes independentes, em um concreto escuro de textura rugosa. Fica no meio da vegetação como uma peça de arte, e é ideal para jardins, áreas de piscina e espaços de convivência.",
+    "É um projeto novo para nós: desenvolvemos os moldes e o protótipo junto com você, ajustando a expressão, o tamanho e o acabamento ao seu espaço.",
+  ],
+  highlights: [
+    "Altura sugerida: a combinar, conforme o espaço e a presença desejada",
+    "Material: concreto em tom grafite, com textura rugosa",
+    "Prazo: definido após o projeto e o orçamento",
+  ],
+});
+
 export const IDEA_STEPS = [
   {
     title: "Escolha o projeto",
-    text: "Selecione uma das ideias ou nos conte a sua.",
+    text: "Inspire-se em uma das referências ou nos conte a sua.",
   },
   {
     title: "Definimos os detalhes",

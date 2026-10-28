@@ -18,11 +18,11 @@ import { absoluteUrl } from "@/lib/site-config";
 import { trackGaEvent, trackIdeaInterest } from "@/lib/track-event";
 import { useWhatsAppNumber, whatsappLinkFrom } from "@/lib/site-settings";
 
-const TITLE = "Ideias para tirar do papel — Arteno";
+const TITLE = "Inspire-se — Ideias de peças em concreto | Arteno";
 const DESCRIPTION =
-  "Projetos em concreto que queremos criar com você: esculturas e peças especiais desenvolvidas sob encomenda. Escolha uma ideia e fale com a gente.";
+  "Referências de esculturas e peças especiais em concreto que queremos criar com você, desenvolvidas sob encomenda. Inspire-se, escolha uma ideia e fale com a gente.";
 
-export const Route = createFileRoute("/projetos/ideias-para-tirar-do-papel")({
+export const Route = createFileRoute("/inspire-se")({
   head: () => ({
     meta: [
       { title: TITLE },
@@ -31,9 +31,9 @@ export const Route = createFileRoute("/projetos/ideias-para-tirar-do-papel")({
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
       { property: "og:image", content: absoluteUrl(IDEA_PROJECTS[0].image) },
-      { property: "og:url", content: absoluteUrl("/projetos/ideias-para-tirar-do-papel") },
+      { property: "og:url", content: absoluteUrl("/inspire-se") },
     ],
-    links: [{ rel: "canonical", href: absoluteUrl("/projetos/ideias-para-tirar-do-papel") }],
+    links: [{ rel: "canonical", href: absoluteUrl("/inspire-se") }],
   }),
   component: IdeasPage,
 });
@@ -57,7 +57,7 @@ function IdeasPage() {
   const projectLink = (name: string) =>
     whatsappLinkFrom(
       whatsappNumber,
-      `Olá! Tenho interesse no projeto "${name}" (Ideias para tirar do papel).`,
+      `Olá! Tenho interesse no projeto "${name}" (página Inspire-se).`,
     );
   const customLink = whatsappLinkFrom(
     whatsappNumber,
@@ -75,15 +75,15 @@ function IdeasPage() {
   return (
     <main className="bg-background text-primary">
       <PageHero
-        eyebrow="Projetos"
-        title="Ideias para tirar do papel"
-        crumbs={[{ label: "Home", to: "/" }, { label: "Ideias para tirar do papel" }]}
+        eyebrow="Ideias para tirar do papel"
+        title="Inspire-se"
+        crumbs={[{ label: "Home", to: "/" }, { label: "Inspire-se" }]}
       />
 
       <section className="mx-auto max-w-3xl px-4 pb-4 pt-14 text-center sm:px-8 sm:pt-20">
         <p className="text-base leading-relaxed text-primary/80 sm:text-lg">
-          São peças que queremos produzir e que ainda não existem. Cada uma é desenvolvida sob
-          medida para o seu espaço: você escolhe a ideia, a gente cuida do resto.
+          Referências de peças que queremos criar e que ainda não existem. Cada uma é desenvolvida
+          sob medida para o seu espaço: você se inspira, escolhe a ideia e a gente cuida do resto.
         </p>
       </section>
 

@@ -52,8 +52,8 @@ function BlogIndexPage() {
           title="Concreto, vasos e mobiliário"
           crumbs={[{ label: "Home", to: "/" }, { label: "Blog" }]}
         />
-        <section className="mx-auto max-w-7xl px-4 py-14 sm:px-8 sm:py-20">
-          <p className="mx-auto max-w-2xl text-center text-base leading-relaxed text-primary/75 sm:text-lg">
+        <section className="mx-auto max-w-7xl px-4 py-14 sm:px-8 sm:py-20 2xl:max-w-[96rem]">
+          <p className="mx-auto max-w-3xl text-center text-base leading-relaxed text-primary/75 sm:text-lg">
             Guias práticos sobre materiais, tamanhos, cuidados e ideias para usar peças de concreto
             no seu espaço.
           </p>
@@ -77,7 +77,7 @@ function BlogIndexPage() {
           {posts.length === 0 ? (
             <p className="mt-12 text-center text-primary/60">Em breve, novos posts por aqui.</p>
           ) : (
-            <div className="mt-12 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-12 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {posts.map((post, index) => (
                 <BlogCard key={post.slug} post={post} priority={index < 3} />
               ))}

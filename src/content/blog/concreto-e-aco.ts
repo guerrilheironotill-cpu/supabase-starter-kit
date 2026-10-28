@@ -37,25 +37,36 @@ export const concretoEAco: BlogPost = {
       ],
     },
     { type: "h2", text: "Que tipos de aço são usados" },
-    { type: "h3", text: "Aço carbono com pintura" },
     {
-      type: "p",
-      text: "O mais comum em mobiliário. Recebe pintura eletrostática, geralmente em preto fosco, e permite vários formatos. Em áreas externas, a qualidade do tratamento e da pintura faz toda a diferença.",
-    },
-    { type: "h3", text: "Aço galvanizado" },
-    {
-      type: "p",
-      text: "Recebe uma camada de zinco que protege contra a corrosão. É uma boa escolha para áreas externas e úmidas, com visual mais bruto.",
-    },
-    { type: "h3", text: "Aço inox" },
-    {
-      type: "p",
-      text: "Resiste muito bem à ferrugem e pode ter acabamento escovado ou polido. Costuma custar mais, e dá um ar mais sofisticado e brilhante.",
-    },
-    { type: "h3", text: "Aço corten" },
-    {
-      type: "p",
-      text: "Forma uma camada de oxidação controlada, de cor terrosa, que se torna o próprio acabamento. É muito usado em paisagismo. Vale lembrar que a oxidação pode escorrer e manchar superfícies claras ao redor, inclusive o concreto, então o detalhe de projeto importa.",
+      type: "materials",
+      items: [
+        {
+          title: "Aço carbono com pintura",
+          text: "O mais comum em mobiliário. Recebe pintura eletrostática, geralmente em preto fosco, e permite vários formatos. Em áreas externas, a qualidade do tratamento e da pintura faz toda a diferença.",
+          image: "/images/blog/aco-carbono.webp",
+          alt: "Estrutura de aço pintado de preto sustentando um tampo de concreto",
+        },
+        {
+          title: "Aço galvanizado",
+          text: "Recebe uma camada de zinco que protege contra a corrosão. É uma boa escolha para áreas externas e úmidas, com visual mais bruto.",
+          image: "/images/blog/aco-galvanizado.webp",
+          alt: "Superfície de aço galvanizado com o padrão característico do zinco",
+        },
+        {
+          title: "Aço inox",
+          text: "Resiste muito bem à ferrugem e pode ter acabamento escovado ou polido. Costuma custar mais, e dá um ar mais sofisticado e brilhante.",
+          image: "/images/blog/aco-inox.webp",
+          alt: "Corrimão de aço inox fixado em uma parede de concreto",
+        },
+        {
+          title: "Aço corten",
+          text: "Forma uma camada de oxidação controlada, de cor terrosa, que se torna o próprio acabamento. É muito usado em paisagismo. Vale lembrar que a oxidação pode escorrer e manchar superfícies claras ao redor, inclusive o concreto, então o detalhe de projeto importa.",
+          image: "/images/blog/aco-corten.webp",
+          alt: "Escultura de aço corten com a cor terrosa da oxidação",
+        },
+      ],
+      credit:
+        "Fotos: aço galvanizado e corten, domínio público (Wikimedia Commons); aço inox, KaiKemmann, CC BY-SA 4.0 (Wikimedia Commons).",
     },
     { type: "h2", text: "Onde a combinação aparece" },
     {
@@ -67,6 +78,13 @@ export const concretoEAco: BlogPost = {
         "**Vasos e jardineiras:** peças de concreto com suportes ou detalhes em aço.",
         "**Mobiliário urbano:** bancos e mesas robustos para praças, condomínios e áreas comerciais.",
       ],
+    },
+    {
+      type: "image",
+      src: "/images/blog/mesas-concreto-aco.webp",
+      alt: "Mesas de apoio com tampo de concreto e estrutura de aço preto",
+      caption: "Mesas de apoio com tampo de concreto e estrutura de aço preto.",
+      size: "small",
     },
     {
       type: "product",

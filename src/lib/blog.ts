@@ -14,7 +14,16 @@ export type BlogBlock =
   | { type: "ul"; items: string[] }
   | { type: "ol"; items: string[] }
   | { type: "callout"; title: string; text: string }
-  | { type: "image"; src: string; alt: string; caption?: string }
+  | { type: "image"; src: string; alt: string; caption?: string; size?: "small" }
+  /** Two or more photos side by side. */
+  | { type: "gallery"; images: Array<{ src: string; alt: string }>; caption?: string }
+  /** A list where each item has a round photo beside it (e.g. the types of a material). */
+  | {
+      type: "materials";
+      items: Array<{ title: string; text: string; image: string; alt: string }>;
+      /** Photo credits, shown small under the list. */
+      credit?: string;
+    }
   /** A catalog product featured in the post, found by (part of) its name. */
   | {
       type: "product";
@@ -91,7 +100,8 @@ export function readingMinutes(post: BlogPost) {
     ...post.body.flatMap((block) => {
       if (block.type === "ul" || block.type === "ol") return block.items;
       if (block.type === "callout") return [block.title, block.text];
-      if (block.type === "image") return [];
+      if (block.type === "image" || block.type === "gallery") return [];
+      if (block.type === "materials") return block.items.flatMap((item) => [item.title, item.text]);
       if (block.type === "product") return [block.title, block.text];
       return [block.text];
     }),

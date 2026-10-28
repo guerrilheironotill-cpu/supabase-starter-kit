@@ -81,6 +81,20 @@ export const gfrcVsConcretoComum: BlogPost = {
         "o volume é grande e o custo por volume pesa na decisão.",
       ],
     },
+    {
+      type: "gallery",
+      images: [
+        {
+          src: "/images/blog/banco-jardim.webp",
+          alt: "Banco maciço de concreto em um jardim, ao lado de plantas",
+        },
+        {
+          src: "/images/blog/banco-praca.webp",
+          alt: "Banco de concreto com tampo vazado em uma praça",
+        },
+      ],
+      caption: "Bancos maciços de concreto: peças em que a massa faz parte do desenho.",
+    },
     { type: "h2", text: "Os dois têm o mesmo aspecto?" },
     {
       type: "p",

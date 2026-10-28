@@ -62,10 +62,13 @@ export const Route = createFileRoute("/sitemap.xml")({
           ...(PROJECTS_PUBLIC
             ? [
                 {
-                  path: "/projetos/ideias-para-tirar-do-papel",
+                  path: "/inspire-se",
                   changefreq: "monthly",
                   priority: "0.7",
-                  images: ["/images/projetos/escultura-infinito.webp"],
+                  images: [
+                    "/images/projetos/escultura-infinito.webp",
+                    "/images/projetos/escultura-rosto.webp",
+                  ],
                 },
               ]
             : []),

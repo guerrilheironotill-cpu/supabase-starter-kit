@@ -19,6 +19,7 @@ import { Route as PoliticaDeCookiesRouteImport } from './routes/politica-de-cook
 import { Route as PiasECubasDeConcretoRouteImport } from './routes/pias-e-cubas-de-concreto'
 import { Route as OrcamentoRouteImport } from './routes/orcamento'
 import { Route as MobiliarioUrbanoRouteImport } from './routes/mobiliario-urbano'
+import { Route as InspireSeRouteImport } from './routes/inspire-se'
 import { Route as HealthCacheRouteImport } from './routes/health-cache'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as GoogleShoppingDotxmlRouteImport } from './routes/google-shopping[.]xml'
@@ -32,10 +33,8 @@ import { Route as BuscaRouteImport } from './routes/busca'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AcabamentosECoresRouteImport } from './routes/acabamentos-e-cores'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProjetosIndexRouteImport } from './routes/projetos.index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
-import { Route as ProjetosIdeiasParaTirarDoPapelRouteImport } from './routes/projetos.ideias-para-tirar-do-papel'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
 import { Route as FreteTokenRouteImport } from './routes/frete.$token'
 import { Route as FreteClienteTokenRouteImport } from './routes/frete-cliente.$token'
@@ -136,6 +135,11 @@ const MobiliarioUrbanoRoute = MobiliarioUrbanoRouteImport.update({
   path: '/mobiliario-urbano',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InspireSeRoute = InspireSeRouteImport.update({
+  id: '/inspire-se',
+  path: '/inspire-se',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HealthCacheRoute = HealthCacheRouteImport.update({
   id: '/health-cache',
   path: '/health-cache',
@@ -202,11 +206,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProjetosIndexRoute = ProjetosIndexRouteImport.update({
-  id: '/projetos/',
-  path: '/projetos/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -217,12 +216,6 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
   path: '/blog/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProjetosIdeiasParaTirarDoPapelRoute =
-  ProjetosIdeiasParaTirarDoPapelRouteImport.update({
-    id: '/projetos/ideias-para-tirar-do-papel',
-    path: '/projetos/ideias-para-tirar-do-papel',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ProdutoSlugRoute = ProdutoSlugRouteImport.update({
   id: '/produto/$slug',
   path: '/produto/$slug',
@@ -493,6 +486,7 @@ export interface FileRoutesByFullPath {
   '/google-shopping.xml': typeof GoogleShoppingDotxmlRoute
   '/health': typeof HealthRoute
   '/health-cache': typeof HealthCacheRoute
+  '/inspire-se': typeof InspireSeRoute
   '/mobiliario-urbano': typeof MobiliarioUrbanoRoute
   '/orcamento': typeof OrcamentoRoute
   '/pias-e-cubas-de-concreto': typeof PiasECubasDeConcretoRoute
@@ -540,10 +534,8 @@ export interface FileRoutesByFullPath {
   '/frete-cliente/$token': typeof FreteClienteTokenRoute
   '/frete/$token': typeof FreteTokenRoute
   '/produto/$slug': typeof ProdutoSlugRoute
-  '/projetos/ideias-para-tirar-do-papel': typeof ProjetosIdeiasParaTirarDoPapelRoute
   '/blog/': typeof BlogIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
-  '/projetos/': typeof ProjetosIndexRoute
   '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
   '/api/analytics/top-products': typeof ApiAnalyticsTopProductsRoute
   '/api/freight-form/$token': typeof ApiFreightFormTokenRoute
@@ -571,6 +563,7 @@ export interface FileRoutesByTo {
   '/google-shopping.xml': typeof GoogleShoppingDotxmlRoute
   '/health': typeof HealthRoute
   '/health-cache': typeof HealthCacheRoute
+  '/inspire-se': typeof InspireSeRoute
   '/mobiliario-urbano': typeof MobiliarioUrbanoRoute
   '/orcamento': typeof OrcamentoRoute
   '/pias-e-cubas-de-concreto': typeof PiasECubasDeConcretoRoute
@@ -617,10 +610,8 @@ export interface FileRoutesByTo {
   '/frete-cliente/$token': typeof FreteClienteTokenRoute
   '/frete/$token': typeof FreteTokenRoute
   '/produto/$slug': typeof ProdutoSlugRoute
-  '/projetos/ideias-para-tirar-do-papel': typeof ProjetosIdeiasParaTirarDoPapelRoute
   '/blog': typeof BlogIndexRoute
   '/dashboard': typeof DashboardIndexRoute
-  '/projetos': typeof ProjetosIndexRoute
   '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
   '/api/analytics/top-products': typeof ApiAnalyticsTopProductsRoute
   '/api/freight-form/$token': typeof ApiFreightFormTokenRoute
@@ -650,6 +641,7 @@ export interface FileRoutesById {
   '/google-shopping.xml': typeof GoogleShoppingDotxmlRoute
   '/health': typeof HealthRoute
   '/health-cache': typeof HealthCacheRoute
+  '/inspire-se': typeof InspireSeRoute
   '/mobiliario-urbano': typeof MobiliarioUrbanoRoute
   '/orcamento': typeof OrcamentoRoute
   '/pias-e-cubas-de-concreto': typeof PiasECubasDeConcretoRoute
@@ -697,10 +689,8 @@ export interface FileRoutesById {
   '/frete-cliente/$token': typeof FreteClienteTokenRoute
   '/frete/$token': typeof FreteTokenRoute
   '/produto/$slug': typeof ProdutoSlugRoute
-  '/projetos/ideias-para-tirar-do-papel': typeof ProjetosIdeiasParaTirarDoPapelRoute
   '/blog/': typeof BlogIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
-  '/projetos/': typeof ProjetosIndexRoute
   '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
   '/api/analytics/top-products': typeof ApiAnalyticsTopProductsRoute
   '/api/freight-form/$token': typeof ApiFreightFormTokenRoute
@@ -731,6 +721,7 @@ export interface FileRouteTypes {
     | '/google-shopping.xml'
     | '/health'
     | '/health-cache'
+    | '/inspire-se'
     | '/mobiliario-urbano'
     | '/orcamento'
     | '/pias-e-cubas-de-concreto'
@@ -778,10 +769,8 @@ export interface FileRouteTypes {
     | '/frete-cliente/$token'
     | '/frete/$token'
     | '/produto/$slug'
-    | '/projetos/ideias-para-tirar-do-papel'
     | '/blog/'
     | '/dashboard/'
-    | '/projetos/'
     | '/api/analytics/overview'
     | '/api/analytics/top-products'
     | '/api/freight-form/$token'
@@ -809,6 +798,7 @@ export interface FileRouteTypes {
     | '/google-shopping.xml'
     | '/health'
     | '/health-cache'
+    | '/inspire-se'
     | '/mobiliario-urbano'
     | '/orcamento'
     | '/pias-e-cubas-de-concreto'
@@ -855,10 +845,8 @@ export interface FileRouteTypes {
     | '/frete-cliente/$token'
     | '/frete/$token'
     | '/produto/$slug'
-    | '/projetos/ideias-para-tirar-do-papel'
     | '/blog'
     | '/dashboard'
-    | '/projetos'
     | '/api/analytics/overview'
     | '/api/analytics/top-products'
     | '/api/freight-form/$token'
@@ -887,6 +875,7 @@ export interface FileRouteTypes {
     | '/google-shopping.xml'
     | '/health'
     | '/health-cache'
+    | '/inspire-se'
     | '/mobiliario-urbano'
     | '/orcamento'
     | '/pias-e-cubas-de-concreto'
@@ -934,10 +923,8 @@ export interface FileRouteTypes {
     | '/frete-cliente/$token'
     | '/frete/$token'
     | '/produto/$slug'
-    | '/projetos/ideias-para-tirar-do-papel'
     | '/blog/'
     | '/dashboard/'
-    | '/projetos/'
     | '/api/analytics/overview'
     | '/api/analytics/top-products'
     | '/api/freight-form/$token'
@@ -967,6 +954,7 @@ export interface RootRouteChildren {
   GoogleShoppingDotxmlRoute: typeof GoogleShoppingDotxmlRoute
   HealthRoute: typeof HealthRoute
   HealthCacheRoute: typeof HealthCacheRoute
+  InspireSeRoute: typeof InspireSeRoute
   MobiliarioUrbanoRoute: typeof MobiliarioUrbanoRoute
   OrcamentoRoute: typeof OrcamentoRoute
   PiasECubasDeConcretoRoute: typeof PiasECubasDeConcretoRoute
@@ -995,9 +983,7 @@ export interface RootRouteChildren {
   FreteClienteTokenRoute: typeof FreteClienteTokenRoute
   FreteTokenRoute: typeof FreteTokenRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
-  ProjetosIdeiasParaTirarDoPapelRoute: typeof ProjetosIdeiasParaTirarDoPapelRoute
   BlogIndexRoute: typeof BlogIndexRoute
-  ProjetosIndexRoute: typeof ProjetosIndexRoute
   ApiAnalyticsOverviewRoute: typeof ApiAnalyticsOverviewRoute
   ApiAnalyticsTopProductsRoute: typeof ApiAnalyticsTopProductsRoute
   ApiFreightFormTokenRoute: typeof ApiFreightFormTokenRoute
@@ -1077,6 +1063,13 @@ declare module '@tanstack/react-router' {
       path: '/mobiliario-urbano'
       fullPath: '/mobiliario-urbano'
       preLoaderRoute: typeof MobiliarioUrbanoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inspire-se': {
+      id: '/inspire-se'
+      path: '/inspire-se'
+      fullPath: '/inspire-se'
+      preLoaderRoute: typeof InspireSeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/health-cache': {
@@ -1170,13 +1163,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/projetos/': {
-      id: '/projetos/'
-      path: '/projetos'
-      fullPath: '/projetos/'
-      preLoaderRoute: typeof ProjetosIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/dashboard/': {
       id: '/dashboard/'
       path: '/'
@@ -1189,13 +1175,6 @@ declare module '@tanstack/react-router' {
       path: '/blog'
       fullPath: '/blog/'
       preLoaderRoute: typeof BlogIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/projetos/ideias-para-tirar-do-papel': {
-      id: '/projetos/ideias-para-tirar-do-papel'
-      path: '/projetos/ideias-para-tirar-do-papel'
-      fullPath: '/projetos/ideias-para-tirar-do-papel'
-      preLoaderRoute: typeof ProjetosIdeiasParaTirarDoPapelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/produto/$slug': {
@@ -1646,6 +1625,7 @@ const rootRouteChildren: RootRouteChildren = {
   GoogleShoppingDotxmlRoute: GoogleShoppingDotxmlRoute,
   HealthRoute: HealthRoute,
   HealthCacheRoute: HealthCacheRoute,
+  InspireSeRoute: InspireSeRoute,
   MobiliarioUrbanoRoute: MobiliarioUrbanoRoute,
   OrcamentoRoute: OrcamentoRoute,
   PiasECubasDeConcretoRoute: PiasECubasDeConcretoRoute,
@@ -1674,9 +1654,7 @@ const rootRouteChildren: RootRouteChildren = {
   FreteClienteTokenRoute: FreteClienteTokenRoute,
   FreteTokenRoute: FreteTokenRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
-  ProjetosIdeiasParaTirarDoPapelRoute: ProjetosIdeiasParaTirarDoPapelRoute,
   BlogIndexRoute: BlogIndexRoute,
-  ProjetosIndexRoute: ProjetosIndexRoute,
   ApiAnalyticsOverviewRoute: ApiAnalyticsOverviewRoute,
   ApiAnalyticsTopProductsRoute: ApiAnalyticsTopProductsRoute,
   ApiFreightFormTokenRoute: ApiFreightFormTokenRoute,

@@ -21,8 +21,6 @@ export function SiteHeader() {
   const isAdmin = useIsAdmin();
   const showProjects = PROJECTS_PUBLIC || isAdmin === true;
   const { visible: showBlog, adminOnly: blogAdminOnly } = useBlogAccess();
-  const [projectsOpen, setProjectsOpen] = useState(false);
-  const [mobileProjectsOpen, setMobileProjectsOpen] = useState(false);
   const [scrolledRaw, setScrolled] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isDashboard = pathname.startsWith("/dashboard");
@@ -162,78 +160,29 @@ export function SiteHeader() {
               </div>
             </div>
             {showProjects && (
-              <div
-                className="relative"
-                onMouseEnter={() => setProjectsOpen(true)}
-                onMouseLeave={() => setProjectsOpen(false)}
+              <Link
+                to="/inspire-se"
+                className={cn(
+                  "group/nav relative inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-semibold uppercase tracking-[0.14em] transition-all duration-300 hover:-translate-y-0.5",
+                  scrolled
+                    ? "text-white/85 hover:text-white"
+                    : "text-primary/80 hover:text-primary",
+                )}
               >
-                <button
-                  type="button"
-                  className={cn(
-                    "group/nav relative inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-semibold uppercase tracking-[0.14em] transition-all duration-300 hover:-translate-y-0.5",
-                    scrolled
-                      ? "text-white/85 hover:text-white"
-                      : "text-primary/80 hover:text-primary",
-                    projectsOpen && (scrolled ? "text-white" : "text-primary"),
-                  )}
-                  aria-expanded={projectsOpen}
-                  onClick={() => setProjectsOpen((value) => !value)}
-                >
-                  <span className="relative">
-                    Projetos
-                    <span
-                      className={cn(
-                        "pointer-events-none absolute -bottom-1 left-0 h-[2px] w-0 bg-secondary transition-all duration-300 group-hover/nav:w-full",
-                        projectsOpen && "w-full",
-                      )}
-                    />
+                <span className="relative">
+                  Inspire-se
+                  <span className="pointer-events-none absolute -bottom-1 left-0 h-[2px] w-0 bg-secondary transition-all duration-300 group-hover/nav:w-full" />
+                </span>
+                {!PROJECTS_PUBLIC && (
+                  <span
+                    title="Visível só para administradores até ser publicado"
+                    className="inline-flex items-center gap-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-amber-950"
+                  >
+                    <Lock className="h-2.5 w-2.5" />
+                    SÓ ADMIN
                   </span>
-                  {!PROJECTS_PUBLIC && (
-                    <span
-                      title="Visível só para administradores até ser publicado"
-                      className="inline-flex items-center gap-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-amber-950"
-                    >
-                      <Lock className="h-2.5 w-2.5" />
-                      SÓ ADMIN
-                    </span>
-                  )}
-
-                  <ChevronDown
-                    className={cn(
-                      "h-3.5 w-3.5 transition-transform duration-300",
-                      projectsOpen && "rotate-180",
-                    )}
-                  />
-                </button>
-
-                <div
-                  aria-hidden={!projectsOpen}
-                  inert={!projectsOpen ? true : undefined}
-                  className={cn(
-                    "absolute left-1/2 top-full z-50 w-64 -translate-x-1/2 pt-1 transition duration-200",
-                    projectsOpen
-                      ? "pointer-events-auto translate-y-0 opacity-100"
-                      : "pointer-events-none -translate-y-2 opacity-0",
-                  )}
-                >
-                  <div className="overflow-hidden rounded-xl border border-gray-200 bg-white p-2 text-primary shadow-xl">
-                    <Link
-                      to="/projetos"
-                      onClick={() => setProjectsOpen(false)}
-                      className="block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-secondary/20"
-                    >
-                      Projetos desenvolvidos
-                    </Link>
-                    <Link
-                      to="/projetos/ideias-para-tirar-do-papel"
-                      onClick={() => setProjectsOpen(false)}
-                      className="block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-secondary/20"
-                    >
-                      Ideias para tirar do papel
-                    </Link>
-                  </div>
-                </div>
-              </div>
+                )}
+              </Link>
             )}
             {showBlog && (
               <Link
@@ -502,50 +451,19 @@ export function SiteHeader() {
                 </li>
                 {showProjects && (
                   <li>
-                    <button
-                      type="button"
-                      onClick={() => setMobileProjectsOpen((value) => !value)}
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition-colors hover:bg-secondary/20 hover:text-primary"
-                      aria-expanded={mobileProjectsOpen}
+                    <Link
+                      to="/inspire-se"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2 rounded-lg px-3 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition-colors hover:bg-secondary/20 hover:text-primary"
                     >
-                      <span className="inline-flex items-center gap-2">
-                        Projetos
-                        {!PROJECTS_PUBLIC && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-amber-950">
-                            <Lock className="h-2.5 w-2.5" />
-                            SÓ ADMIN
-                          </span>
-                        )}
-                      </span>
-                      <ChevronDown
-                        className={cn(
-                          "h-4 w-4 transition-transform duration-300",
-                          mobileProjectsOpen && "rotate-180",
-                        )}
-                      />
-                    </button>
-                    {mobileProjectsOpen && (
-                      <ul className="mt-1 space-y-1 border-l border-border pl-3">
-                        <li>
-                          <Link
-                            to="/projetos"
-                            className="block rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary/15 hover:text-primary"
-                            onClick={() => setMobileOpen(false)}
-                          >
-                            Projetos desenvolvidos
-                          </Link>
-                        </li>
-                        <li>
-                          <Link
-                            to="/projetos/ideias-para-tirar-do-papel"
-                            className="block rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary/15 hover:text-primary"
-                            onClick={() => setMobileOpen(false)}
-                          >
-                            Ideias para tirar do papel
-                          </Link>
-                        </li>
-                      </ul>
-                    )}
+                      Inspire-se
+                      {!PROJECTS_PUBLIC && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-amber-950">
+                          <Lock className="h-2.5 w-2.5" />
+                          SÓ ADMIN
+                        </span>
+                      )}
+                    </Link>
                   </li>
                 )}
                 {showBlog && (

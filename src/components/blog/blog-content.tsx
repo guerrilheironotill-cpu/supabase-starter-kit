@@ -39,7 +39,7 @@ export function renderInline(text: string): ReactNode[] {
 
 export function BlogContent({ blocks }: { blocks: BlogBlock[] }) {
   return (
-    <div className="space-y-5 text-base leading-[1.8] text-primary/85">
+    <div className="space-y-5 text-base leading-[1.8] text-primary/85 lg:text-[1.075rem]">
       {blocks.map((block, index) => {
         switch (block.type) {
           case "h2":
@@ -109,6 +109,49 @@ export function BlogContent({ blocks }: { blocks: BlogBlock[] }) {
                 fallbackLabel={block.fallbackLabel}
               />
             );
+          case "gallery":
+            return (
+              <figure key={index} className="py-2">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {block.images.map((image) => (
+                    <img
+                      key={image.src}
+                      src={image.src}
+                      alt={image.alt}
+                      loading="lazy"
+                      className="aspect-[4/3] w-full rounded-2xl object-cover"
+                    />
+                  ))}
+                </div>
+                {block.caption && (
+                  <figcaption className="mt-2 text-center text-xs text-primary/60">
+                    {block.caption}
+                  </figcaption>
+                )}
+              </figure>
+            );
+          case "materials":
+            return (
+              <div key={index} className="space-y-5">
+                {block.items.map((item) => (
+                  <div key={item.title} className="flex items-start gap-4 sm:gap-5">
+                    <img
+                      src={item.image}
+                      alt={item.alt}
+                      width={112}
+                      height={112}
+                      loading="lazy"
+                      className="h-20 w-20 shrink-0 rounded-full object-cover ring-1 ring-primary/15 sm:h-28 sm:w-28"
+                    />
+                    <div>
+                      <h3 className="font-display text-xl text-primary">{item.title}</h3>
+                      <p className="mt-1">{renderInline(item.text)}</p>
+                    </div>
+                  </div>
+                ))}
+                {block.credit && <p className="text-xs text-primary/50">{block.credit}</p>}
+              </div>
+            );
           case "image":
             return (
               <figure key={index} className="py-2">
@@ -116,7 +159,11 @@ export function BlogContent({ blocks }: { blocks: BlogBlock[] }) {
                   src={block.src}
                   alt={block.alt}
                   loading="lazy"
-                  className="w-full rounded-2xl object-cover"
+                  className={
+                    block.size === "small"
+                      ? "mx-auto w-full max-w-xs rounded-2xl object-cover"
+                      : "w-full rounded-2xl object-cover"
+                  }
                 />
                 {block.caption && (
                   <figcaption className="mt-2 text-center text-xs text-primary/60">
