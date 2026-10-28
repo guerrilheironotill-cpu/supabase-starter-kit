@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, Shapes } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { categorySlug } from "@/lib/products";
+import { responsiveImage } from "@/lib/img";
 import { ScrollReveal } from "@/components/scroll-reveal";
 
 const CATEGORIES = ["Bancos", "Mesas"] as const;
@@ -62,7 +63,11 @@ export function CategoryShowcase() {
                     <img
                       width={900}
                       height={675}
-                      src={category.image}
+                      {...responsiveImage(category.image, {
+                        width: 800,
+                        maxWidth: 1200,
+                        sizes: "(min-width: 1024px) 33vw, 100vw",
+                      })}
                       alt=""
                       loading="lazy"
                       className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"

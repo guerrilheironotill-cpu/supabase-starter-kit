@@ -5,6 +5,7 @@ import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Marquee } from "./marquee";
 import { fetchHeroSlides, type HeroSlide } from "@/lib/hero-slides";
+import { responsiveImage } from "@/lib/img";
 
 export function HeroSlider({ initialSlides }: { initialSlides: HeroSlide[] }) {
   const [index, setIndex] = useState(0);
@@ -24,8 +25,7 @@ export function HeroSlider({ initialSlides }: { initialSlides: HeroSlide[] }) {
   const go = (dir: number) => setIndex((i) => (i + dir + SLIDES.length) % SLIDES.length);
 
   return (
-    <section className="relative w-full px-4 sm:px-8 lg:px-[50px] animate-[heroIn_1600ms_cubic-bezier(0.22,1,0.36,1)_both]">
-      <style>{`@keyframes heroIn{0%{opacity:0;transform:translateY(24px) scale(.98)}100%{opacity:1;transform:translateY(0) scale(1)}}`}</style>
+    <section className="relative w-full px-4 sm:px-8 lg:px-[50px]">
       <div className="relative h-[62vh] min-h-[462px] w-full overflow-hidden rounded-3xl bg-primary">
         {SLIDES.map((s, i) => (
           <div
@@ -39,7 +39,7 @@ export function HeroSlider({ initialSlides }: { initialSlides: HeroSlide[] }) {
             inert={i !== index ? true : undefined}
           >
             <img
-              src={s.image}
+              {...responsiveImage(s.image, { width: 1200, sizes: "100vw" })}
               alt={s.title}
               width={1920}
               height={1080}

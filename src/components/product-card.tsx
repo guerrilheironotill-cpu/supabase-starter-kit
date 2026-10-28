@@ -1,7 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { responsiveImage } from "@/lib/img";
 import { formatBRL, productPriceRange, type Product } from "@/lib/products";
+
+const CARD_SIZES = "(min-width: 1280px) 300px, (min-width: 640px) 33vw, 50vw";
 
 type Props = {
   product: Product;
@@ -86,7 +89,11 @@ export function ProductCard({
           <>
             {previousImage && (
               <img
-                src={previousImage}
+                {...responsiveImage(previousImage, {
+                  width: 640,
+                  maxWidth: 800,
+                  sizes: CARD_SIZES,
+                })}
                 alt=""
                 width={800}
                 height={800}
@@ -96,7 +103,7 @@ export function ProductCard({
             )}
             <img
               key={`${imageIndex}-${imageTransition}`}
-              src={img}
+              {...responsiveImage(img, { width: 640, maxWidth: 800, sizes: CARD_SIZES })}
               alt={`${product.name} de concreto`}
               width={800}
               height={800}

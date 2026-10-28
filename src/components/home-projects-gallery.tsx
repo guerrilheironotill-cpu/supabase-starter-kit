@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Images, X } from "lucide-react";
 import type { HomeProject } from "@/lib/home-projects";
+import { responsiveImage } from "@/lib/img";
 import {
   Carousel,
   CarouselContent,
@@ -74,7 +75,11 @@ export function HomeProjectsGallery({ projects }: { projects: HomeProject[] }) {
                 aria-label={`Ampliar: ${project.alt}`}
               >
                 <img
-                  src={project.image}
+                  {...responsiveImage(project.image, {
+                    width: 480,
+                    maxWidth: 800,
+                    sizes: "(min-width: 1024px) 25vw, 50vw",
+                  })}
                   alt=""
                   width={1080}
                   height={1920}

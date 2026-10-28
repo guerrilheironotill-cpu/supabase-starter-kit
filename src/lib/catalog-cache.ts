@@ -1,5 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
-import { buildCatalogPDF, fetchCatalogSnapshot, type CatalogVariant } from "@/lib/pdf-generator";
+import type { CatalogVariant } from "@/lib/pdf-generator";
+
+// jsPDF is heavy and only needed when a catalog is generated, so it loads on demand.
+const loadPdfGenerator = () => import("@/lib/pdf-generator");
+const fetchCatalogSnapshot = async () => (await loadPdfGenerator()).fetchCatalogSnapshot();
+const buildCatalogPDF = async (
+  ...args: Parameters<typeof import("@/lib/pdf-generator").buildCatalogPDF>
+) => (await loadPdfGenerator()).buildCatalogPDF(...args);
 import {
   CATALOG_BUCKET as BUCKET,
   CATALOG_DIR,

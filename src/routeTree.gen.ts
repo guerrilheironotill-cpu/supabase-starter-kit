@@ -66,6 +66,7 @@ import { Route as ApiStorageUsageRouteImport } from './routes/api/storage-usage'
 import { Route as ApiServerStorageRouteImport } from './routes/api/server-storage'
 import { Route as ApiQuotesRouteImport } from './routes/api/quotes'
 import { Route as ApiProductImageSourcesRouteImport } from './routes/api/product-image-sources'
+import { Route as ApiImgRouteImport } from './routes/api/img'
 import { Route as ApiHealthEnvRouteImport } from './routes/api/health-env'
 import { Route as ApiCatalogLeadRouteImport } from './routes/api/catalog-lead'
 import { Route as ApiAdminOrdersBulkRouteImport } from './routes/api/admin-orders-bulk'
@@ -372,6 +373,11 @@ const ApiProductImageSourcesRoute = ApiProductImageSourcesRouteImport.update({
   path: '/api/product-image-sources',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiImgRoute = ApiImgRouteImport.update({
+  id: '/api/img',
+  path: '/api/img',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiHealthEnvRoute = ApiHealthEnvRouteImport.update({
   id: '/api/health-env',
   path: '/api/health-env',
@@ -503,6 +509,7 @@ export interface FileRoutesByFullPath {
   '/api/admin-orders-bulk': typeof ApiAdminOrdersBulkRoute
   '/api/catalog-lead': typeof ApiCatalogLeadRoute
   '/api/health-env': typeof ApiHealthEnvRoute
+  '/api/img': typeof ApiImgRoute
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
   '/api/quotes': typeof ApiQuotesRoute
   '/api/server-storage': typeof ApiServerStorageRoute
@@ -580,6 +587,7 @@ export interface FileRoutesByTo {
   '/api/admin-orders-bulk': typeof ApiAdminOrdersBulkRoute
   '/api/catalog-lead': typeof ApiCatalogLeadRoute
   '/api/health-env': typeof ApiHealthEnvRoute
+  '/api/img': typeof ApiImgRoute
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
   '/api/quotes': typeof ApiQuotesRoute
   '/api/server-storage': typeof ApiServerStorageRoute
@@ -658,6 +666,7 @@ export interface FileRoutesById {
   '/api/admin-orders-bulk': typeof ApiAdminOrdersBulkRoute
   '/api/catalog-lead': typeof ApiCatalogLeadRoute
   '/api/health-env': typeof ApiHealthEnvRoute
+  '/api/img': typeof ApiImgRoute
   '/api/product-image-sources': typeof ApiProductImageSourcesRoute
   '/api/quotes': typeof ApiQuotesRoute
   '/api/server-storage': typeof ApiServerStorageRoute
@@ -738,6 +747,7 @@ export interface FileRouteTypes {
     | '/api/admin-orders-bulk'
     | '/api/catalog-lead'
     | '/api/health-env'
+    | '/api/img'
     | '/api/product-image-sources'
     | '/api/quotes'
     | '/api/server-storage'
@@ -815,6 +825,7 @@ export interface FileRouteTypes {
     | '/api/admin-orders-bulk'
     | '/api/catalog-lead'
     | '/api/health-env'
+    | '/api/img'
     | '/api/product-image-sources'
     | '/api/quotes'
     | '/api/server-storage'
@@ -892,6 +903,7 @@ export interface FileRouteTypes {
     | '/api/admin-orders-bulk'
     | '/api/catalog-lead'
     | '/api/health-env'
+    | '/api/img'
     | '/api/product-image-sources'
     | '/api/quotes'
     | '/api/server-storage'
@@ -971,6 +983,7 @@ export interface RootRouteChildren {
   ApiAdminOrdersBulkRoute: typeof ApiAdminOrdersBulkRoute
   ApiCatalogLeadRoute: typeof ApiCatalogLeadRoute
   ApiHealthEnvRoute: typeof ApiHealthEnvRoute
+  ApiImgRoute: typeof ApiImgRoute
   ApiProductImageSourcesRoute: typeof ApiProductImageSourcesRoute
   ApiQuotesRoute: typeof ApiQuotesRoute
   ApiServerStorageRoute: typeof ApiServerStorageRoute
@@ -1394,6 +1407,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiProductImageSourcesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/img': {
+      id: '/api/img'
+      path: '/api/img'
+      fullPath: '/api/img'
+      preLoaderRoute: typeof ApiImgRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/health-env': {
       id: '/api/health-env'
       path: '/api/health-env'
@@ -1642,6 +1662,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminOrdersBulkRoute: ApiAdminOrdersBulkRoute,
   ApiCatalogLeadRoute: ApiCatalogLeadRoute,
   ApiHealthEnvRoute: ApiHealthEnvRoute,
+  ApiImgRoute: ApiImgRoute,
   ApiProductImageSourcesRoute: ApiProductImageSourcesRoute,
   ApiQuotesRoute: ApiQuotesRoute,
   ApiServerStorageRoute: ApiServerStorageRoute,
