@@ -84,6 +84,7 @@ import { Route as ApiNotaasConnectionRouteImport } from './routes/api/notaas.con
 import { Route as ApiGscOverviewRouteImport } from './routes/api/gsc.overview'
 import { Route as ApiFreightTokenRouteImport } from './routes/api/freight.$token'
 import { Route as ApiFreightFormTokenRouteImport } from './routes/api/freight-form.$token'
+import { Route as ApiAnalyticsTopProductsRouteImport } from './routes/api/analytics.top-products'
 import { Route as ApiAnalyticsOverviewRouteImport } from './routes/api/analytics.overview'
 
 const Api_rootRoute = Api_rootRouteImport.update({
@@ -467,6 +468,11 @@ const ApiFreightFormTokenRoute = ApiFreightFormTokenRouteImport.update({
   path: '/api/freight-form/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAnalyticsTopProductsRoute = ApiAnalyticsTopProductsRouteImport.update({
+  id: '/api/analytics/top-products',
+  path: '/api/analytics/top-products',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAnalyticsOverviewRoute = ApiAnalyticsOverviewRouteImport.update({
   id: '/api/analytics/overview',
   path: '/api/analytics/overview',
@@ -539,6 +545,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof DashboardIndexRoute
   '/projetos/': typeof ProjetosIndexRoute
   '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
+  '/api/analytics/top-products': typeof ApiAnalyticsTopProductsRoute
   '/api/freight-form/$token': typeof ApiFreightFormTokenRoute
   '/api/freight/$token': typeof ApiFreightTokenRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
@@ -615,6 +622,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardIndexRoute
   '/projetos': typeof ProjetosIndexRoute
   '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
+  '/api/analytics/top-products': typeof ApiAnalyticsTopProductsRoute
   '/api/freight-form/$token': typeof ApiFreightFormTokenRoute
   '/api/freight/$token': typeof ApiFreightTokenRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
@@ -694,6 +702,7 @@ export interface FileRoutesById {
   '/dashboard/': typeof DashboardIndexRoute
   '/projetos/': typeof ProjetosIndexRoute
   '/api/analytics/overview': typeof ApiAnalyticsOverviewRoute
+  '/api/analytics/top-products': typeof ApiAnalyticsTopProductsRoute
   '/api/freight-form/$token': typeof ApiFreightFormTokenRoute
   '/api/freight/$token': typeof ApiFreightTokenRoute
   '/api/gsc/overview': typeof ApiGscOverviewRoute
@@ -774,6 +783,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/projetos/'
     | '/api/analytics/overview'
+    | '/api/analytics/top-products'
     | '/api/freight-form/$token'
     | '/api/freight/$token'
     | '/api/gsc/overview'
@@ -850,6 +860,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/projetos'
     | '/api/analytics/overview'
+    | '/api/analytics/top-products'
     | '/api/freight-form/$token'
     | '/api/freight/$token'
     | '/api/gsc/overview'
@@ -928,6 +939,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/projetos/'
     | '/api/analytics/overview'
+    | '/api/analytics/top-products'
     | '/api/freight-form/$token'
     | '/api/freight/$token'
     | '/api/gsc/overview'
@@ -987,6 +999,7 @@ export interface RootRouteChildren {
   BlogIndexRoute: typeof BlogIndexRoute
   ProjetosIndexRoute: typeof ProjetosIndexRoute
   ApiAnalyticsOverviewRoute: typeof ApiAnalyticsOverviewRoute
+  ApiAnalyticsTopProductsRoute: typeof ApiAnalyticsTopProductsRoute
   ApiFreightFormTokenRoute: typeof ApiFreightFormTokenRoute
   ApiFreightTokenRoute: typeof ApiFreightTokenRoute
   ApiGscOverviewRoute: typeof ApiGscOverviewRoute
@@ -1521,6 +1534,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFreightFormTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/analytics/top-products': {
+      id: '/api/analytics/top-products'
+      path: '/api/analytics/top-products'
+      fullPath: '/api/analytics/top-products'
+      preLoaderRoute: typeof ApiAnalyticsTopProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/analytics/overview': {
       id: '/api/analytics/overview'
       path: '/api/analytics/overview'
@@ -1658,6 +1678,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogIndexRoute: BlogIndexRoute,
   ProjetosIndexRoute: ProjetosIndexRoute,
   ApiAnalyticsOverviewRoute: ApiAnalyticsOverviewRoute,
+  ApiAnalyticsTopProductsRoute: ApiAnalyticsTopProductsRoute,
   ApiFreightFormTokenRoute: ApiFreightFormTokenRoute,
   ApiFreightTokenRoute: ApiFreightTokenRoute,
   ApiGscOverviewRoute: ApiGscOverviewRoute,

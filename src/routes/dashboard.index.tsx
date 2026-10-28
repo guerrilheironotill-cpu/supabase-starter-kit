@@ -213,6 +213,110 @@ async function fetchGa4(): Promise<Ga4Overview> {
   return (await res.json()) as Ga4Overview;
 }
 
+type TopProduct = {
+  slug: string;
+  name: string;
+  image: string | null;
+  views: number;
+  users: number;
+};
+
+/** Most viewed product pages (GA4) with each product's name and photo from the catalog. */
+async function fetchTopProducts(): Promise<{ configured: boolean; products: TopProduct[] }> {
+  const res = await fetch("/api/analytics/top-products");
+  if (!res.ok) return { configured: false, products: [] };
+  const json = (await res.json()) as {
+    configured: boolean;
+    products?: Array<{ slug: string; views: number; users: number }>;
+  };
+  const rows = json.products ?? [];
+  if (!json.configured || rows.length === 0) return { configured: json.configured, products: [] };
+  const { data } = await supabase
+    .from("products")
+    .select("slug, name, images")
+    .in(
+      "slug",
+      rows.map((row) => row.slug),
+    );
+  const catalog = new Map(
+    ((data ?? []) as Array<{ slug: string; name: string; images: string[] | null }>).map(
+      (product) => [product.slug, product] as const,
+    ),
+  );
+  return {
+    configured: true,
+    products: rows.map((row) => ({
+      ...row,
+      name: catalog.get(row.slug)?.name ?? row.slug,
+      image: catalog.get(row.slug)?.images?.find(Boolean) ?? null,
+    })),
+  };
+}
+
+function TopProductsCard({ data }: { data?: { configured: boolean; products: TopProduct[] } }) {
+  const max = Math.max(1, ...(data?.products ?? []).map((product) => product.views));
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest text-muted-foreground">
+          Produtos mais acessados (30d)
+          <InfoTip text="Páginas de produto mais abertas nos últimos 30 dias, segundo o Google Analytics. 'Visualizações' conta cada abertura da página, inclusive repetidas pela mesma pessoa; 'pessoas' são usuários ativos distintos (por navegador, não por IP). Só entram visitantes que aceitaram os cookies de análise." />
+        </span>
+      </div>
+      {!data?.configured ? (
+        <p className="text-sm text-muted-foreground">
+          Conecte o Google Analytics para ver este ranking.
+        </p>
+      ) : data.products.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Ainda sem dados de visitas a produtos nos últimos 30 dias.
+        </p>
+      ) : (
+        <ol className="space-y-3">
+          {data.products.map((product, index) => (
+            <li key={product.slug} className="flex items-center gap-3">
+              <span className="w-5 shrink-0 text-right text-xs font-semibold text-muted-foreground">
+                {index + 1}
+              </span>
+              {product.image ? (
+                <img
+                  src={product.image}
+                  alt=""
+                  loading="lazy"
+                  className="h-10 w-10 shrink-0 rounded-md object-cover"
+                />
+              ) : (
+                <span className="h-10 w-10 shrink-0 rounded-md bg-muted" />
+              )}
+              <div className="min-w-0 flex-1">
+                <a
+                  href={`/produto/${product.slug}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block truncate text-sm text-foreground hover:text-primary"
+                >
+                  {product.name}
+                </a>
+                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{ width: `${Math.max(4, (product.views / max) * 100)}%` }}
+                  />
+                </div>
+              </div>
+              <span className="shrink-0 text-right text-xs text-muted-foreground">
+                {product.views.toLocaleString("pt-BR")} visualizações
+                <br />
+                {product.users.toLocaleString("pt-BR")} pessoas
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+}
+
 // ---- Infra cards (DB + VPS storage) — kept, just demoted to a compact footer row ----
 
 type DbSize = { configured: boolean; sizeBytes: number; limitBytes: number; error?: string };
@@ -724,6 +828,11 @@ function DashboardOverview() {
     queryFn: fetchGa4,
     staleTime: 10 * 60_000,
   });
+  const { data: topProducts } = useQuery({
+    queryKey: ["dashboard", "ga4-top-products"],
+    queryFn: fetchTopProducts,
+    staleTime: 10 * 60_000,
+  });
 
   const fmt = (n?: number) => (typeof n === "number" ? n.toLocaleString("pt-BR") : "—");
   const fmtDelta = (d?: number) =>
@@ -920,6 +1029,10 @@ function DashboardOverview() {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="mt-6">
+        <TopProductsCard data={topProducts} />
       </div>
 
       {gsc?.configured && gsc.topQueries && gsc.topQueries.length > 0 && (
