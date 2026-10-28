@@ -61,7 +61,8 @@ export function AboutSection() {
   const revealStyle = (delay: number, distance = 24): CSSProperties => ({
     opacity: visible ? 1 : 0,
     transform: visible ? "translate3d(0, 0, 0)" : `translate3d(0, ${distance}px, 0)`,
-    transition: "opacity 1800ms cubic-bezier(0.16, 1, 0.3, 1), transform 1800ms cubic-bezier(0.16, 1, 0.3, 1)",
+    transition:
+      "opacity 1800ms cubic-bezier(0.16, 1, 0.3, 1), transform 1800ms cubic-bezier(0.16, 1, 0.3, 1)",
     transitionDelay: visible ? `${delay}ms` : "0ms",
     willChange: visible ? "auto" : "opacity, transform",
   });
@@ -76,10 +77,7 @@ export function AboutSection() {
   return (
     <section ref={sectionRef} className="relative overflow-hidden bg-[#eaf3dd]">
       <div className="relative z-10 mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 py-20 sm:px-8 lg:grid-cols-2 lg:gap-20 lg:py-28">
-        <div
-          className="relative"
-          style={revealStyle(0, 32)}
-        >
+        <div className="relative" style={revealStyle(0, 32)}>
           <div className="relative aspect-square overflow-hidden rounded-2xl bg-primary/5 shadow-xl ring-1 ring-primary/10">
             {ABOUT_IMAGES.map((image, index) => (
               <img
@@ -89,9 +87,11 @@ export function AboutSection() {
                 src={image.src}
                 alt={image.alt}
                 loading="lazy"
-                aria-hidden={index !== activeImage}
-                className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[2200ms] ease-in-out"
-                style={{ opacity: index === activeImage ? 1 : 0 }}
+                className="absolute inset-0 h-full w-full object-cover transition-[opacity,visibility] duration-[2200ms] ease-in-out"
+                style={{
+                  opacity: index === activeImage ? 1 : 0,
+                  visibility: index === activeImage ? "visible" : "hidden",
+                }}
               />
             ))}
           </div>
@@ -114,13 +114,11 @@ export function AboutSection() {
             className="mt-4 max-w-xl text-base text-primary/75 sm:text-lg"
             style={revealStyle(680, 20)}
           >
-            Cada peça carrega a exclusividade do trabalho feito à mão e a sofisticação do design autoral. Explore nossas criações.
+            Cada peça carrega a exclusividade do trabalho feito à mão e a sofisticação do design
+            autoral. Explore nossas criações.
           </p>
 
-          <div
-            className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3"
-            style={fadeStyle(900)}
-          >
+          <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3" style={fadeStyle(900)}>
             {ABOUT_HIGHLIGHTS.map((item) => (
               <div
                 key={item.label}
@@ -136,10 +134,7 @@ export function AboutSection() {
             ))}
           </div>
 
-          <div
-            className="mt-8 flex flex-wrap items-center gap-4"
-            style={fadeStyle(1200)}
-          >
+          <div className="mt-8 flex flex-wrap items-center gap-4" style={fadeStyle(1200)}>
             <a
               href="/catalogo"
               className="inline-flex items-center gap-2 rounded-full bg-secondary px-7 py-3.5 text-sm font-semibold text-primary transition-all duration-300 hover:-translate-y-0.5 hover:bg-secondary/85"
@@ -151,6 +146,7 @@ export function AboutSection() {
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="Falar com a Arteno pelo WhatsApp (abre em nova aba)"
               className="inline-flex items-center gap-3 rounded-full border border-primary/25 bg-transparent px-7 py-3.5 text-sm font-semibold text-primary transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:bg-primary hover:text-white"
             >
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-primary/40">

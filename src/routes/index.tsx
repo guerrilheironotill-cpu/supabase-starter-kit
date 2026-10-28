@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 import { HeroSlider } from "@/components/hero-slider";
 import { AboutSection } from "@/components/about-section";
 import { ProductGrid } from "@/components/product-grid";
@@ -9,7 +10,11 @@ import { fetchHeroSlides } from "@/lib/hero-slides";
 import { absoluteUrl } from "@/lib/site-config";
 import { fetchHomeProjects } from "@/lib/home-projects";
 import { HomeProjectsGallery } from "@/components/home-projects-gallery";
-import { HomeLatestPosts } from "@/components/blog/home-latest-posts";
+const HomeLatestPosts = lazy(() =>
+  import("@/components/blog/home-latest-posts").then((module) => ({
+    default: module.HomeLatestPosts,
+  })),
+);
 
 export const Route = createFileRoute("/")({
   loader: async () => {
@@ -44,7 +49,9 @@ function Index() {
       <ProductGrid title="Jardineiras" category="Jardineiras" limit={12} carousel />
       <CategoryShowcase />
       <HomeProjectsGallery projects={projects} />
-      <HomeLatestPosts />
+      <Suspense fallback={null}>
+        <HomeLatestPosts />
+      </Suspense>
       <HomeFaq />
     </>
   );

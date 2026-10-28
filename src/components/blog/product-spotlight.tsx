@@ -49,11 +49,13 @@ export function ProductSpotlight({
   const from = prices.length ? Math.min(...prices) : null;
 
   return (
-    <aside className="my-2 overflow-hidden rounded-3xl border border-primary/10 bg-white sm:grid sm:grid-cols-[2fr_3fr]">
+    <div className="my-2 overflow-hidden rounded-3xl border border-primary/10 bg-white sm:grid sm:grid-cols-[2fr_3fr]">
       {image ? (
         <img
           src={image}
           alt={product?.name ?? title}
+          width={480}
+          height={480}
           loading="lazy"
           className="aspect-square h-full w-full object-cover"
         />
@@ -91,6 +93,6 @@ export function ProductSpotlight({
           </Link>
         )}
       </div>
-    </aside>
+    </div>
   );
 }

@@ -7,9 +7,17 @@ type Props = {
   product: Product;
   index?: number;
   variant?: "default" | "home";
+  /** "h2" on listing pages whose only heading above the cards is the H1. */
+  headingLevel?: "h2" | "h3";
 };
 
-export function ProductCard({ product, index = 0, variant = "default" }: Props) {
+export function ProductCard({
+  product,
+  index = 0,
+  variant = "default",
+  headingLevel = "h3",
+}: Props) {
+  const Heading = headingLevel;
   const images = (product.images ?? []).filter(Boolean);
   const [imageIndex, setImageIndex] = useState(0);
   const [previousImage, setPreviousImage] = useState<string | null>(null);
@@ -150,9 +158,9 @@ export function ProductCard({ product, index = 0, variant = "default" }: Props) 
         search={{ tamanho: undefined }}
         className="block"
       >
-        <h3 className="mt-4 font-display text-lg font-semibold text-primary sm:text-xl">
+        <Heading className="mt-4 font-display text-lg font-semibold text-primary sm:text-xl">
           {product.name}
-        </h3>
+        </Heading>
         {priceRange && (
           <p className="mt-1 text-sm font-semibold text-primary">
             {product.is_set && "Kit · "}

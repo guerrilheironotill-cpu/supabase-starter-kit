@@ -2,6 +2,7 @@ import type { BlogPost } from "@/lib/blog";
 
 export const concretoEAco: BlogPost = {
   slug: "concreto-e-aco",
+  seoTitle: "Concreto e aço: combinação que une massa e leveza",
   title: "Concreto e aço: a combinação que une massa e leveza no mobiliário",
   excerpt:
     "O concreto traz presença e textura; o aço traz estrutura e linhas finas. Veja por que essa dupla funciona tão bem em mesas, bancos e peças de design, que tipos de aço existem e como cuidar.",
@@ -18,6 +19,7 @@ export const concretoEAco: BlogPost = {
   publishedAt: "2026-10-27",
   cover: {
     src: "/images/mobiliario-urbano/hero-praca-v1.webp",
+    thumb: "/images/blog/cover-hero-praca-800.webp",
     alt: "Peça de concreto combinada com estrutura metálica",
   },
   body: [

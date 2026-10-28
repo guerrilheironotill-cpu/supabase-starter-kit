@@ -74,7 +74,7 @@ export const Route = createFileRoute("/blog/$slug")({
     const post = loaderData?.post;
     if (!post) return {};
     const url = absoluteUrl(`/blog/${post.slug}`);
-    const title = `${post.title} — Arteno`;
+    const title = `${post.seoTitle ?? post.title} | Arteno`;
     return {
       meta: [
         { title },
@@ -188,7 +188,10 @@ function BlogPostPage() {
             <BlogContent blocks={post.body} />
           </div>
 
-          <aside className="mt-12 rounded-3xl bg-primary p-8 text-center text-primary-foreground">
+          <section
+            aria-label="Peça um orçamento"
+            className="mt-12 rounded-3xl bg-primary p-8 text-center text-primary-foreground"
+          >
             <h2 className="font-display text-2xl sm:text-3xl">
               Quer peças de concreto para o seu projeto?
             </h2>
@@ -206,13 +209,14 @@ function BlogPostPage() {
                 href={whatsappLink(`Olá! Li o artigo "${post.title}" e gostaria de um orçamento.`)}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Falar no WhatsApp (abre em nova aba)"
                 className="inline-flex items-center gap-2 rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
               >
                 <MessageCircle className="h-4 w-4" />
                 Falar no WhatsApp
               </a>
             </div>
-          </aside>
+          </section>
 
           {post.faq.length > 0 && (
             <section className="mt-14" aria-labelledby="blog-faq-title">

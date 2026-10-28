@@ -46,7 +46,10 @@ export type BlogPost = {
   /** ISO date (yyyy-mm-dd). */
   publishedAt: string;
   updatedAt?: string;
-  cover: { src: string; alt: string; credit?: string };
+  /** Short title for the browser tab and search results (aim for up to ~55 characters). */
+  seoTitle?: string;
+  /** `thumb` is a smaller copy of the cover used on cards. */
+  cover: { src: string; thumb?: string; alt: string; credit?: string };
   body: BlogBlock[];
   faq: Array<{ question: string; answer: string }>;
 };

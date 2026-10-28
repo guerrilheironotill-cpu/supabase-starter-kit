@@ -129,13 +129,12 @@ export function SiteHeader() {
               </button>
 
               <div
-                aria-hidden={!otherProductsOpen}
                 inert={!otherProductsOpen ? true : undefined}
                 className={cn(
-                  "absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-1 transition duration-200",
+                  "absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-1 transition-[opacity,transform,visibility] duration-200",
                   otherProductsOpen
-                    ? "pointer-events-auto translate-y-0 opacity-100"
-                    : "pointer-events-none -translate-y-2 opacity-0",
+                    ? "pointer-events-auto visible translate-y-0 opacity-100"
+                    : "pointer-events-none invisible -translate-y-2 opacity-0",
                 )}
               >
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white p-2 text-primary shadow-xl">
@@ -333,10 +332,9 @@ export function SiteHeader() {
         {/* Offcanvas mobile menu (< lg) */}
         <div
           className={cn(
-            "fixed inset-0 z-50 xl:hidden",
-            mobileOpen ? "pointer-events-auto" : "pointer-events-none",
+            "fixed inset-0 z-50 transition-[visibility] duration-300 xl:hidden",
+            mobileOpen ? "pointer-events-auto visible" : "pointer-events-none invisible",
           )}
-          aria-hidden={!mobileOpen}
           inert={!mobileOpen ? true : undefined}
         >
           <div

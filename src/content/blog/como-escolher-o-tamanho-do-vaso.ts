@@ -2,6 +2,7 @@ import type { BlogPost } from "@/lib/blog";
 
 export const comoEscolherOTamanhoDoVaso: BlogPost = {
   slug: "como-escolher-o-tamanho-do-vaso",
+  seoTitle: "Como escolher o tamanho do vaso: guia prático",
   title: "Como escolher o tamanho do vaso: guia prático por planta e ambiente",
   excerpt:
     "Vaso pequeno demais sufoca a planta, grande demais pode atrapalhar o crescimento e desequilibrar o visual. Veja como acertar o tamanho para cada planta e cada espaço.",
@@ -18,6 +19,7 @@ export const comoEscolherOTamanhoDoVaso: BlogPost = {
   publishedAt: "2026-10-27",
   cover: {
     src: "/images/sobre-arteno-vasos-concreto.webp",
+    thumb: "/images/blog/cover-vasos-sobre-800.webp",
     alt: "Vasos de concreto de diferentes tamanhos",
   },
   body: [

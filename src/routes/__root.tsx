@@ -116,7 +116,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "icon", href: "/favicon-48.png", type: "image/png", sizes: "48x48" },
+      { rel: "icon", href: "/favicon-192.png", type: "image/png", sizes: "192x192" },
+      { rel: "icon", href: "/favicon.png", type: "image/png", sizes: "32x32" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
         rel: "preconnect",
@@ -132,50 +135,50 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     scripts: matches.some((m) => m.pathname.startsWith("/frete"))
       ? []
       : [
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@graph": [
-            {
-              "@type": ["Organization", "FurnitureStore"],
-              "@id": `${SITE_URL}/#organization`,
-              name: SITE_NAME,
-              url: SITE_URL,
-              logo: absoluteUrl("/images/logo-arteno-header-site.svg"),
-              image: absoluteUrl("/images/og-arteno.jpg"),
-              telephone: "+55 48 98848-6279",
-              email: "contato@arteno.com.br",
-              sameAs: ["https://www.instagram.com/artenovasodecor"],
-              address: {
-                "@type": "PostalAddress",
-                addressLocality: "Florianópolis",
-                addressRegion: "SC",
-                addressCountry: "BR",
-              },
-              areaServed: ["Florianópolis", "São José", "Palhoça", "Biguaçu"].map((name) => ({
-                "@type": "City",
-                name,
-                containedInPlace: { "@type": "State", name: "Santa Catarina" },
-              })),
-            },
-            {
-              "@type": "WebSite",
-              "@id": `${SITE_URL}/#website`,
-              url: SITE_URL,
-              name: SITE_NAME,
-              publisher: { "@id": `${SITE_URL}/#organization` },
-              inLanguage: "pt-BR",
-              potentialAction: {
-                "@type": "SearchAction",
-                target: `${SITE_URL}/busca?q={search_term_string}`,
-                "query-input": "required name=search_term_string",
-              },
-            },
-          ],
-        }),
-      },
-    ],
+          {
+            type: "application/ld+json",
+            children: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": ["Organization", "FurnitureStore"],
+                  "@id": `${SITE_URL}/#organization`,
+                  name: SITE_NAME,
+                  url: SITE_URL,
+                  logo: absoluteUrl("/images/logo-arteno-header-site.svg"),
+                  image: absoluteUrl("/images/og-arteno.jpg"),
+                  telephone: "+55 48 98848-6279",
+                  email: "contato@arteno.com.br",
+                  sameAs: ["https://www.instagram.com/artenovasodecor"],
+                  address: {
+                    "@type": "PostalAddress",
+                    addressLocality: "Florianópolis",
+                    addressRegion: "SC",
+                    addressCountry: "BR",
+                  },
+                  areaServed: ["Florianópolis", "São José", "Palhoça", "Biguaçu"].map((name) => ({
+                    "@type": "City",
+                    name,
+                    containedInPlace: { "@type": "State", name: "Santa Catarina" },
+                  })),
+                },
+                {
+                  "@type": "WebSite",
+                  "@id": `${SITE_URL}/#website`,
+                  url: SITE_URL,
+                  name: SITE_NAME,
+                  publisher: { "@id": `${SITE_URL}/#organization` },
+                  inLanguage: "pt-BR",
+                  potentialAction: {
+                    "@type": "SearchAction",
+                    target: `${SITE_URL}/busca?q={search_term_string}`,
+                    "query-input": "required name=search_term_string",
+                  },
+                },
+              ],
+            }),
+          },
+        ],
   }),
   shellComponent: RootShell,
   component: RootComponent,

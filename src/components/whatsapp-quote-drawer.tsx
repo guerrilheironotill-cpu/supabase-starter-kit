@@ -223,8 +223,10 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
 
   return (
     <div
-      className={cn("fixed inset-0 z-[60]", open ? "pointer-events-auto" : "pointer-events-none")}
-      aria-hidden={!open}
+      className={cn(
+        "fixed inset-0 z-[60] transition-[visibility] duration-300",
+        open ? "pointer-events-auto visible" : "pointer-events-none invisible",
+      )}
       inert={!open ? true : undefined}
     >
       <div
@@ -351,24 +353,16 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
                 {customerType !== "professional" && <span className="text-destructive">*</span>}
               </span>
               <input
-                aria-label={
-                  usesCpf ? "CPF" : "CNPJ"
-                }
+                aria-label={usesCpf ? "CPF" : "CNPJ"}
                 type="text"
                 value={usesCpf ? cpf : cnpj}
                 onChange={(e) =>
-                  usesCpf
-                    ? setCpf(maskCpf(e.target.value))
-                    : setCnpj(maskCnpj(e.target.value))
+                  usesCpf ? setCpf(maskCpf(e.target.value)) : setCnpj(maskCnpj(e.target.value))
                 }
                 maxLength={usesCpf ? 14 : 18}
                 required={customerType !== "professional"}
                 className="mt-2 block w-full rounded-full border border-border bg-transparent px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary"
-                placeholder={
-                  usesCpf
-                    ? "000.000.000-00"
-                    : "00.000.000/0000-00"
-                }
+                placeholder={usesCpf ? "000.000.000-00" : "00.000.000/0000-00"}
               />
               {(errors.cpf || errors.cnpj) && (
                 <span className="mt-1 block text-xs text-destructive">

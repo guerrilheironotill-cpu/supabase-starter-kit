@@ -33,10 +33,9 @@ export function HeroSlider({ initialSlides }: { initialSlides: HeroSlide[] }) {
             className={cn(
               "absolute inset-0 transition-all duration-[1400ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
               i === index
-                ? "pointer-events-auto z-10 opacity-100 scale-100"
-                : "pointer-events-none z-0 opacity-0 scale-[1.03]",
+                ? "pointer-events-auto visible z-10 opacity-100 scale-100"
+                : "pointer-events-none invisible z-0 opacity-0 scale-[1.03]",
             )}
-            aria-hidden={i !== index}
             inert={i !== index ? true : undefined}
           >
             <img

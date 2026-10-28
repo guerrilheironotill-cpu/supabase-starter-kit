@@ -116,6 +116,7 @@ function UrbanFurniturePage() {
               href={quoteUrl}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="Solicitar orçamento técnico pelo WhatsApp (abre em nova aba)"
               className="mt-8 inline-flex w-fit animate-fade-in items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#2a2f2c] transition hover:-translate-y-0.5 hover:shadow-xl"
               style={{ animationDelay: "360ms" }}
             >
@@ -261,6 +262,7 @@ function UrbanFurniturePage() {
             href={quoteUrl}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label="Solicitar orçamento técnico pelo WhatsApp (abre em nova aba)"
             className="inline-flex shrink-0 items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-xl"
           >
             Solicitar orçamento técnico <ArrowRight className="h-4 w-4" />

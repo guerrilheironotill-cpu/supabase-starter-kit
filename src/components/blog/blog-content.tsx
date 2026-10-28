@@ -27,6 +27,7 @@ export function renderInline(text: string): ReactNode[] {
             href={link[2]}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label={`${link[1]} (abre em nova aba)`}
             className={className}
           >
             {link[1]}
@@ -93,10 +94,10 @@ export function BlogContent({ blocks }: { blocks: BlogBlock[] }) {
             );
           case "callout":
             return (
-              <aside key={index} className="border-l-4 border-primary bg-[#f5f6f2] p-5">
+              <div key={index} role="note" className="border-l-4 border-primary bg-[#f5f6f2] p-5">
                 <p className="font-display text-lg text-primary">{block.title}</p>
                 <p className="mt-2 text-[0.95rem] leading-relaxed">{renderInline(block.text)}</p>
-              </aside>
+              </div>
             );
           case "product":
             return (
@@ -118,6 +119,8 @@ export function BlogContent({ blocks }: { blocks: BlogBlock[] }) {
                       key={image.src}
                       src={image.src}
                       alt={image.alt}
+                      width={960}
+                      height={720}
                       loading="lazy"
                       className="aspect-[4/3] w-full rounded-2xl object-cover"
                     />
@@ -158,6 +161,8 @@ export function BlogContent({ blocks }: { blocks: BlogBlock[] }) {
                 <img
                   src={block.src}
                   alt={block.alt}
+                  width={block.size === "small" ? 320 : 1200}
+                  height={block.size === "small" ? 320 : 800}
                   loading="lazy"
                   className={
                     block.size === "small"

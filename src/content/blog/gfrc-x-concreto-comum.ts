@@ -2,6 +2,7 @@ import type { BlogPost } from "@/lib/blog";
 
 export const gfrcVsConcretoComum: BlogPost = {
   slug: "gfrc-x-concreto-comum",
+  seoTitle: "GFRC x concreto comum: diferenças e quando usar",
   title: "GFRC x concreto comum: qual a diferença e quando usar cada um",
   excerpt:
     "Os dois são concreto, mas se comportam de formas bem diferentes. Entenda o que é o GFRC, como ele se compara ao concreto convencional e qual faz mais sentido para vasos, móveis e peças decorativas.",
@@ -18,6 +19,7 @@ export const gfrcVsConcretoComum: BlogPost = {
   publishedAt: "2026-10-27",
   cover: {
     src: "/images/mobiliario-urbano/detalhe-concreto-madeira-v1.webp",
+    thumb: "/images/blog/cover-detalhe-concreto-madeira-800.webp",
     alt: "Detalhe de uma peça de concreto combinada com madeira",
   },
   body: [

@@ -2,6 +2,7 @@ import type { BlogPost } from "@/lib/blog";
 
 export const piasECubasDeConcreto: BlogPost = {
   slug: "pia-e-cuba-de-concreto",
+  seoTitle: "Pia e cuba de concreto: vantagens e cuidados",
   title: "Pia e cuba de concreto: vantagens, cuidados e como escolher",
   excerpt:
     "A pia de concreto (ou de cimento) ganhou espaço em banheiros, lavabos e cozinhas pelo visual personalizado e pela durabilidade. Veja as vantagens, os cuidados que ela exige e como escolher a cuba certa.",
@@ -18,6 +19,7 @@ export const piasECubasDeConcreto: BlogPost = {
   publishedAt: "2026-10-27",
   cover: {
     src: "/images/pias-e-cubas/hero.webp",
+    thumb: "/images/blog/cover-pias-hero-800.webp",
     alt: "Cuba de concreto em uma bancada de banheiro",
   },
   body: [

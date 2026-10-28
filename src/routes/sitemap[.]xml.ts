@@ -47,6 +47,7 @@ export const Route = createFileRoute("/sitemap.xml")({
             images: ["/images/pias-e-cubas/hero.webp"],
           },
           { path: "/caracteristicas-do-concreto", changefreq: "yearly", priority: "0.7" },
+          { path: "/acabamentos-e-cores", changefreq: "monthly", priority: "0.6" },
           {
             path: "/vasos-para-empresas",
             changefreq: "monthly",

@@ -155,7 +155,7 @@ function CatalogoPage() {
           ) : (
             <div className="mt-10 grid grid-cols-2 gap-5 sm:gap-6 lg:grid-cols-3">
               {filtered.map((product, index) => (
-                <ProductCard index={index} key={product.id} product={product} />
+                <ProductCard index={index} key={product.id} product={product} headingLevel="h2" />
               ))}
             </div>
           )}

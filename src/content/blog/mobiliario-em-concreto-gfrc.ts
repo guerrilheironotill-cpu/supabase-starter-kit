@@ -2,6 +2,7 @@ import type { BlogPost } from "@/lib/blog";
 
 export const mobiliarioEmConcretoGfrc: BlogPost = {
   slug: "mobiliario-em-concreto-gfrc",
+  seoTitle: "Mobiliário em concreto GFRC: tipos, usos e cuidados",
   title: "Mobiliário em concreto GFRC: tipos de móveis, usos e cuidados",
   excerpt:
     "Mesas, bancos, bancadas, cubas e peças decorativas: veja que móveis podem ser feitos em concreto GFRC, onde usar cada um e como cuidar para que durem muitos anos.",
@@ -18,6 +19,7 @@ export const mobiliarioEmConcretoGfrc: BlogPost = {
   publishedAt: "2026-10-27",
   cover: {
     src: "/images/mobiliario-urbano/hero-praca-v1.webp",
+    thumb: "/images/blog/cover-hero-praca-800.webp",
     alt: "Banco de concreto em um espaço externo",
   },
   body: [

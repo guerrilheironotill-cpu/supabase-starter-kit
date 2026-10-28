@@ -79,7 +79,7 @@ function BlogIndexPage() {
           ) : (
             <div className="mt-12 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {posts.map((post, index) => (
-                <BlogCard key={post.slug} post={post} priority={index < 3} />
+                <BlogCard key={post.slug} post={post} priority={index < 3} headingLevel="h2" />
               ))}
             </div>
           )}
