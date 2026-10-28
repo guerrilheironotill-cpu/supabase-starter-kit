@@ -32,24 +32,28 @@ export const Route = createFileRoute("/frete/$token")({
   head: ({ loaderData, params }) => {
     const quote = loaderData?.quote ?? null;
     const weight = quote ? totalWeightKg(quote.items) : null;
-    const title = quote
-      ? `Frete: ${loadSummary(quote.items)} de concreto · ${quote.origin.district ?? quote.origin.city} → ${quote.destination.district ?? quote.destination.city}`
-      : "Cotação de frete — Arteno";
-    const description = quote
-      ? [
-          `Retirada em ${placeShort(quote.origin)}, entrega em ${placeShort(quote.destination)}.`,
-          weight !== null ? `Peso total ± ${weight.toLocaleString("pt-BR")} kg.` : null,
-          quote.contracted
-            ? "Este frete já foi contratado."
-            : quote.status === "fechada"
-              ? "Frete encerrado."
-              : "Veja os detalhes e envie sua cotação.",
-        ]
-          .filter(Boolean)
-          .join(" ")
-      : "Detalhes do frete e envio de cotação.";
+    const title = quote?.contracted
+      ? "Frete contratado — Arteno"
+      : quote
+        ? `Frete: ${loadSummary(quote.items)} de concreto · ${quote.origin.district ?? quote.origin.city} → ${quote.destination.district ?? quote.destination.city}`
+        : "Cotação de frete — Arteno";
+    const description = quote?.contracted
+      ? "Este frete já foi contratado."
+      : quote
+        ? [
+            `Retirada em ${placeShort(quote.origin)}, entrega em ${placeShort(quote.destination)}.`,
+            weight !== null ? `Peso total ± ${weight.toLocaleString("pt-BR")} kg.` : null,
+            quote.contracted
+              ? "Este frete já foi contratado."
+              : quote.status === "fechada"
+                ? "Frete encerrado."
+                : "Veja os detalhes e envie sua cotação.",
+          ]
+            .filter(Boolean)
+            .join(" ")
+        : "Detalhes do frete e envio de cotação.";
     const image =
-      quote?.items.find((item) => item.image_url)?.image_url ??
+      (quote?.contracted ? null : quote?.items.find((item) => item.image_url)?.image_url) ??
       absoluteUrl("/images/og-arteno.jpg");
     return {
       meta: [
@@ -204,6 +208,7 @@ function FreightQuotePage() {
   }
 
   const closed = quote.status === "fechada";
+  const hired = closed && quote.contracted !== null;
   const pickup = formatPickupDate(quote.pickupDate);
   const units = totalUnits(quote.items);
   const weight = totalWeightKg(quote.items);
@@ -238,10 +243,12 @@ function FreightQuotePage() {
       <h1 className="mt-3 font-display text-3xl text-primary sm:text-4xl">
         Transporte de {summary} de concreto
       </h1>
-      <p className="mt-4 max-w-2xl leading-relaxed text-muted-foreground">
-        A Arteno procura transportador para esta carga. Confira os detalhes e, se tiver interesse,
-        envie sua cotação.
-      </p>
+      {!hired && (
+        <p className="mt-4 max-w-2xl leading-relaxed text-muted-foreground">
+          A Arteno procura transportador para esta carga. Confira os detalhes e, se tiver interesse,
+          envie sua cotação.
+        </p>
+      )}
 
       {closed && quote.contracted && (
         <div className="mt-6 border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-900">
@@ -273,136 +280,150 @@ function FreightQuotePage() {
         </div>
       )}
 
-      <section className="mt-8 grid items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
-        <PlaceBlock title="Coleta" place={quote.origin} showAccess={quote.loadingIncluded} />
-        <ArrowRight className="mx-auto hidden h-5 w-5 text-muted-foreground sm:block" />
-        <PlaceBlock title="Entrega" place={quote.destination} showAccess={quote.loadingIncluded} />
-      </section>
+      {!hired && (
+        <>
+          <section className="mt-8 grid items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
+            <PlaceBlock title="Coleta" place={quote.origin} showAccess={quote.loadingIncluded} />
+            <ArrowRight className="mx-auto hidden h-5 w-5 text-muted-foreground sm:block" />
+            <PlaceBlock
+              title="Entrega"
+              place={quote.destination}
+              showAccess={quote.loadingIncluded}
+            />
+          </section>
 
-      <section className="mt-8 border-y border-border py-5">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Carga
-        </h2>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <div className="border border-border bg-white p-3">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">Quantidade</p>
-            <p className="mt-1 font-display text-2xl capitalize text-primary">{summary}</p>
-          </div>
-          <div className="border border-border bg-white p-3">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">Peso total</p>
-            <p className="mt-1 font-display text-2xl text-primary">
-              {weight !== null ? `± ${weight.toLocaleString("pt-BR")} kg` : "—"}
-            </p>
-          </div>
-          {quote.cargoValue !== null && (
-            <div className="col-span-2 border border-border bg-white p-3">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">
-                Valor da carga (nota/pedido)
-              </p>
-              <p className="mt-1 font-display text-2xl text-primary">
-                {formatCargoValue(quote.cargoValue)}
-              </p>
-            </div>
-          )}
-        </div>
-        <ul className="mt-3 divide-y divide-border">
-          {quote.items.map((item, index) => {
-            const measures = itemDimensions(item);
-            const code = (item.size ?? "").split("—")[0].trim();
-            return (
-              <li key={`${item.name}-${index}`} className="flex items-center gap-4 py-4">
-                {item.image_url ? (
-                  <img
-                    src={item.image_url}
-                    alt={item.name}
-                    loading="lazy"
-                    className="h-24 w-24 shrink-0 border border-border object-cover"
-                  />
-                ) : (
-                  <div className="flex h-24 w-24 shrink-0 items-center justify-center border border-dashed border-border bg-muted/40 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Sem foto
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="font-display text-lg text-foreground">
-                    {item.name}
-                    {code && <span className="ml-2 text-sm text-muted-foreground">{code}</span>}
-                  </div>
-                  <div className="mt-2 flex flex-col items-start gap-2 text-sm font-semibold text-foreground">
-                    {measures && (
-                      <span className="border border-primary/30 bg-primary/5 px-2.5 py-1">
-                        📏 {measures}
-                      </span>
-                    )}
-                    {item.weight_kg ? (
-                      <span className="border border-primary/30 bg-primary/5 px-2.5 py-1">
-                        ⚖️ ± {item.weight_kg.toLocaleString("pt-BR")} kg cada
-                      </span>
-                    ) : null}
-                  </div>
+          <section className="mt-8 border-y border-border py-5">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Carga
+            </h2>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="border border-border bg-white p-3">
+                <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Quantidade
+                </p>
+                <p className="mt-1 font-display text-2xl capitalize text-primary">{summary}</p>
+              </div>
+              <div className="border border-border bg-white p-3">
+                <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Peso total
+                </p>
+                <p className="mt-1 font-display text-2xl text-primary">
+                  {weight !== null ? `± ${weight.toLocaleString("pt-BR")} kg` : "—"}
+                </p>
+              </div>
+              {quote.cargoValue !== null && (
+                <div className="col-span-2 border border-border bg-white p-3">
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                    Valor da carga (nota/pedido)
+                  </p>
+                  <p className="mt-1 font-display text-2xl text-primary">
+                    {formatCargoValue(quote.cargoValue)}
+                  </p>
                 </div>
-                <strong className="shrink-0 text-lg text-foreground">{item.quantity} un.</strong>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+              )}
+            </div>
+            <ul className="mt-3 divide-y divide-border">
+              {quote.items.map((item, index) => {
+                const measures = itemDimensions(item);
+                const code = (item.size ?? "").split("—")[0].trim();
+                return (
+                  <li key={`${item.name}-${index}`} className="flex items-center gap-4 py-4">
+                    {item.image_url ? (
+                      <img
+                        src={item.image_url}
+                        alt={item.name}
+                        loading="lazy"
+                        className="h-24 w-24 shrink-0 border border-border object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-24 w-24 shrink-0 items-center justify-center border border-dashed border-border bg-muted/40 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Sem foto
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-display text-lg text-foreground">
+                        {item.name}
+                        {code && <span className="ml-2 text-sm text-muted-foreground">{code}</span>}
+                      </div>
+                      <div className="mt-2 flex flex-col items-start gap-2 text-sm font-semibold text-foreground">
+                        {measures && (
+                          <span className="border border-primary/30 bg-primary/5 px-2.5 py-1">
+                            📏 {measures}
+                          </span>
+                        )}
+                        {item.weight_kg ? (
+                          <span className="border border-primary/30 bg-primary/5 px-2.5 py-1">
+                            ⚖️ ± {item.weight_kg.toLocaleString("pt-BR")} kg cada
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <strong className="shrink-0 text-lg text-foreground">
+                      {item.quantity} un.
+                    </strong>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
 
-      <section className="mt-6">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Condições
-        </h2>
-        <ul className="mt-3 space-y-2 text-sm text-foreground">
-          <li>
-            🚛{" "}
-            {quote.loadingIncluded ? (
-              <>
-                Frete <strong>com carga/descarga</strong>
-              </>
-            ) : (
-              <>
-                Somente o frete, <strong>sem carga/descarga</strong>
-              </>
-            )}
-          </li>
-          {quote.photoNote && <li>📷 {quote.photoNote}</li>}
-          {weight !== null && (
-            <li>
-              ⚖️ Peso total: <strong>± {weight.toLocaleString("pt-BR")} kg</strong>
-            </li>
-          )}
-          {quote.cargoValue !== null && (
-            <li>
-              💰 Valor da carga (nota): <strong>{formatCargoValue(quote.cargoValue)}</strong>
-            </li>
-          )}
-          {quote.vehicleTypes.length > 0 && (
-            <li>
-              🚐 Veículos aceitos: <strong>{quote.vehicleTypes.join(", ")}</strong>
-            </li>
-          )}
-          {quote.loadDetails && <li className="whitespace-pre-line">📐 {quote.loadDetails}</li>}
-          {pickup && (
-            <li>
-              📅 Data de coleta: <strong>{pickup}</strong>
-              {quote.pickupFlexible ? " ou próxima" : ""}
-            </li>
-          )}
-          <li>
-            {quote.sharedLoad ? (
-              <>
-                🤝 <strong>Pode ser carga compartilhada</strong>
-              </>
-            ) : (
-              <>
-                🚫 <strong>Carga exclusiva</strong>, sem compartilhar
-              </>
-            )}
-          </li>
-          {quote.emptyLoad && <li>🌿 Os vasos vão vazios, sem plantas</li>}
-          {quote.notes && <li className="whitespace-pre-line">📝 {quote.notes}</li>}
-        </ul>
-      </section>
+          <section className="mt-6">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Condições
+            </h2>
+            <ul className="mt-3 space-y-2 text-sm text-foreground">
+              <li>
+                🚛{" "}
+                {quote.loadingIncluded ? (
+                  <>
+                    Frete <strong>com carga/descarga</strong>
+                  </>
+                ) : (
+                  <>
+                    Somente o frete, <strong>sem carga/descarga</strong>
+                  </>
+                )}
+              </li>
+              {quote.photoNote && <li>📷 {quote.photoNote}</li>}
+              {weight !== null && (
+                <li>
+                  ⚖️ Peso total: <strong>± {weight.toLocaleString("pt-BR")} kg</strong>
+                </li>
+              )}
+              {quote.cargoValue !== null && (
+                <li>
+                  💰 Valor da carga (nota): <strong>{formatCargoValue(quote.cargoValue)}</strong>
+                </li>
+              )}
+              {quote.vehicleTypes.length > 0 && (
+                <li>
+                  🚐 Veículos aceitos: <strong>{quote.vehicleTypes.join(", ")}</strong>
+                </li>
+              )}
+              {quote.loadDetails && <li className="whitespace-pre-line">📐 {quote.loadDetails}</li>}
+              {pickup && (
+                <li>
+                  📅 Data de coleta: <strong>{pickup}</strong>
+                  {quote.pickupFlexible ? " ou próxima" : ""}
+                </li>
+              )}
+              <li>
+                {quote.sharedLoad ? (
+                  <>
+                    🤝 <strong>Pode ser carga compartilhada</strong>
+                  </>
+                ) : (
+                  <>
+                    🚫 <strong>Carga exclusiva</strong>, sem compartilhar
+                  </>
+                )}
+              </li>
+              {quote.emptyLoad && <li>🌿 Os vasos vão vazios, sem plantas</li>}
+              {quote.notes && <li className="whitespace-pre-line">📝 {quote.notes}</li>}
+            </ul>
+          </section>
+        </>
+      )}
 
       {!closed && sentUrl === null && !formOpen && (
         <button
