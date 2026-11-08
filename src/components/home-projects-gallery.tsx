@@ -80,7 +80,7 @@ export function HomeProjectsGallery({ projects }: { projects: HomeProject[] }) {
                     maxWidth: 800,
                     sizes: "(min-width: 1024px) 25vw, 50vw",
                   })}
-                  alt=""
+                  alt={project.alt}
                   width={1080}
                   height={1920}
                   loading="lazy"
