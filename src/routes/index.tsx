@@ -6,6 +6,7 @@ import { ProductGrid } from "@/components/product-grid";
 import { AdminEditBar } from "@/components/admin-edit-bar";
 import { CategoryShowcase, HOME_SHOWCASE_CATEGORIES } from "@/components/category-showcase";
 import { HomeFaq } from "@/components/home-faq";
+import { homeFaqStructuredData } from "@/lib/home-faq";
 import { fetchHeroSlides } from "@/lib/hero-slides";
 import { fetchCategoryCards, fetchProductsByCategory, fetchProductsBySlugs } from "@/lib/products";
 import { absoluteUrl } from "@/lib/site-config";
@@ -39,7 +40,10 @@ export const Route = createFileRoute("/")({
     ]);
     return { heroSlides, projects, featuredVases, planters, categoryCards };
   },
-  head: () => ({ links: [{ rel: "canonical", href: absoluteUrl("/") }] }),
+  head: () => ({
+    links: [{ rel: "canonical", href: absoluteUrl("/") }],
+    scripts: [{ type: "application/ld+json", children: JSON.stringify(homeFaqStructuredData()) }],
+  }),
   component: Index,
 });
 

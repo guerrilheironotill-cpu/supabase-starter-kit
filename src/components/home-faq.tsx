@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { CircleHelp } from "lucide-react";
 import {
@@ -7,64 +7,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { HOME_FAQS } from "@/lib/home-faq";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { WhatsAppQuoteDrawer } from "@/components/whatsapp-quote-drawer";
-
-const FAQS: { question: string; answer: ReactNode }[] = [
-  {
-    question: "Os produtos da Arteno são feitos artesanalmente?",
-    answer: (
-      <>
-        Sim. Nossas peças são produzidas em processo artesanal, por isso pequenas variações de
-        textura e tonalidade fazem parte das características de cada produto.
-      </>
-    ),
-  },
-  {
-    question: "Posso escolher a cor e o acabamento?",
-    answer: (
-      <>
-        As opções disponíveis variam conforme o produto. Na página de cada item você encontra as
-        cores e os acabamentos que podem ser selecionados.
-      </>
-    ),
-  },
-  {
-    question: "Onde encontro as medidas e os preços?",
-    answer: (
-      <>
-        <p>
-          As medidas, o preço normal e o preço promocional ficam visíveis na página de cada produto.
-          O valor final é atualizado conforme o tamanho e o acabamento escolhidos.
-        </p>
-      </>
-    ),
-  },
-  {
-    question: "A Arteno desenvolve peças sob medida?",
-    answer: (
-      <>
-        Sim. Desenvolvemos projetos personalizados para arquitetos, paisagistas, empresas e clientes
-        que precisam de dimensões ou soluções específicas.{" "}
-        <Link
-          to="/projetos-personalizados"
-          className="font-semibold text-primary underline decoration-primary/30 underline-offset-4 hover:decoration-primary"
-        >
-          Conheça os projetos personalizados.
-        </Link>
-      </>
-    ),
-  },
-  {
-    question: "Como solicito um orçamento?",
-    answer: (
-      <>
-        Você pode selecionar os produtos no site e enviar sua lista pelo WhatsApp, ou falar
-        diretamente conosco pelo botão de orçamento personalizado.
-      </>
-    ),
-  },
-];
 
 export function HomeFaq() {
   const [waOpen, setWaOpen] = useState(false);
@@ -98,13 +43,27 @@ export function HomeFaq() {
         </div>
 
         <Accordion type="single" collapsible className="border-t border-primary/15">
-          {FAQS.map((faq, index) => (
+          {HOME_FAQS.map((faq, index) => (
             <AccordionItem key={faq.question} value={`faq-${index}`} className="border-primary/15">
               <AccordionTrigger className="py-5 text-base text-primary hover:no-underline sm:text-lg">
                 {faq.question}
               </AccordionTrigger>
-              <AccordionContent className="max-w-2xl pb-6 pr-8 text-sm leading-7 text-[#555b57] sm:text-base">
+              <AccordionContent
+                forceMount
+                className="max-w-2xl pb-6 pr-8 text-sm leading-7 text-[#555b57] sm:text-base"
+              >
                 {faq.answer}
+                {faq.link && (
+                  <>
+                    {" "}
+                    <Link
+                      to={faq.link.to}
+                      className="font-semibold text-primary underline decoration-primary/30 underline-offset-4 hover:decoration-primary"
+                    >
+                      {faq.link.label}
+                    </Link>
+                  </>
+                )}
               </AccordionContent>
             </AccordionItem>
           ))}

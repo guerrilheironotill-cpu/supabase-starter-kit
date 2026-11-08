@@ -37,15 +37,30 @@ AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName;
 const AccordionContent = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <AccordionPrimitive.Content
-    ref={ref}
-    className="overflow-hidden text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
-    {...props}
-  >
-    <div className={cn("pb-4 pt-0", className)}>{children}</div>
-  </AccordionPrimitive.Content>
-));
+>(({ className, children, forceMount, ...props }, ref) =>
+  // forceMount keeps the answer in the server HTML (SEO); it is hidden with CSS while closed,
+  // animating the height with grid rows instead of the keyframes used by the unmounted variant.
+  forceMount ? (
+    <AccordionPrimitive.Content
+      ref={ref}
+      forceMount
+      className="grid overflow-hidden text-sm transition-[grid-template-rows,visibility] duration-200 ease-out data-[state=closed]:invisible data-[state=closed]:grid-rows-[0fr] data-[state=closed]:delay-200 data-[state=open]:visible data-[state=open]:grid-rows-[1fr]"
+      {...props}
+    >
+      <div className="min-h-0 overflow-hidden">
+        <div className={cn("pb-4 pt-0", className)}>{children}</div>
+      </div>
+    </AccordionPrimitive.Content>
+  ) : (
+    <AccordionPrimitive.Content
+      ref={ref}
+      className="overflow-hidden text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
+      {...props}
+    >
+      <div className={cn("pb-4 pt-0", className)}>{children}</div>
+    </AccordionPrimitive.Content>
+  ),
+);
 AccordionContent.displayName = AccordionPrimitive.Content.displayName;
 
 export { Accordion, AccordionItem, AccordionTrigger, AccordionContent };
