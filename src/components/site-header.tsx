@@ -21,9 +21,6 @@ export function SiteHeader() {
   const [mobileProductsOpen, setMobileProductsOpen] = useState(true);
   const isAdmin = useIsAdmin();
   const showProjects = PROJECTS_PUBLIC || isAdmin === true;
-  // "Sob medida" is still being finished: only a signed-in admin sees it (the page itself
-  // also redirects everyone else).
-  const showCustomProjects = isAdmin === true;
   const { visible: showBlog, adminOnly: blogAdminOnly } = useBlogAccess();
   const [scrolledRaw, setScrolled] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -163,29 +160,6 @@ export function SiteHeader() {
                 </div>
               </div>
             </div>
-            {showCustomProjects && (
-              <Link
-                to="/projetos-personalizados"
-                className={cn(
-                  "group/nav relative inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-semibold uppercase tracking-[0.14em] transition-all duration-300 hover:-translate-y-0.5",
-                  scrolled
-                    ? "text-white/85 hover:text-white"
-                    : "text-primary/80 hover:text-primary",
-                )}
-              >
-                <span className="relative">
-                  Sob medida
-                  <span className="pointer-events-none absolute -bottom-1 left-0 h-[2px] w-0 bg-secondary transition-all duration-300 group-hover/nav:w-full" />
-                </span>
-                <span
-                  title="Visível só para administradores até ser publicado"
-                  className="inline-flex items-center gap-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-amber-950"
-                >
-                  <Lock className="h-2.5 w-2.5" />
-                  SÓ ADMIN
-                </span>
-              </Link>
-            )}
             {showProjects && (
               <Link
                 to="/inspire-se"
@@ -475,21 +449,6 @@ export function SiteHeader() {
                     </ul>
                   )}
                 </li>
-                {showCustomProjects && (
-                  <li>
-                    <Link
-                      to="/projetos-personalizados"
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center gap-2 rounded-lg px-3 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition-colors hover:bg-secondary/20 hover:text-primary"
-                    >
-                      Sob medida
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-amber-950">
-                        <Lock className="h-2.5 w-2.5" />
-                        SÓ ADMIN
-                      </span>
-                    </Link>
-                  </li>
-                )}
                 {showProjects && (
                   <li>
                     <Link
