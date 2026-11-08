@@ -155,6 +155,29 @@ export async function fetchProductsBySlugs(slugs: string[]): Promise<Product[]> 
   );
 }
 
+export type CategoryCard = {
+  name: string;
+  slug: string;
+  count: number;
+  image: string | null;
+};
+
+export async function fetchCategoryCards(categories: readonly string[]): Promise<CategoryCard[]> {
+  const { data, error } = await supabase
+    .from("products")
+    .select("category, images")
+    .in("category", [...categories])
+    .eq("active", true)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+
+  return categories.map((name) => {
+    const products = (data ?? []).filter((product) => product.category === name);
+    const image = products.find((product) => product.images?.[0])?.images?.[0] ?? null;
+    return { name, slug: categorySlug(name), count: products.length, image };
+  });
+}
+
 export async function fetchCategories(): Promise<string[]> {
   const { data, error } = await supabase
     .from("products")

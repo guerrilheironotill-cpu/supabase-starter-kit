@@ -1,8 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { categorySlug, fetchProductsByCategory, fetchProductsBySlugs } from "@/lib/products";
+import { categorySlug, type Product } from "@/lib/products";
 import { ProductCard } from "@/components/product-card";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import {
@@ -17,26 +16,14 @@ import {
 type ProductGridProps = {
   title: string;
   category: string;
-  limit?: number;
-  slugs?: string[];
+  products: Product[];
   carousel?: boolean;
 };
 
-export function ProductGrid({
-  title,
-  category,
-  limit = 8,
-  slugs,
-  carousel = false,
-}: ProductGridProps) {
+export function ProductGrid({ title, category, products, carousel = false }: ProductGridProps) {
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [selectedSlide, setSelectedSlide] = useState(0);
   const [slideCount, setSlideCount] = useState(0);
-  const { data: products = [], isLoading } = useQuery({
-    queryKey: ["products", "home-grid", category, limit, slugs],
-    queryFn: () => (slugs ? fetchProductsBySlugs(slugs) : fetchProductsByCategory(category, limit)),
-    staleTime: 60_000,
-  });
 
   useEffect(() => {
     if (!carouselApi) return;
@@ -57,13 +44,7 @@ export function ProductGrid({
     <section className="bg-white py-10 sm:py-12">
       <ScrollReveal className="mx-auto max-w-7xl px-4 sm:px-8">
         <h2 className="text-center font-display text-3xl text-primary sm:text-4xl">{title}</h2>
-        {isLoading ? (
-          <div className="mt-10 grid grid-cols-2 gap-5 sm:mt-12 sm:gap-6 lg:grid-cols-4">
-            {Array.from({ length: limit }).map((_, i) => (
-              <div key={i} className="aspect-square animate-pulse rounded-2xl bg-white/60" />
-            ))}
-          </div>
-        ) : products.length === 0 ? (
+        {products.length === 0 ? (
           <p className="mt-10 text-center text-primary/70">Nenhum produto encontrado.</p>
         ) : carousel ? (
           <>
@@ -118,7 +99,7 @@ export function ProductGrid({
             ))}
           </div>
         )}
-        {!isLoading && products.length > 0 && (
+        {products.length > 0 && (
           <div className="mt-10 flex justify-center">
             <Link
               to="/categoria/$slug"
