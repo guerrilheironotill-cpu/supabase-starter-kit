@@ -25,6 +25,9 @@ const ABOUT_HIGHLIGHTS = [
 
 export function AboutSection() {
   const [visible, setVisible] = useState(false);
+  // The hidden initial state is only applied after hydration, so the text stays visible
+  // in the server HTML and when JavaScript fails to load.
+  const [armed, setArmed] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
   const whatsappUrl = whatsappLinkFrom(
@@ -35,6 +38,7 @@ export function AboutSection() {
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
+    setArmed(true);
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setVisible(true);
       return;
@@ -58,9 +62,11 @@ export function AboutSection() {
     return () => window.clearInterval(timer);
   }, []);
 
+  const shown = visible || !armed;
+
   const revealStyle = (delay: number, distance = 24): CSSProperties => ({
-    opacity: visible ? 1 : 0,
-    transform: visible ? "translate3d(0, 0, 0)" : `translate3d(0, ${distance}px, 0)`,
+    opacity: shown ? 1 : 0,
+    transform: shown ? "translate3d(0, 0, 0)" : `translate3d(0, ${distance}px, 0)`,
     transition:
       "opacity 1800ms cubic-bezier(0.16, 1, 0.3, 1), transform 1800ms cubic-bezier(0.16, 1, 0.3, 1)",
     transitionDelay: visible ? `${delay}ms` : "0ms",
@@ -68,7 +74,7 @@ export function AboutSection() {
   });
 
   const fadeStyle = (delay: number): CSSProperties => ({
-    opacity: visible ? 1 : 0,
+    opacity: shown ? 1 : 0,
     transition: "opacity 1600ms cubic-bezier(0.16, 1, 0.3, 1)",
     transitionDelay: visible ? `${delay}ms` : "0ms",
     willChange: visible ? "auto" : "opacity",

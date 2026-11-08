@@ -5,6 +5,7 @@ import { PROJECTS_PUBLIC } from "@/lib/feature-flags";
 import { useIsAdmin } from "@/lib/use-is-admin";
 import { useBlogAccess } from "@/lib/use-blog-access";
 import { useQuoteStore } from "@/lib/quote-store";
+import { useWhatsAppDrawerStore } from "@/lib/whatsapp-drawer-store";
 import { cn } from "@/lib/utils";
 import { WhatsAppQuoteDrawer } from "./whatsapp-quote-drawer";
 
@@ -27,7 +28,8 @@ export function SiteHeader() {
   const scrolled = scrolledRaw || isDashboard;
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [waOpen, setWaOpen] = useState(false);
+  const waOpen = useWhatsAppDrawerStore((s) => s.open);
+  const setWaOpen = useWhatsAppDrawerStore((s) => s.setOpen);
   const hydrated = useHydrated();
   const count = useQuoteStore((s) => s.items.reduce((n, i) => n + i.quantity, 0));
   useEffect(() => {

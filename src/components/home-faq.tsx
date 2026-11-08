@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { CircleHelp } from "lucide-react";
 import {
@@ -9,10 +8,10 @@ import {
 } from "@/components/ui/accordion";
 import { HOME_FAQS } from "@/lib/home-faq";
 import { ScrollReveal } from "@/components/scroll-reveal";
-import { WhatsAppQuoteDrawer } from "@/components/whatsapp-quote-drawer";
+import { useWhatsAppDrawerStore } from "@/lib/whatsapp-drawer-store";
 
 export function HomeFaq() {
-  const [waOpen, setWaOpen] = useState(false);
+  const openWhatsAppDrawer = useWhatsAppDrawerStore((s) => s.setOpen);
 
   return (
     <section className="bg-[#f5f6f2] py-16 text-[#343936] sm:py-20">
@@ -32,7 +31,7 @@ export function HomeFaq() {
           </p>
           <button
             type="button"
-            onClick={() => setWaOpen(true)}
+            onClick={() => openWhatsAppDrawer(true)}
             className="mt-7 inline-flex items-center gap-2 rounded-full bg-[#25D366] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#20b955] hover:shadow-lg"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-current">
@@ -69,7 +68,6 @@ export function HomeFaq() {
           ))}
         </Accordion>
       </ScrollReveal>
-      <WhatsAppQuoteDrawer open={waOpen} onClose={() => setWaOpen(false)} />
     </section>
   );
 }

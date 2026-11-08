@@ -41,6 +41,7 @@ export const Route = createFileRoute("/")({
     return { heroSlides, projects, featuredVases, planters, categoryCards };
   },
   head: () => ({
+    meta: [{ property: "og:url", content: absoluteUrl("/") }],
     links: [{ rel: "canonical", href: absoluteUrl("/") }],
     scripts: [{ type: "application/ld+json", children: JSON.stringify(homeFaqStructuredData()) }],
   }),

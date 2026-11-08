@@ -159,11 +159,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
                   name: SITE_NAME,
                   publisher: { "@id": `${SITE_URL}/#organization` },
                   inLanguage: "pt-BR",
-                  potentialAction: {
-                    "@type": "SearchAction",
-                    target: `${SITE_URL}/busca?q={search_term_string}`,
-                    "query-input": "required name=search_term_string",
-                  },
                 },
               ],
             }),
