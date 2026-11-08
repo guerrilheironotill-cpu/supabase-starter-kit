@@ -2,7 +2,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
-import { maskCnpj, maskCpf, maskPhoneBR } from "@/lib/masks";
+import { maskPhoneBR } from "@/lib/masks";
 import { useQuoteStore } from "@/lib/quote-store";
 import { useLeadsStore } from "@/lib/leads-store";
 import { compactError, useFormDebugLogStore } from "@/lib/form-debug-log";
@@ -19,56 +19,19 @@ const baseSchema = z.object({
     .max(20, "Telefone inválido")
     .regex(/^[0-9()+\-\s]+$/, "Use apenas números"),
   customerType: z.enum(["final", "professional", "reseller"]),
-  professionalDocument: z.enum(["cpf", "cnpj"]),
-  cpf: z.string().trim().optional(),
-  cnpj: z.string().trim().optional(),
   companyName: z.string().trim().optional(),
 });
 
-const schema = baseSchema.superRefine((v, ctx) => {
-  if (v.customerType === "final") {
-    // Final customers may buy as an individual (CPF) or as a company (CNPJ).
-    if (v.professionalDocument === "cnpj") {
-      if ((v.cnpj ?? "").replace(/\D/g, "").length !== 14) {
-        ctx.addIssue({ code: "custom", path: ["cnpj"], message: "CNPJ inválido" });
-      }
-    } else if ((v.cpf ?? "").replace(/\D/g, "").length !== 11) {
-      ctx.addIssue({ code: "custom", path: ["cpf"], message: "CPF inválido" });
-    }
-  } else if (v.customerType === "reseller") {
-    if ((v.cnpj ?? "").replace(/\D/g, "").length !== 14) {
-      ctx.addIssue({ code: "custom", path: ["cnpj"], message: "CNPJ inválido" });
-    }
-  } else if (
-    v.professionalDocument === "cpf" &&
-    (v.cpf ?? "").replace(/\D/g, "").length > 0 &&
-    (v.cpf ?? "").replace(/\D/g, "").length !== 11
-  ) {
-    ctx.addIssue({ code: "custom", path: ["cpf"], message: "CPF inválido" });
-  } else if (
-    v.professionalDocument === "cnpj" &&
-    (v.cnpj ?? "").replace(/\D/g, "").length > 0 &&
-    (v.cnpj ?? "").replace(/\D/g, "").length !== 14
-  ) {
-    ctx.addIssue({ code: "custom", path: ["cnpj"], message: "CNPJ inválido" });
-  }
-});
+const schema = baseSchema;
 
 export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [customerType, setCustomerType] = useState<"final" | "professional" | "reseller">("final");
-  const [professionalDocument, setProfessionalDocument] = useState<"cpf" | "cnpj">("cpf");
-  // Resellers always use CNPJ; the other profiles pick CPF or CNPJ.
-  const usesCpf = customerType !== "reseller" && professionalDocument === "cpf";
-  const [cpf, setCpf] = useState("");
-  const [cnpj, setCnpj] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [errors, setErrors] = useState<{
     name?: string;
     phone?: string;
-    cpf?: string;
-    cnpj?: string;
     companyName?: string;
   }>({});
   const items = useQuoteStore((s) => s.items);
@@ -90,17 +53,12 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
       name,
       phone,
       customerType,
-      professionalDocument,
-      cpf,
-      cnpj,
       companyName,
     });
     if (!parsed.success) {
       const fieldErrors: {
         name?: string;
         phone?: string;
-        cpf?: string;
-        cnpj?: string;
         companyName?: string;
       } = {};
       for (const issue of parsed.error.issues) {
@@ -151,18 +109,8 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
       `Nome: ${parsed.data.name}\n` +
       `Perfil: ${parsed.data.customerType === "final" ? "Cliente final" : parsed.data.customerType === "professional" ? "Profissional / Especificador" : "Revendedor / Lojista"}\n` +
       (parsed.data.companyName ? `Empresa: ${parsed.data.companyName}\n` : "") +
-      (parsed.data.customerType !== "reseller" && parsed.data.professionalDocument === "cpf"
-        ? parsed.data.cpf
-          ? `CPF: ${parsed.data.cpf}\n`
-          : ""
-        : parsed.data.cnpj
-          ? `CNPJ: ${parsed.data.cnpj}\n`
-          : "") +
       `Telefone: ${parsed.data.phone}\n\n` +
       `Produtos:\n${list}`;
-
-    const isCnpj =
-      parsed.data.customerType === "reseller" || parsed.data.professionalDocument === "cnpj";
 
     // Local CRM fallback (browser-only cache, separate from the Supabase leads table).
     const payload = {
@@ -191,8 +139,6 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
             name: parsed.data.name,
             phone: parsed.data.phone,
             customerType: parsed.data.customerType,
-            document: isCnpj ? parsed.data.cnpj : parsed.data.cpf,
-            documentType: isCnpj ? "cnpj" : "cpf",
             companyName: parsed.data.companyName,
             items,
             attribution: getMarketingAttribution(),
@@ -306,7 +252,7 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
               </select>
             </label>
 
-            {(customerType !== "final" || professionalDocument === "cnpj") && (
+            {customerType !== "final" && (
               <label className="block">
                 <span className="text-xs font-medium uppercase tracking-widest text-primary">
                   Nome da empresa
@@ -325,51 +271,6 @@ export function WhatsAppQuoteDrawer({ open, onClose }: { open: boolean; onClose:
                 )}
               </label>
             )}
-
-            {customerType !== "reseller" && (
-              <label className="block">
-                <span className="text-xs font-medium uppercase tracking-widest text-primary">
-                  Documento
-                </span>
-                <select
-                  aria-label="Tipo de documento"
-                  value={professionalDocument}
-                  onChange={(e) => setProfessionalDocument(e.target.value as "cpf" | "cnpj")}
-                  className="mt-2 block w-full rounded-full border border-border bg-background px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary"
-                >
-                  <option value="cpf">
-                    {customerType === "final" ? "Pessoa física (CPF)" : "Informar CPF (opcional)"}
-                  </option>
-                  <option value="cnpj">
-                    {customerType === "final" ? "Empresa (CNPJ)" : "Informar CNPJ (opcional)"}
-                  </option>
-                </select>
-              </label>
-            )}
-
-            <label className="block">
-              <span className="text-xs font-medium uppercase tracking-widest text-primary">
-                {usesCpf ? "CPF" : "CNPJ"}{" "}
-                {customerType !== "professional" && <span className="text-destructive">*</span>}
-              </span>
-              <input
-                aria-label={usesCpf ? "CPF" : "CNPJ"}
-                type="text"
-                value={usesCpf ? cpf : cnpj}
-                onChange={(e) =>
-                  usesCpf ? setCpf(maskCpf(e.target.value)) : setCnpj(maskCnpj(e.target.value))
-                }
-                maxLength={usesCpf ? 14 : 18}
-                required={customerType !== "professional"}
-                className="mt-2 block w-full rounded-full border border-border bg-transparent px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary"
-                placeholder={usesCpf ? "000.000.000-00" : "00.000.000/0000-00"}
-              />
-              {(errors.cpf || errors.cnpj) && (
-                <span className="mt-1 block text-xs text-destructive">
-                  {errors.cpf ?? errors.cnpj}
-                </span>
-              )}
-            </label>
 
             <label className="block">
               <span className="text-xs font-medium uppercase tracking-widest text-primary">
