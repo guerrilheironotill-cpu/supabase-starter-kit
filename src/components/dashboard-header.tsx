@@ -30,11 +30,11 @@ export function DashboardHeader() {
         <Link
           to="/"
           className="block h-11 w-[181px] shrink-0"
-          aria-label="Casa & Jardim — página inicial"
+          aria-label="Arteno — página inicial"
         >
           <img
             src="/images/logo-header-scroll.svg"
-            alt="Casa & Jardim"
+            alt="Arteno"
             className="h-full w-full object-contain object-left"
           />
         </Link>

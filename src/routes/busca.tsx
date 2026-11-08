@@ -13,7 +13,7 @@ export const Route = createFileRoute("/busca")({
   validateSearch: (raw) => searchSchema.parse(raw),
   head: () => ({
     meta: [
-      { title: "Busca — Casa & Jardim" },
+      { title: "Busca — Arteno" },
       { name: "description", content: "Encontre produtos por nome." },
       { name: "robots", content: "noindex" },
     ],

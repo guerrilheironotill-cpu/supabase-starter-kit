@@ -66,11 +66,11 @@ export function SiteHeader() {
           <Link
             to="/"
             className="relative block h-11 w-[181px] shrink-0"
-            aria-label="Casa & Jardim — página inicial"
+            aria-label="Arteno — página inicial"
           >
             <img
               src="/images/logo-arteno-header-site.svg"
-              alt="Casa & Jardim"
+              alt="Arteno"
               width={181}
               height={44}
               className={cn(
@@ -353,7 +353,7 @@ export function SiteHeader() {
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <img
                 src="/images/logo-arteno-header-site.svg"
-                alt="Casa & Jardim"
+                alt="Arteno"
                 width={181}
                 height={56}
                 className="h-14 w-auto object-contain"
