@@ -11,6 +11,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { IdeaGallery } from "@/components/idea-gallery";
 import { PageHero } from "@/components/page-hero";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { IDEA_FAQS, IDEA_PROJECTS, IDEA_STEPS } from "@/lib/ideas";
@@ -18,9 +19,9 @@ import { absoluteUrl } from "@/lib/site-config";
 import { trackGaEvent, trackIdeaInterest } from "@/lib/track-event";
 import { useWhatsAppNumber, whatsappLinkFrom } from "@/lib/site-settings";
 
-const TITLE = "Ideias de projetos em concreto | Esculturas e fontes — Arteno";
+const TITLE = "Ideias de projetos em concreto | Mesas, esculturas e fontes — Arteno";
 const DESCRIPTION =
-  "Ideias de projetos em concreto para jardins e áreas externas: esculturas, fontes e peças especiais feitas sob encomenda. Inspire-se e peça seu orçamento.";
+  "Ideias de projetos em concreto para jardins e áreas externas: mesas de madeira e concreto, esculturas, fontes e peças especiais feitas sob encomenda. Inspire-se e peça seu orçamento.";
 
 function structuredData() {
   const url = absoluteUrl("/inspire-se");
@@ -44,7 +45,7 @@ function structuredData() {
               "@type": "CreativeWork",
               name: project.name,
               description: project.description[0],
-              image: absoluteUrl(project.image),
+              image: (project.gallery?.map((item) => item.src) ?? [project.image]).map(absoluteUrl),
             },
           })),
         },
@@ -147,16 +148,24 @@ function IdeasPage() {
         {IDEA_PROJECTS.map((project, index) => (
           <ScrollReveal key={project.slug}>
             <article id={project.slug} className="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
-              <img
-                src={project.image}
-                alt={project.imageAlt}
-                width={1200}
-                height={1800}
-                loading={index === 0 ? "eager" : "lazy"}
-                className={`aspect-[4/5] w-full rounded-3xl object-cover ring-1 ring-primary/10 ${
-                  index % 2 === 1 ? "lg:order-2" : ""
-                }`}
-              />
+              {project.gallery ? (
+                <IdeaGallery
+                  images={project.gallery}
+                  priority={index === 0}
+                  className={index % 2 === 1 ? "lg:order-2" : ""}
+                />
+              ) : (
+                <img
+                  src={project.image}
+                  alt={project.imageAlt}
+                  width={1200}
+                  height={1800}
+                  loading={index === 0 ? "eager" : "lazy"}
+                  className={`aspect-[4/5] w-full rounded-3xl object-cover ring-1 ring-primary/10 ${
+                    index % 2 === 1 ? "lg:order-2" : ""
+                  }`}
+                />
+              )}
               <div>
                 <h2 className="font-display text-3xl sm:text-4xl">{project.name}</h2>
                 <div className="mt-5 space-y-4 text-base leading-relaxed text-primary/80">

@@ -5,6 +5,8 @@ export type IdeaProject = {
   name: string;
   image: string;
   imageAlt: string;
+  /** Optional images; when set the page shows a fade carousel (first one is the cover). */
+  gallery?: { src: string; alt: string }[];
   /** Short paragraphs describing the piece. */
   description: string[];
   /** Two or three bullet highlights (size, material, lead time). */
@@ -12,6 +14,38 @@ export type IdeaProject = {
 };
 
 export const IDEA_PROJECTS: IdeaProject[] = [
+  {
+    slug: "mesa-de-madeira-com-bases-de-concreto",
+    name: "Mesa de madeira com bases de concreto",
+    image: "/images/projetos/mesa-madeira-bases-concreto-1.webp",
+    imageAlt:
+      "Mesa com tampo de madeira de veios aparentes apoiado em duas bases de concreto claro, em um ambiente com luz natural",
+    gallery: [
+      {
+        src: "/images/projetos/mesa-madeira-bases-concreto-1.webp",
+        alt: "Mesa com tampo de madeira de veios aparentes apoiado em duas bases de concreto claro, em um ambiente com luz natural",
+      },
+      {
+        src: "/images/projetos/mesa-madeira-bases-concreto-2.webp",
+        alt: "Base de concreto em formato trapezoidal com textura porosa sustentando o tampo de madeira da mesa",
+      },
+      {
+        src: "/images/projetos/mesa-madeira-bases-concreto-3.webp",
+        alt: "Detalhe da borda do tampo de madeira apoiado sobre a base de concreto com acabamento que lembra pedra natural",
+      },
+    ],
+    description: [
+      "Uma mesa que une o calor da madeira à força do concreto: tampo em madeira de veios aparentes, apoiado em duas bases de concreto em formato trapezoidal, com textura porosa e acabamento claro que lembra pedra natural. Funciona como mesa de jantar, de reunião ou de apoio, e combina com ambientes de linguagem contemporânea, industrial ou minimalista.",
+      "O peso das bases dá estabilidade à peça, e o contraste entre os dois materiais faz da mesa o ponto focal do ambiente. Medidas, altura, tipo de madeira, acabamento e tom do concreto são definidos sob medida para o seu espaço, em Florianópolis e região.",
+      "É um projeto novo para nós: desenvolvemos os moldes das bases e o protótipo junto com você, ajustando proporções e acabamento antes da produção.",
+    ],
+    highlights: [
+      "Medidas: tampo e altura sob medida (mesa de jantar, reunião ou apoio)",
+      "Material: tampo em madeira e bases em concreto com textura porosa",
+      "Acabamento: tipo de madeira, verniz e tom do concreto a combinar",
+      "Prazo: definido após o projeto e o orçamento",
+    ],
+  },
   {
     slug: "escultura-infinito",
     name: "Escultura Infinito",
