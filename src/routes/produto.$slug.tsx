@@ -29,6 +29,7 @@ import {
 } from "@/components/available-finishes-section";
 import { absoluteUrl } from "@/lib/site-config";
 import { fetchAttributeTerms } from "@/lib/dashboard-taxonomies";
+import { descriptionToSafeHtml } from "@/lib/product-description";
 import { colorsForFinish, fetchFinishColors, finishColorExtra } from "@/lib/finish-colors";
 import { ConcreteCharacteristicsCallout } from "@/components/concrete-characteristics-callout";
 import { isConcreteProduct } from "@/lib/concrete-characteristics";
@@ -550,9 +551,10 @@ function ProductPage() {
                 >
                   Descrição do produto
                 </h2>
-                <p className="whitespace-pre-line text-base leading-relaxed text-primary/80">
-                  {description}
-                </p>
+                <div
+                  className="product-richtext text-base leading-relaxed text-primary/80"
+                  dangerouslySetInnerHTML={{ __html: descriptionToSafeHtml(p.description) }}
+                />
               </section>
             )}
 

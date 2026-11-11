@@ -5,8 +5,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabase } from "@/integrations/supabase/client";
 import { uploadOptimizedImage } from "@/lib/vps-media";
 import { cn } from "@/lib/utils";
+import { RichTextEditor } from "@/components/rich-text-editor";
 import { fetchProductCategoryOptions } from "@/lib/dashboard-taxonomies";
-import { SET_SIZE_LABEL, SET_SIZE_NAME, slugify } from "@/lib/products";
+import { SET_SIZE_LABEL, SET_SIZE_NAME, productDescriptionToText, slugify } from "@/lib/products";
 import { toast } from "sonner";
 
 type Category = { id: string; name: string; slug: string };
@@ -897,11 +898,9 @@ function BasicTab({
         />
       </Field>
       <Field label="Descrição">
-        <textarea
-          rows={10}
-          className={cn(inputCls, "resize-none")}
-          value={product.description ?? ""}
-          onChange={(e) => setProduct({ ...product, description: e.target.value })}
+        <RichTextEditor
+          value={product.description}
+          onChange={(html) => setProduct({ ...product, description: html })}
         />
       </Field>
       <label className="flex items-start gap-2 text-sm">
@@ -1544,7 +1543,7 @@ function SeoTab({
   );
   const titleText = (product.meta_title || product.name).toLocaleLowerCase("pt-BR");
   const descriptionText = (product.meta_description || "").toLocaleLowerCase("pt-BR");
-  const contentText = (product.description || "").toLocaleLowerCase("pt-BR");
+  const contentText = productDescriptionToText(product.description).toLocaleLowerCase("pt-BR");
 
   useEffect(() => {
     let cancelled = false;
