@@ -93,7 +93,6 @@ function missingProductFields(product: ProductRow): string[] {
       missing.push("preço");
   }
   if (!product.product_finishes?.length) missing.push("acabamento");
-  if (!product.product_colors?.length) missing.push("cor");
 
   return missing;
 }

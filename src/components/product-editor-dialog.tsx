@@ -264,9 +264,7 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<"basic" | "images" | "sizes" | "finishes" | "colors" | "seo">(
-    "basic",
-  );
+  const [tab, setTab] = useState<"basic" | "images" | "sizes" | "finishes" | "seo">("basic");
 
   const [product, setProduct] = useState<ProductData | null>(null);
   const [sizes, setSizes] = useState<SizeRow[]>([]);
@@ -675,7 +673,6 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
                 ["images", `Imagens (${product.images.length})`],
                 ["sizes", product.is_set ? "Preço do kit" : `Tamanhos (${sizes.length})`],
                 ["finishes", `Acabamentos (${finishes.length})`],
-                ["colors", `Cores (${colors.length})`],
                 ["seo", "SEO"],
               ] as const
             ).map(([k, label]) => (
@@ -733,9 +730,6 @@ export function ProductEditorDialog({ productId, onClose, onSaved, mode = "dialo
                 setRows={setFinishes}
                 catalog="finish_catalog"
               />
-            )}
-            {tab === "colors" && (
-              <AttrTab label="Cor" rows={colors} setRows={setColors} catalog="color_catalog" />
             )}
             {tab === "seo" && <SeoTab product={product} setProduct={setProduct} />}
           </div>

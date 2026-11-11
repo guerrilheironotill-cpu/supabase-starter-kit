@@ -884,15 +884,9 @@ export async function buildCatalogPDF(
       const tableTop = contentTop + titleBlockHeight;
       // Colors that add to the price inside a finish are listed under the table, since the
       // table itself has one row per finish and not one per color.
-      const productColorNames = new Set((product.product_colors ?? []).map((color) => color.name));
       const colorNoteParts = applicableFinishes.flatMap((finish) => {
         const priced = snapshot.finishColors
-          .filter(
-            (row) =>
-              row.finish_name === finish.name &&
-              row.extra_price > 0 &&
-              (productColorNames.size === 0 || productColorNames.has(row.color_name)),
-          )
+          .filter((row) => row.finish_name === finish.name && row.extra_price > 0)
           .sort((a, b) => a.sort_order - b.sort_order)
           .map((row) => `${row.color_name} + R$ ${row.extra_price.toFixed(2).replace(".", ",")}`);
         return priced.length ? [`${finish.name}: ${priced.join(", ")}`] : [];

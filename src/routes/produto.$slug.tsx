@@ -394,6 +394,19 @@ function ProductPage() {
     colors.map((color) => color.name),
     finishColors,
   );
+  const colorRequired = colorOptions.length > 0;
+  // Every color any finish of this product offers (colors are defined inside the finishes).
+  const finishColorNames = [
+    ...new Set(
+      finishes.flatMap((finish) =>
+        colorsForFinish(
+          finish.name,
+          colors.map((color) => color.name),
+          finishColors,
+        ).map((option) => option.name),
+      ),
+    ),
+  ];
   const selectedColorExtra = finishColorExtra(selectedFinish, selectedColor, finishColors);
   const selectedExtras = selectedFinishExtra + selectedColorExtra;
   const selectedRegularPrice = Number(selectedSize?.base_price ?? 0) + selectedExtras;
@@ -435,7 +448,7 @@ function ProductPage() {
     const idx = sizes.findIndex((s) => s.id === selectedSizeId);
     const s = sizes[idx];
     if (!s) return;
-    if (!selectedFinish || !selectedColor) return;
+    if (!selectedFinish || (colorRequired && !selectedColor)) return;
     const basePrice = currentPrice(s);
     const colorExtra = finishColorExtra(selectedFinish, selectedColor, finishColors);
     addItem({
@@ -457,7 +470,7 @@ function ProductPage() {
         name: finish.name,
         extraPrice: finish.extra_price,
       })),
-      availableColors: colors.map((color) => color.name),
+      availableColors: finishColorNames,
       availableFinishColors: Object.fromEntries(
         finishes.map((finish) => [
           finish.name,
@@ -692,7 +705,7 @@ function ProductPage() {
       </section>
 
       <AvailableFinishesSection availableNames={finishes.map((finish) => finish.name)} />
-      <AvailableColorsSection availableNames={colors.map((color) => color.name)} />
+      <AvailableColorsSection availableNames={finishColorNames} />
 
       {isConcreteProduct(p) && <ConcreteCharacteristicsCallout />}
 
@@ -881,19 +894,21 @@ function ProductPage() {
                 </select>
               </label>
             )}
-            {colors.length > 0 && (
+            {finishColorNames.length > 0 && (
               <label className="flex flex-col gap-1 text-xs font-semibold text-primary">
                 Cor
                 <select
                   value={selectedColor}
                   onChange={(e) => setSelectedColor(e.target.value)}
-                  disabled={finishes.length > 0 && !selectedFinish}
+                  disabled={(finishes.length > 0 && !selectedFinish) || !colorRequired}
                   className="border border-primary/20 bg-white px-3 py-2 text-sm font-normal text-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
                 >
                   <option value="" disabled>
                     {finishes.length > 0 && !selectedFinish
                       ? "Escolha o acabamento primeiro"
-                      : "Selecione uma cor"}
+                      : !colorRequired
+                        ? "Sem opções de cor neste acabamento"
+                        : "Selecione uma cor"}
                   </option>
                   {colorOptions.map((c) => (
                     <option key={c.name} value={c.name}>
@@ -958,7 +973,7 @@ function ProductPage() {
           )}
           <DialogFooter>
             <div className="w-full">
-              {(!selectedFinish || !selectedColor) && (
+              {(!selectedFinish || (colorRequired && !selectedColor)) && (
                 <p className="mb-2 text-center text-xs text-destructive">
                   Selecione o acabamento e a cor para adicionar o produto.
                 </p>
@@ -966,7 +981,7 @@ function ProductPage() {
               <button
                 type="button"
                 onClick={handleAddSelected}
-                disabled={!selectedFinish || !selectedColor}
+                disabled={!selectedFinish || (colorRequired && !selectedColor)}
                 className="inline-flex w-full items-center justify-center gap-2 bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-45"
               >
                 <Plus className="h-4 w-4" />

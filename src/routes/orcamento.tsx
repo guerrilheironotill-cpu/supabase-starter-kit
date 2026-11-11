@@ -279,7 +279,11 @@ function OrcamentoPage() {
                   finishCatalog.find((catalogItem) => catalogItem.name === finish.name)
                     ?.extra_price ?? 0,
               })),
-            availableColors: productColorNames,
+            availableColors: [
+              ...new Set(
+                Object.values(colorsByFinish).flatMap((list) => list.map((option) => option.name)),
+              ),
+            ],
             availableFinishColors: colorsByFinish,
           });
           updateConfiguration(item.id, {
@@ -475,7 +479,9 @@ function OrcamentoPage() {
     ...(items.length === 0 ? ["Adicione pelo menos um produto ao orçamento."] : []),
     ...items.flatMap((item) => [
       ...(!item.finish ? [`Selecione o acabamento de ${item.name}.`] : []),
-      ...(!item.color ? [`Selecione a cor de ${item.name}.`] : []),
+      ...(!item.color && colorOptionsFor(item).length > 0
+        ? [`Selecione a cor de ${item.name}.`]
+        : []),
     ]),
   ];
   const canGoStep2 = productErrors.length === 0;

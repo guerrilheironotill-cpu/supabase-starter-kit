@@ -28,22 +28,21 @@ export async function fetchFinishColors(): Promise<FinishColor[]> {
 }
 
 /**
- * Colors a customer can pick for a finish. A finish with colors configured offers only
- * those that the product also has; a finish with none offers every product color at no
- * extra cost, so nothing changes until the finish is configured.
+ * Colors a customer can pick for a finish. Colors are defined inside each finish
+ * (Dashboard > Acabamentos). Only while a finish has none configured yet does it fall back
+ * to the colors the product already had, at no extra cost, so nothing changes until the
+ * finish is configured.
  */
 export function colorsForFinish(
   finishName: string | null | undefined,
-  productColors: string[],
+  legacyProductColors: string[],
   finishColors: FinishColor[],
 ): FinishColorOption[] {
   const configured = finishName ? finishColors.filter((row) => row.finish_name === finishName) : [];
   if (configured.length === 0) {
-    return productColors.map((name) => ({ name, extraPrice: 0 }));
+    return legacyProductColors.map((name) => ({ name, extraPrice: 0 }));
   }
-  const allowed = new Set(productColors);
-  return configured
-    .filter((row) => allowed.has(row.color_name))
+  return [...configured]
     .sort((a, b) => a.sort_order - b.sort_order)
     .map((row) => ({ name: row.color_name, extraPrice: row.extra_price }));
 }
